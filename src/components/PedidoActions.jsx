@@ -1,0 +1,102 @@
+import { iniciarProducao, finalizar, colocarPendente } from "../services/pedidoService";
+import { useState } from "react";
+import ConfirmDialog from "./ConfirmDialog";
+import InputDialog from "./InputDialog";
+
+function PedidoActions({ pedido, onAtualizar }) {
+    const [showDialog, setShowDialog] = useState(false);
+    const [acaoSelecionada, setAcaoSelecionada] = useState(null);
+    const [showInput, setShowInput] = useState(false);
+
+    function confirmar(acao) {
+        setAcaoSelecionada(() => acao);
+        setShowDialog(true);
+    }
+    function abrirEspera() {
+        setShowInput(true);
+    }
+
+    async function executar(acao) {
+        try {
+            await acao();
+            onAtualizar();
+        } catch (error) {
+            console.error(error);
+            alert("Erro ao atualizar pedido.");
+        }
+    }
+
+    async function executarConfirmacao() {
+        await executar(acaoSelecionada);
+
+        setShowDialog(false);
+
+        setAcaoSelecionada(null);
+    }
+
+    return (
+        <div className="d-flex gap-2 mt-3">
+            {pedido.status === "APROVADO" && (
+                <>
+                    <button className="btn btn-primary" onClick={() => confirmar(() => iniciarProducao(pedido.id))}>
+                        Produzir
+                    </button>
+
+                    <button
+                        className="btn btn-warning"
+                        onClick={abrirEspera}
+                    >
+                        Espera
+                    </button>
+
+                    <button className="btn btn-danger">Cancelar</button>
+                </>
+            )}
+
+            {pedido.status === "PENDENTE" && (
+                <>
+                    <button className="btn btn-primary" onClick={() => confirmar(() => iniciarProducao(pedido.id))}>
+                        Retomar
+                    </button>
+
+                    <button className="btn btn-danger">Cancelar</button>
+                </>
+            )}
+
+            {pedido.status === "EM_PRODUCAO" && (
+                <>
+                    <button className="btn btn-success" onClick={() => confirmar(() => finalizar(pedido.id))}>
+                        Finalizar
+                    </button>
+
+                    <button
+                        className="btn btn-warning"
+                        onClick={abrirEspera}
+                    >
+                        Espera
+                    </button>
+                </>
+            )}
+            <ConfirmDialog
+                show={showDialog}
+                titulo="Confirmar ação"
+                mensagem="Deseja realmente executar esta ação?"
+                onConfirm={executarConfirmacao}
+                onCancel={() => setShowDialog(false)}
+            />
+            <InputDialog
+                show={showInput}
+                titulo="Colocar em espera"
+                mensagem="Informe o motivo."
+                placeholder="Ex.: Sem calabresa"
+                onCancel={() => setShowInput(false)}
+                onConfirm={async (motivo) => {
+                    setShowInput(false);
+                    await executar(() => colocarPendente(pedido.id, motivo));
+                }}
+            />
+        </div>
+    );
+}
+
+export default PedidoActions;

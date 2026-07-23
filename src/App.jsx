@@ -1,10 +1,7 @@
-import Cozinha from "./pages/cozinha/Cozinha";
+import Cozinha from "./pages/cozinha/Cozinha.jsx";
 
 function App() {
-
-    return (
-        <Cozinha />
-    )
+    return <Cozinha />;
 }
 
 export default App;
