@@ -1,12 +1,12 @@
 import OperacaoPedidos from "../../components/pedido/OperacaoPedidos";
 
-function Cozinha() {
+function Lanchonete() {
     return (
         <OperacaoPedidos
-            setor="PIZZARIA"
-            titulo="Pizzaria"
+            setor="COZINHA"
+            titulo="Lanchonete"
         />
     );
 }
 
-export default Cozinha;
+export default Lanchonete;

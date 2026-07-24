@@ -2,11 +2,24 @@ import { iniciarProducao, finalizar, colocarPendente } from "../services/pedidoS
 import { useState } from "react";
 import ConfirmDialog from "./ConfirmDialog";
 import InputDialog from "./InputDialog";
+import api from "../services/api";
 
 function PedidoActions({ pedido, onAtualizar }) {
     const [showDialog, setShowDialog] = useState(false);
     const [acaoSelecionada, setAcaoSelecionada] = useState(null);
     const [showInput, setShowInput] = useState(false);
+    const [motivoCancelamento, setMotivoCancelamento] = useState("");
+    const [mostrarCancelamento, setMostrarCancelamento] = useState(false);
+
+    async function cancelarPedido() {
+        await api.put(`/pedidos/${pedido.id}/cancelar`, {
+            justificativa: motivoCancelamento
+        });
+
+        setMostrarCancelamento(false);
+        setMotivoCancelamento("");
+        onAtualizar();
+    }
 
     function confirmar(acao) {
         setAcaoSelecionada(() => acao);
@@ -42,14 +55,13 @@ function PedidoActions({ pedido, onAtualizar }) {
                         Produzir
                     </button>
 
-                    <button
-                        className="btn btn-warning"
-                        onClick={abrirEspera}
-                    >
+                    <button className="btn btn-warning" onClick={abrirEspera}>
                         Espera
                     </button>
 
-                    <button className="btn btn-danger">Cancelar</button>
+                    <button className="btn btn-danger" onClick={() => setMostrarCancelamento(true)}>
+                        Cancelar
+                    </button>
                 </>
             )}
 
@@ -59,7 +71,9 @@ function PedidoActions({ pedido, onAtualizar }) {
                         Retomar
                     </button>
 
-                    <button className="btn btn-danger">Cancelar</button>
+                    <button className="btn btn-danger" onClick={() => setMostrarCancelamento(true)}>
+                        Cancelar
+                    </button>
                 </>
             )}
 
@@ -69,10 +83,7 @@ function PedidoActions({ pedido, onAtualizar }) {
                         Finalizar
                     </button>
 
-                    <button
-                        className="btn btn-warning"
-                        onClick={abrirEspera}
-                    >
+                    <button className="btn btn-warning" onClick={abrirEspera}>
                         Espera
                     </button>
                 </>
@@ -95,6 +106,20 @@ function PedidoActions({ pedido, onAtualizar }) {
                     await executar(() => colocarPendente(pedido.id, motivo));
                 }}
             />
+            {mostrarCancelamento && (
+                <div className="mt-2">
+                    <textarea
+                        className="form-control mb-2"
+                        placeholder="Motivo do cancelamento"
+                        value={motivoCancelamento}
+                        onChange={(e) => setMotivoCancelamento(e.target.value)}
+                    />
+
+                    <button className="btn btn-danger" onClick={cancelarPedido} disabled={!motivoCancelamento}>
+                        Confirmar Cancelamento
+                    </button>
+                </div>
+            )}
         </div>
     );
 }
