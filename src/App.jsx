@@ -7,6 +7,8 @@ import Entrega from "./pages/entrega/Entrega";
 import Balcao from "./pages/balcao/Balcao";
 import Lanchonete from "./pages/lanchonete/Lanchonete";
 import PedidoTeste from "./pages/pedido/PedidoTeste";
+import Cardapio from "./pages/cliente/Cardapio";
+import Carrinho from "./pages/cliente/Carrinho";
 
 function App() {
     return (
@@ -19,6 +21,8 @@ function App() {
                 <Route path="/cozinha" element={<Cozinha />} />
                 <Route path="/entrega" element={<Entrega />} />
                 <Route path="/entrega/historico" element={<Historico />} />
+                <Route path="/cardapio" element={<Cardapio />} />
+                <Route path="/carrinho" element={<Carrinho />} />
             </Route>
         </Routes>
     );

@@ -5,6 +5,7 @@ function Lanchonete() {
         <OperacaoPedidos
             setor="COZINHA"
             titulo="Lanchonete"
+            mostrarValor={false}
         />
     );
 }

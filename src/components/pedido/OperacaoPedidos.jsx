@@ -3,11 +3,12 @@ import api from "../../services/api";
 import PedidoActions from "../PedidoActions";
 import PedidoCard from "./PedidoCard";
 
-function OperacaoPedidos({ setor, titulo }) {
+function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
     const [pedidos, setPedidos] = useState([]);
     const [aba, setAba] = useState("producao");
     const [filtro, setFiltro] = useState("TODOS");
     const [categorias, setCategorias] = useState([]);
+    const [carregando, setCarregando] = useState(false);
 
     async function carregarCategorias() {
         const response = await api.get("/categorias");
@@ -28,18 +29,27 @@ function OperacaoPedidos({ setor, titulo }) {
         carregarCategorias();
     }, []);
 
-    useEffect(() => {
-        function atualizar() {
-            if (aba === "producao") {
-                carregarPedidos();
-            } else {
-                carregarFinalizados();
-            }
-        }
+    async function atualizar() {
+        setCarregando(true);
 
+        try {
+            if (aba === "producao") {
+                await carregarPedidos();
+            } else {
+                await carregarFinalizados();
+            }
+        } finally {
+            setCarregando(false);
+        }
+    }
+
+    useEffect(() => {
         atualizar();
 
-        const intervalo = setInterval(atualizar, 10000);
+        const intervalo = setInterval(() => {
+            if (document.hidden) return;
+            atualizar();
+        }, 10000);
 
         return () => clearInterval(intervalo);
     }, [aba]);
@@ -48,25 +58,16 @@ function OperacaoPedidos({ setor, titulo }) {
         aba === "finalizados"
             ? pedidos
             : filtro === "TODOS"
-                ? pedidos
-                : pedidos.filter((pedido) =>
-                    pedido.itens?.some(
-                        (item) => item.categoria === filtro
-                    )
-                );
+              ? pedidos
+              : pedidos.filter((pedido) => pedido.itens?.some((item) => item.categoria === filtro));
 
     const categoriasComQuantidade = categorias.map((categoria) => ({
         ...categoria,
-        quantidade: pedidos.filter((pedido) =>
-            pedido.itens?.some(
-                (item) => item.categoria === categoria.nome
-            )
-        ).length
+        quantidade: pedidos.filter((pedido) => pedido.itens?.some((item) => item.categoria === categoria.nome)).length
     }));
 
     return (
         <div className="container mt-4">
-
             <h1 className="mb-4">{titulo}</h1>
 
             <div className="mb-4">
@@ -74,7 +75,6 @@ function OperacaoPedidos({ setor, titulo }) {
                     className={`btn ${aba === "producao" ? "btn-primary" : "btn-outline-primary"} me-2`}
                     onClick={() => {
                         setAba("producao");
-                        carregarPedidos();
                     }}
                 >
                     Produção
@@ -84,7 +84,6 @@ function OperacaoPedidos({ setor, titulo }) {
                     className={`btn ${aba === "finalizados" ? "btn-primary" : "btn-outline-primary"}`}
                     onClick={() => {
                         setAba("finalizados");
-                        carregarFinalizados();
                     }}
                 >
                     Finalizados
@@ -112,21 +111,29 @@ function OperacaoPedidos({ setor, titulo }) {
                 </div>
             )}
 
-            <div className="row">
-                {pedidosFiltrados.map((pedido) => (
-                    <div className="col-md-6" key={pedido.id}>
-                        <PedidoCard pedido={pedido}>
-                            {aba === "producao" && (
-                                <PedidoActions
-                                    pedido={pedido}
-                                    onAtualizar={carregarPedidos}
-                                />
-                            )}
-                        </PedidoCard>
-                    </div>
-                ))}
-            </div>
+            {carregando && (
+                <div className="text-center my-5">
+                    <div className="spinner-border" />
+                </div>
+            )}
 
+            {!carregando && (
+                <div className="row">
+                    {pedidosFiltrados.map((pedido) => (
+                        <div className="col-12 col-md-6 col-xl-4" key={pedido.id}>
+                            <PedidoCard pedido={pedido} mostrarValor={mostrarValor}>
+                                {aba === "producao" && <PedidoActions pedido={pedido} onAtualizar={carregarPedidos} />}
+                            </PedidoCard>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {!carregando && pedidosFiltrados.length === 0 && (
+                <div className="text-center mt-5">
+                    <h4>Nenhum pedido encontrado.</h4>
+                </div>
+            )}
         </div>
     );
 }

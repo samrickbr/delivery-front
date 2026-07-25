@@ -10,15 +10,15 @@ function Entrega() {
         setPedidos(response.data);
     }
 
-   useEffect(() => {
-    carregarPedidos();
-
-    const intervalo = setInterval(() => {
+    useEffect(() => {
         carregarPedidos();
-    }, 10000);
 
-    return () => clearInterval(intervalo);
-}, []);
+        const intervalo = setInterval(() => {
+            carregarPedidos();
+        }, 10000);
+
+        return () => clearInterval(intervalo);
+    }, []);
 
     return (
         <div>
@@ -27,7 +27,7 @@ function Entrega() {
             <div className="row">
                 {pedidos.map((pedido) => (
                     <div className="col-md-6" key={pedido.id}>
-                        <PedidoCard pedido={pedido}>
+                        <PedidoCard pedido={pedido} mostrarValor={true}>
                             {pedido.status === "FINALIZADO" && (
                                 <button
                                     className="btn btn-primary"

@@ -61,7 +61,12 @@ function Historico() {
                                     {pedido.status}
                                 </span>
                             </td>
-                            <td>R$ {pedido.valorTotal}</td>
+                            <td>
+                                R${" "}
+                                {pedido.valorTotal?.toLocaleString("pt-BR", {
+                                    minimumFractionDigits: 2
+                                })}
+                            </td>
                         </tr>
                     ))}
                 </tbody>

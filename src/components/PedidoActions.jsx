@@ -10,6 +10,7 @@ function PedidoActions({ pedido, onAtualizar }) {
     const [showInput, setShowInput] = useState(false);
     const [motivoCancelamento, setMotivoCancelamento] = useState("");
     const [mostrarCancelamento, setMostrarCancelamento] = useState(false);
+    const [processando, setProcessando] = useState(false);
 
     async function cancelarPedido() {
         await api.put(`/pedidos/${pedido.id}/cancelar`, {
@@ -30,36 +31,42 @@ function PedidoActions({ pedido, onAtualizar }) {
     }
 
     async function executar(acao) {
+        if (processando) return;
+        setProcessando(true);
+
         try {
             await acao();
             onAtualizar();
         } catch (error) {
             console.error(error);
             alert("Erro ao atualizar pedido.");
+        } finally {
+            setProcessando(false);
         }
     }
 
     async function executarConfirmacao() {
         await executar(acaoSelecionada);
-
         setShowDialog(false);
-
         setAcaoSelecionada(null);
     }
 
     return (
-        <div className="d-flex gap-2 mt-3">
+        <div className="d-grid gap-2 mt-3">
             {pedido.status === "APROVADO" && (
                 <>
-                    <button className="btn btn-primary" onClick={() => confirmar(() => iniciarProducao(pedido.id))}>
+                    <button
+                        className="btn btn-primary btn-lg" disabled={processando}
+                        onClick={() => confirmar(() => iniciarProducao(pedido.id))}
+                    >
                         Produzir
                     </button>
 
-                    <button className="btn btn-warning" onClick={abrirEspera}>
+                    <button className="btn btn-warning" disabled={processando} onClick={abrirEspera}>
                         Espera
                     </button>
 
-                    <button className="btn btn-danger" onClick={() => setMostrarCancelamento(true)}>
+                    <button className="btn btn-danger" disabled={processando} onClick={() => setMostrarCancelamento(true)}>
                         Cancelar
                     </button>
                 </>
@@ -67,11 +74,14 @@ function PedidoActions({ pedido, onAtualizar }) {
 
             {pedido.status === "PENDENTE" && (
                 <>
-                    <button className="btn btn-primary" onClick={() => confirmar(() => iniciarProducao(pedido.id))}>
+                    <button
+                        className="btn btn-primary btn-lg" disabled={processando}
+                        onClick={() => confirmar(() => iniciarProducao(pedido.id))}
+                    >
                         Retomar
                     </button>
 
-                    <button className="btn btn-danger" onClick={() => setMostrarCancelamento(true)}>
+                    <button className="btn btn-danger" disabled={processando} onClick={() => setMostrarCancelamento(true)}>
                         Cancelar
                     </button>
                 </>
@@ -79,11 +89,11 @@ function PedidoActions({ pedido, onAtualizar }) {
 
             {pedido.status === "EM_PRODUCAO" && (
                 <>
-                    <button className="btn btn-success" onClick={() => confirmar(() => finalizar(pedido.id))}>
+                    <button className="btn btn-success" disabled={processando} onClick={() => confirmar(() => finalizar(pedido.id))}>
                         Finalizar
                     </button>
 
-                    <button className="btn btn-warning" onClick={abrirEspera}>
+                    <button className="btn btn-warning" disabled={processando} onClick={abrirEspera}>
                         Espera
                     </button>
                 </>
