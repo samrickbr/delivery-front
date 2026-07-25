@@ -1,17 +1,18 @@
 import { useEffect, useState } from "react";
-import api from "../../services/api";
 import PedidoCard from "../../components/pedido/PedidoCard";
+import { listarBalcao, aceitarPedido } from "../../services/pedidoService";
 
 function Balcao() {
     const [pedidos, setPedidos] = useState([]);
 
     async function carregarPedidos() {
-        const response = await api.get("/pedidos/balcao");
+        const response = await listarBalcao();
         setPedidos(response.data);
     }
 
     async function aprovarPedido(id) {
-        await api.put(`/pedidos/${id}/aprovar`);
+        await aceitarPedido(id);
+
         carregarPedidos();
     }
 
@@ -27,7 +28,7 @@ function Balcao() {
 
     return (
         <div className="container mt-4">
-            <h1 className="mb-4">Balcão</h1>
+            <h1>Balcão</h1>
 
             <div className="row">
                 {pedidos.map((pedido) => (
@@ -36,7 +37,7 @@ function Balcao() {
                             <h5>Itens</h5>
 
                             <ul>
-                                {pedido.itens.map((item) => (
+                                {pedido.itens?.map((item) => (
                                     <li key={item.id}>
                                         {item.quantidade}x {item.produto}
                                     </li>
