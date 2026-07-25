@@ -31,6 +31,9 @@ function Layout() {
                         <Nav.Link as={NavLink} to="/entrega/historico">
                             Histórico
                         </Nav.Link>
+                        <Nav.Link as={NavLink} to="/cardapio">
+                            Cardapio
+                        </Nav.Link>
                     </Nav>
                 </Container>
             </Navbar>

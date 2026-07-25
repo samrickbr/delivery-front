@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import PedidoCard from "../../components/pedido/PedidoCard";
-import { listarBalcao, aceitarPedido } from "../../services/pedidoService";
+import { listarBalcao, aceitarPedido, enviarCozinha, cancelarPedido } from "../../services/pedidoService";
 
 function Balcao() {
     const [pedidos, setPedidos] = useState([]);
@@ -10,9 +10,18 @@ function Balcao() {
         setPedidos(response.data);
     }
 
-    async function aprovarPedido(id) {
+    async function confirmarPedido(id) {
         await aceitarPedido(id);
+        carregarPedidos();
+    }
 
+    async function mandarCozinha(id) {
+        await enviarCozinha(id);
+        carregarPedidos();
+    }
+
+    async function cancelar(id) {
+        await cancelarPedido(id);
         carregarPedidos();
     }
 
@@ -53,8 +62,16 @@ function Balcao() {
                                 })}
                             </h5>
 
-                            <button className="btn btn-success w-100" onClick={() => aprovarPedido(pedido.id)}>
-                                Confirmar Recebimento
+                            <button className="btn btn-success w-100 mb-2" onClick={() => confirmarPedido(pedido.id)}>
+                                Aceitar Pedido
+                            </button>
+
+                            <button className="btn btn-primary w-100 mb-2" onClick={() => mandarCozinha(pedido.id)}>
+                                Enviar para Cozinha
+                            </button>
+
+                            <button className="btn btn-danger w-100" onClick={() => cancelar(pedido.id)}>
+                                Cancelar Pedido
                             </button>
                         </PedidoCard>
                     </div>
