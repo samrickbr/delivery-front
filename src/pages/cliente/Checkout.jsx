@@ -22,9 +22,7 @@ function Checkout({ carrinho, limparCarrinho }) {
         try {
             setEnviando(true);
 
-            await api.post("/pedidos", pedido);
-
-            const response = await api.post("/pedidos", pedido);
+            await api.post("/api/delivery/pedidos", pedido);
 
             setPedidoCriado(response.data);
 
