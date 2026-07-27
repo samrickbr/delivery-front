@@ -1,8 +1,13 @@
-import { iniciarProducao, finalizar, colocarPendente } from "../services/pedidoService";
 import { useState } from "react";
 import ConfirmDialog from "./ConfirmDialog";
 import InputDialog from "./InputDialog";
-import api from "../services/api";
+import {
+    cancelarPedido,
+    colocarPendente,
+    enviarCozinha,
+    iniciarProducao,
+    finalizarPedido
+} from "../services/pedidoService";
 
 function PedidoActions({ pedido, onAtualizar }) {
     const [showDialog, setShowDialog] = useState(false);
@@ -13,9 +18,7 @@ function PedidoActions({ pedido, onAtualizar }) {
     const [processando, setProcessando] = useState(false);
 
     async function cancelarPedido() {
-        await api.put(`/pedidos/${pedido.id}/cancelar`, {
-            justificativa: motivoCancelamento
-        });
+        await cancelarPedido(pedido.id, motivoCancelamento);
 
         setMostrarCancelamento(false);
         setMotivoCancelamento("");
@@ -56,7 +59,8 @@ function PedidoActions({ pedido, onAtualizar }) {
             {pedido.status === "APROVADO" && (
                 <>
                     <button
-                        className="btn btn-primary btn-lg" disabled={processando}
+                        className="btn btn-primary btn-lg"
+                        disabled={processando}
                         onClick={() => confirmar(() => iniciarProducao(pedido.id))}
                     >
                         Produzir
@@ -66,7 +70,11 @@ function PedidoActions({ pedido, onAtualizar }) {
                         Espera
                     </button>
 
-                    <button className="btn btn-danger" disabled={processando} onClick={() => setMostrarCancelamento(true)}>
+                    <button
+                        className="btn btn-danger"
+                        disabled={processando}
+                        onClick={() => setMostrarCancelamento(true)}
+                    >
                         Cancelar
                     </button>
                 </>
@@ -75,13 +83,18 @@ function PedidoActions({ pedido, onAtualizar }) {
             {pedido.status === "PENDENTE" && (
                 <>
                     <button
-                        className="btn btn-primary btn-lg" disabled={processando}
+                        className="btn btn-primary btn-lg"
+                        disabled={processando}
                         onClick={() => confirmar(() => iniciarProducao(pedido.id))}
                     >
                         Retomar
                     </button>
 
-                    <button className="btn btn-danger" disabled={processando} onClick={() => setMostrarCancelamento(true)}>
+                    <button
+                        className="btn btn-danger"
+                        disabled={processando}
+                        onClick={() => setMostrarCancelamento(true)}
+                    >
                         Cancelar
                     </button>
                 </>
@@ -89,7 +102,11 @@ function PedidoActions({ pedido, onAtualizar }) {
 
             {pedido.status === "EM_PRODUCAO" && (
                 <>
-                    <button className="btn btn-success" disabled={processando} onClick={() => confirmar(() => finalizar(pedido.id))}>
+                    <button
+                        className="btn btn-success"
+                        disabled={processando}
+                        onClick={() => confirmar(() => finalizarPedido(pedido.id))}
+                    >
                         Finalizar
                     </button>
 

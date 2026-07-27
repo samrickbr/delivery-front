@@ -313,3 +313,121 @@ Próxima evolução:
 - WebSocket
 - notificações em tempo real
 - melhorias de UX operacional
+
+# Changelog
+
+## Sprint 4 — Fluxo Operacional Delivery
+
+### Backend
+
+- Criação do endpoint de Balcão
+- Criação do endpoint de Separação
+- Criação do endpoint de Entrega Operacional
+- Novo status:
+  - SEPARADO
+- Liberação de pedidos para entrega
+- Ajuste dos mapeamentos PedidoOperacaoResponse
+- Inclusão dos itens do pedido nas respostas do balcão e entrega
+- Correção dos fluxos de produção e entrega
+
+---
+
+### Frontend
+
+## Balcão
+
+Implementadas três etapas operacionais:
+
+- 📥 Pedidos
+- ⏳ Produção
+- 📦 Separação
+
+Fluxo:
+
+RECEBIDO
+↓
+APROVADO
+↓
+EM_PRODUCAO
+↓
+FINALIZADO
+↓
+SEPARADO
+
+---
+
+## Cozinha
+
+Implementado fluxo:
+
+APROVADO
+↓
+EM_PRODUCAO
+
+Permite:
+
+- iniciar produção
+- colocar pendência
+- finalizar
+
+---
+
+## Entrega
+
+Nova tela dividida em duas abas:
+
+📦 Separação
+
+- pedidos separados
+- aguardando motoboy
+
+🚚 Em entrega
+
+- pedidos em rota
+- confirmação de entrega
+
+Fluxo:
+
+SEPARADO
+↓
+SAIU_ENTREGA
+↓
+ENTREGUE
+
+---
+
+## PedidoCard
+
+Padronização completa do componente.
+
+Agora todas as telas utilizam:
+
+- itens
+- cliente
+- observações
+- valor
+- status
+- ações específicas
+
+---
+
+## Serviços
+
+pedidoService organizado por blocos:
+
+- Cliente
+- Balcão
+- Produção
+- Entrega
+- Histórico
+
+Comentários adicionados.
+
+---
+
+## Melhorias
+
+- Atualização automática das telas
+- Componentização das ações
+- Organização do fluxo operacional
+- Base preparada para checklist de separação

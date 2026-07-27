@@ -1,50 +1,206 @@
-# SIGIN Delivery - Frontend
+# SIGIN Delivery
 
-Frontend desenvolvido com:
+Sistema de gerenciamento de pedidos para Delivery desenvolvido em Spring Boot + React.
+
+---
+
+# Objetivo
+
+Controlar todo o fluxo operacional de um delivery, desde o recebimento do pedido até sua entrega ao cliente.
+
+O sistema foi desenvolvido de forma modular para futuramente integrar-se ao ERP SIGIN.
+
+---
+
+# Tecnologias
+
+## Backend
+
+- Java 21
+- Spring Boot
+- Spring Data JPA
+- PostgreSQL
+- Lombok
+
+---
+
+## Frontend
 
 - React
 - Vite
-- Bootstrap
+- Bootstrap 5
 - Axios
 
-## Telas
+---
 
-### Cozinha
+# Fluxo Operacional
 
-Funcionalidades:
+Cliente
 
-- Visualização dos pedidos
-- Controle de produção
-- Colocar pedido em espera
-- Finalização
+↓
 
-### Modais
+Balcão
 
-Implementado:
+↓
 
-- Confirmação de ações
-- Entrada de motivo
-- Teclas Enter e ESC
+Produção
 
-## Estrutura
+↓
 
-src
+Separação
 
-components
-- ConfirmDialog
-- InputDialog
-- PedidoActions
+↓
 
-pages
-- cozinha
+Entrega
 
-services
-- api
-- pedidoService
+↓
 
-## Próximos passos
+Histórico
 
-- Tela entrega
-- Login
-- Dashboard
-- Notificações
+---
+
+# Fluxo de Status
+
+RECEBIDO
+↓
+APROVADO
+↓
+EM_PRODUCAO
+↓
+FINALIZADO
+↓
+SEPARADO
+↓
+SAIU_ENTREGA
+↓
+ENTREGUE
+
+Fluxos alternativos
+
+EM_PRODUCAO
+↓
+PENDENTE
+↓
+EM_PRODUCAO
+
+Qualquer etapa
+↓
+CANCELADO
+
+---
+
+# Estrutura Frontend
+
+/pages
+
+cliente/
+balcao/
+cozinha/
+lanchonete/
+entrega/
+
+components/
+
+PedidoCard
+PedidoActions
+OperacaoPedidos
+
+services/
+
+api.js
+pedidoService.js
+
+---
+
+# Estrutura Backend
+
+controller/
+
+PedidoController
+
+service/
+
+PedidoService
+
+repository/
+
+PedidoRepository
+
+mapper/
+
+PedidoMapper
+
+dto/
+
+Request
+Response
+OperacaoResponse
+BalcaoResponse
+
+entity/
+
+Pedido
+PedidoItem
+
+---
+
+# Operações
+
+## Balcão
+
+Receber pedidos
+
+Aprovar pedido
+
+Cancelar pedido
+
+Separar pedidos
+
+Liberar para entrega
+
+---
+
+## Produção
+
+Iniciar produção
+
+Colocar pendência
+
+Retomar produção
+
+Finalizar produção
+
+---
+
+## Entrega
+
+Receber pedidos separados
+
+Sair para entrega
+
+Confirmar entrega
+
+Consultar histórico
+
+---
+
+# Atualização automática
+
+Todas as telas operacionais realizam atualização automática a cada 10 segundos.
+
+Futuramente será substituído por WebSocket.
+
+---
+
+# Próximas funcionalidades
+
+- Checklist de separação
+- Impressão automática
+- Painel de cozinha
+- Painel TV
+- WebSocket
+- Controle por item
+- Controle de retirada no balcão
+- Dashboard operacional
+- Relatórios
+- Integração completa com ERP SIGIN

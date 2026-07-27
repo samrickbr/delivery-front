@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 function Carrinho() {
     const [itens, setItens] = useState([]);
+    const navigate = useNavigate();
 
     function carregarCarrinho() {
         const carrinho = JSON.parse(sessionStorage.getItem("carrinho")) || [];
@@ -87,7 +89,11 @@ function Carrinho() {
                 })}
             </h3>
 
-            <button className="btn btn-success w-100" disabled={itens.length === 0}>
+            <button
+                className="btn btn-success w-100"
+                disabled={itens.length === 0}
+                onClick={() => navigate("/checkout")}
+            >
                 Finalizar Pedido
             </button>
         </div>

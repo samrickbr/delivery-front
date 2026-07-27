@@ -1,82 +1,171 @@
 import { useEffect, useState } from "react";
 import PedidoCard from "../../components/pedido/PedidoCard";
-import { listarBalcao, aceitarPedido, enviarCozinha, cancelarPedido } from "../../services/pedidoService";
+import { listarPorStatus, aprovarPedido, enviarCozinha, cancelarPedido } from "../../services/pedidoService";
+import ChecklistSeparacao from "../../components/pedido/ChecklistSeparacao";
+
+// =====================================
+// ABAS DO BALCÃO
+// =====================================
+
+const ABAS = {
+    PEDIDOS: "pedidos",
+    PRODUCAO: "producao",
+    SEPARACAO: "separacao"
+};
 
 function Balcao() {
     const [pedidos, setPedidos] = useState([]);
+    const [aba, setAba] = useState(ABAS.PEDIDOS);
+
+    // =====================================
+    // CARREGAMENTO DOS PEDIDOS
+    //
+    // PEDIDOS    -> RECEBIDO
+    // PRODUÇÃO   -> APROVADO
+    // SEPARAÇÃO  -> FINALIZADO
+    // =====================================
 
     async function carregarPedidos() {
-        const response = await listarBalcao();
+        let response;
+
+        switch (aba) {
+            case ABAS.PEDIDOS:
+                response = await listarPorStatus("RECEBIDO");
+                break;
+
+            case ABAS.PRODUCAO:
+                response = await listarPorStatus("APROVADO");
+                break;
+
+            case ABAS.SEPARACAO:
+                response = await listarPorStatus("FINALIZADO");
+                break;
+
+            default:
+                response = { data: [] };
+        }
+
         setPedidos(response.data);
     }
 
-    async function confirmarPedido(id) {
-        await aceitarPedido(id);
+    // =====================================
+    // RECEBIDO -> APROVADO
+    // =====================================
+
+    async function aceitarPedido(id) {
+        await aprovarPedido(id);
         carregarPedidos();
     }
 
-    async function mandarCozinha(id) {
+    // =====================================
+    // APROVADO -> EM_PRODUCAO
+    // =====================================
+
+    async function enviarParaCozinha(id) {
         await enviarCozinha(id);
         carregarPedidos();
     }
 
+    // =====================================
+    // CANCELAR PEDIDO
+    // =====================================
+
     async function cancelar(id) {
-        await cancelarPedido(id);
+        await cancelarPedido(id, "");
         carregarPedidos();
     }
+
+    // =====================================
+    // ATUALIZAÇÃO AUTOMÁTICA
+    // =====================================
 
     useEffect(() => {
         carregarPedidos();
 
         const intervalo = setInterval(() => {
-            carregarPedidos();
+            if (!document.hidden) {
+                carregarPedidos();
+            }
         }, 10000);
 
         return () => clearInterval(intervalo);
-    }, []);
+    }, [aba]);
 
     return (
         <div className="container mt-4">
-            <h1>Balcão</h1>
+            <h1 className="mb-4">Balcão</h1>
+
+            {/* ===========================
+                ABAS
+            ============================ */}
+
+            <div className="mb-4">
+                <button
+                    className={`btn me-2 ${aba === ABAS.PEDIDOS ? "btn-primary" : "btn-outline-primary"}`}
+                    onClick={() => setAba(ABAS.PEDIDOS)}
+                >
+                    📥 Pedidos
+                </button>
+
+                <button
+                    className={`btn me-2 ${aba === ABAS.PRODUCAO ? "btn-warning" : "btn-outline-warning"}`}
+                    onClick={() => setAba(ABAS.PRODUCAO)}
+                >
+                    ⏳ Produção
+                </button>
+
+                <button
+                    className={`btn ${aba === ABAS.SEPARACAO ? "btn-success" : "btn-outline-success"}`}
+                    onClick={() => setAba(ABAS.SEPARACAO)}
+                >
+                    📦 Separação
+                </button>
+            </div>
 
             <div className="row">
                 {pedidos.map((pedido) => (
                     <div className="col-md-6" key={pedido.id}>
                         <PedidoCard pedido={pedido}>
-                            <h5>Itens</h5>
+                            {/* RECEBIDO */}
 
-                            <ul>
-                                {pedido.itens?.map((item) => (
-                                    <li key={item.id}>
-                                        {item.quantidade}x {item.produto}
-                                    </li>
-                                ))}
-                            </ul>
+                            {pedido.status === "RECEBIDO" && (
+                                <>
+                                    <button
+                                        className="btn btn-success w-100 mb-2"
+                                        onClick={() => aceitarPedido(pedido.id)}
+                                    >
+                                        ✅ Aceitar Pedido
+                                    </button>
 
-                            <hr />
+                                    <button className="btn btn-danger w-100" onClick={() => cancelar(pedido.id)}>
+                                        ❌ Cancelar
+                                    </button>
+                                </>
+                            )}
 
-                            <h5>
-                                Total: R${" "}
-                                {pedido.valorTotal?.toLocaleString("pt-BR", {
-                                    minimumFractionDigits: 2
-                                })}
-                            </h5>
+                            {/* APROVADO */}
 
-                            <button className="btn btn-success w-100 mb-2" onClick={() => confirmarPedido(pedido.id)}>
-                                Aceitar Pedido
-                            </button>
+                            {pedido.status === "APROVADO" && (
+                                <button className="btn btn-primary w-100" onClick={() => enviarParaCozinha(pedido.id)}>
+                                    🍳 Enviar para Cozinha
+                                </button>
+                            )}
 
-                            <button className="btn btn-primary w-100 mb-2" onClick={() => mandarCozinha(pedido.id)}>
-                                Enviar para Cozinha
-                            </button>
+                            {/* FINALIZADO */}
 
-                            <button className="btn btn-danger w-100" onClick={() => cancelar(pedido.id)}>
-                                Cancelar Pedido
-                            </button>
+                            {pedido.status === "FINALIZADO" && (
+                                <ChecklistSeparacao pedido={pedido} onAtualizar={carregarPedidos} />
+                            )}
                         </PedidoCard>
                     </div>
                 ))}
             </div>
+
+            {pedidos.length === 0 && (
+                <div className="text-center mt-5">
+                    <h4>Nenhum pedido nesta etapa.</h4>
+                </div>
+            )}
         </div>
     );
 }

@@ -1,397 +1,305 @@
-# Fluxo Operacional Frontend SIGIN Delivery
+# Fluxo Operacional SIGIN Delivery
 
+# Objetivo
 
-# Visão geral
+Este documento define o fluxo operacional oficial do SIGIN Delivery.
 
-O frontend representa o fluxo operacional do delivery através de telas separadas por responsabilidade.
-
-
-Fluxo principal:
-
-Balcão
-|
-v
-Produção
-|
-v
-Entrega
-|
-v
-Histórico
-
-
+Qualquer alteração no sistema deve respeitar este fluxo.
 
 ---
 
-# 1. Recebimento do pedido
+# Participantes
 
+## Cliente
 
-## Tela
+Responsável por montar e enviar o pedido.
 
+---
 
-/balcao
+## Balcão
 
+Responsável por:
 
+- conferir o pedido
+- aprovar
+- cancelar
+- separar todos os itens
+- liberar para entrega
 
-## Responsável
+Também é responsável pelos itens que não passam pela cozinha:
 
-Operador do balcão.
+- bebidas
+- doces
+- chocolates
+- acessórios
+- guardanapos
+- molhos
+- copos
+- canudos
 
+---
 
-## Processo
+## Cozinha
 
+Responsável por:
 
-1. Visualiza novos pedidos.
-2. Confere informações.
-3. Aprova pedido.
+- lanches
+- porções
+- pratos
 
+---
 
-Status inicial:
+## Pizzaria
 
+Responsável por:
 
+- pizzas
+
+---
+
+## Motoboy
+
+Responsável por:
+
+- retirar pedidos liberados
+- informar saída
+- confirmar entrega
+
+---
+
+# Fluxo Oficial
+
+## 1 Recebimento
+
+Cliente envia pedido.
+
+Status
 
 RECEBIDO
 
+Tela
 
-
-Após aprovação:
-
-
-
-RECEBIDO → APROVADO
-
-
+Balcão
 
 ---
 
-# 2. Separação por setor
+## 2 Conferência
 
+Balcão verifica:
 
-Após aprovação, o pedido fica disponível para produção.
+- itens
+- pagamento
+- observações
+- disponibilidade
 
+Pode:
 
-O frontend identifica o setor através dos itens:
+✔ Aprovar
 
+ou
 
-Produto
+✖ Cancelar
 
-↓
+Status
 
-Categoria
-
-↓
-
-Setor
-
-
-Exemplo:
-
-
-Pedido:
-
-- Pizza Calabresa
-- X Salada
-
-
-Direcionamento:
-
-
-PIZZARIA:
-
-- Pizza Calabresa
-
-
-COZINHA:
-
-- X Salada
-
+APROVADO
 
 ---
 
-# 3. Produção
+## 3 Produção
 
+Após aprovado, os setores visualizam apenas seus próprios itens.
 
-## Tela Pizzaria
-
-Rota atual:
-
-
-/cozinha
-
-
-
-Setor:
-
-
-PIZZARIA
-
-
-
-Operações:
-
-
-### Iniciar produção
-
-
-
-APROVADO → EM_PRODUCAO
-
-
-
-### Colocar em espera
-
-
-
-EM_PRODUCAO → PENDENTE
-
-
-
-Necessário informar:
-
-- motivo
-
-
-### Retomar produção
-
-
-
-PENDENTE → EM_PRODUCAO
-
-
-
-### Finalizar
-
-
-
-EM_PRODUCAO → FINALIZADO
-
-
-
----
-
-# Tela Lanchonete
-
-
-Rota:
-
-
-/lanchonete
-
-
-
-Setor:
-
-
-COZINHA
-
-
-
-Possui o mesmo fluxo operacional da produção.
-
-
----
-
-# 4. Liberação para entrega
-
-
-## Tela
-
-
-/entrega
-
-
-
-Após produção:
-
-
-Status:
-
-
-FINALIZADO
-
-
-
-Operador realiza:
-
-
-Enviar para entrega:
-
-
-
-FINALIZADO → SAIU_ENTREGA
-
-
-
----
-
-# 5. Confirmação de entrega
-
-
-Após o entregador retornar:
-
-
-Ação:
-
-
-
-SAIU_ENTREGA → ENTREGUE
-
-
-
-Pedido deixa fluxo operacional.
-
-
----
-
-# 6. Histórico
-
-
-## Tela
-
-
-/entrega/historico
-
-
-
-Objetivo:
-
-
-Consulta de pedidos encerrados.
-
-
-Status exibidos:
-
-
-- FINALIZADO
-- ENTREGUE
-- CANCELADO
-
-
----
-
-# 7. Cancelamento
-
-
-Cancelamento pode ocorrer durante produção.
-
-
-Fluxo:
-
-
-Operador seleciona:
-
-
-
-Cancelar
-
-
-
-Sistema solicita:
-
-
-
-Justificativa
-
-
-
-Após confirmação:
-
-
-Qualquer etapa permitida:
-
-
-
-→ CANCELADO
-
-
-
----
-
-# Atualização automática
-
-
-As telas operacionais realizam atualização periódica.
-
-
-Comportamento atual:
-
-
-- carregamento inicial
-- atualização automática a cada 10 segundos
-
-
-Objetivo:
-
-Manter operadores sincronizados.
-
-
----
-
-# Pontos de evolução
-
-
-## Tempo real
-
-Substituir polling:
-
-
-Atual:
-
-
-setInterval()
-
-
-
-Futuro:
-
-
-WebSocket
-
-
-
----
-
-## Operação mobile
-
-
-Possibilitar:
-
-
-- operador de cozinha usando celular
-- pizzaiolo recebendo pedidos
-- entregador atualizando status
-
-
----
-
-## Fluxo com status por item
-
-
-Evolução futura:
-
-
-Atual:
-
-
-Pedido
-|
-Status único
-
-
-
-Futuro:
-
+Exemplo
 
 Pedido
 
-├── Pizza
-│ EM_PRODUCAO
+- Pizza
+- X Salada
+- Coca
+- Chocolate
 
-└── Lanche
+Pizzaria recebe
+
+- Pizza
+
+Cozinha recebe
+
+- X Salada
+
+Balcão mantém
+
+- Coca
+- Chocolate
+
+---
+
+## 4 Produção iniciada
+
+Quando o setor começar a produzir:
+
+Status
+
+EM_PRODUCAO
+
+---
+
+## 5 Pendência
+
+Caso exista algum problema:
+
+Status
+
+PENDENTE
+
+Obrigatório informar motivo.
+
+Depois pode retornar para
+
+EM_PRODUCAO
+
+---
+
+## 6 Finalização
+
+Ao concluir todos os itens daquele setor:
+
+Status
+
 FINALIZADO
 
+O pedido retorna automaticamente ao Balcão.
 
+---
 
-Objetivo:
+# 7 Separação
 
-Cada setor operar independente.
+O Balcão monta o pedido completo.
+
+Nesta etapa será utilizado um checklist.
+
+Exemplo
+
+☐ Pizza
+
+☐ X Salada
+
+☐ Coca
+
+☐ Chocolate
+
+☐ Guardanapos
+
+☐ Molhos
+
+☐ Copos
+
+☐ Canudos
+
+Todos os itens devem estar marcados.
+
+Somente então o sistema permite liberar o pedido.
+
+Status
+
+SEPARADO
+
+---
+
+# 8 Liberação
+
+Pedido aparece para o Motoboy.
+
+O Motoboy retira o pedido.
+
+Ao clicar
+
+"Sair para entrega"
+
+Status
+
+SAIU_ENTREGA
+
+---
+
+# 9 Entrega
+
+Ao entregar ao cliente
+
+Status
+
+ENTREGUE
+
+Pedido deixa o fluxo operacional.
+
+---
+
+# Cancelamento
+
+Pode ocorrer em qualquer etapa permitida.
+
+Status
+
+CANCELADO
+
+Sempre exige justificativa.
+
+---
+
+# Fluxo dos Status
+
+RECEBIDO
+
+↓
+
+APROVADO
+
+↓
+
+EM_PRODUCAO
+
+↓
+
+FINALIZADO
+
+↓
+
+SEPARADO
+
+↓
+
+SAIU_ENTREGA
+
+↓
+
+ENTREGUE
+
+Fluxo alternativo
+
+EM_PRODUCAO
+
+↓
+
+PENDENTE
+
+↓
+
+EM_PRODUCAO
+
+Cancelamento
+
+↓
+
+CANCELADO
+
+---
+
+# Regras
+
+- Cada setor visualiza apenas seus próprios itens.
+- O Balcão visualiza o pedido completo.
+- O Balcão é responsável pela montagem final.
+- O Motoboy nunca altera pedidos.
+- Nenhum pedido pode ir para entrega sem checklist completo.
+- O checklist será obrigatório na etapa de Separação.
+- Toda alteração de status deve registrar data e hora.

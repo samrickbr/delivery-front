@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import api from "../../services/api";
 import PedidoActions from "../PedidoActions";
 import PedidoCard from "./PedidoCard";
+import { listarCozinha, listarFinalizados } from "../../services/pedidoService";
 
 function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
     const [pedidos, setPedidos] = useState([]);
@@ -16,12 +16,12 @@ function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
     }
 
     async function carregarPedidos() {
-        const response = await api.get(`/pedidos/cozinha?setor=${setor}`);
+        const response = await listarCozinha(setor);
         setPedidos(response.data);
     }
 
     async function carregarFinalizados() {
-        const response = await api.get("/pedidos/finalizados");
+        const response = await listarFinalizados();
         setPedidos(response.data);
     }
 

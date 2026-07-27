@@ -8,7 +8,7 @@ function Cardapio() {
     const [toast, setToast] = useState(false);
 
     async function carregarCardapio() {
-        const response = await api.get("/api/delivery/cardapio");
+        const response = await api.get("/produtos");
 
         setProdutos(response.data);
     }

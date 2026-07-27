@@ -1,229 +1,308 @@
-# Arquitetura Frontend SIGIN Delivery
+# Arquitetura do SIGIN Delivery
 
+## Objetivo
 
-## Visão geral
-
-O frontend do SIGIN Delivery é uma aplicação web responsável pela interface operacional do sistema.
-
-Ele realiza comunicação com o backend através de API REST.
-
+Definir a organização do projeto para manter um padrão durante todo o desenvolvimento.
 
 ---
 
-# Tecnologias utilizadas
+# Backend
 
+```
+controller
+        ↓
+service
+        ↓
+repository
+        ↓
+database
+```
 
-- React
-- Vite
-- React Router
-- Axios
-- Bootstrap
+O fluxo sempre deve seguir essa ordem.
 
-
----
-
-# Estrutura atual
-
-
-## Pages
-
-Responsáveis pelas telas completas da aplicação.
-
-
-Estrutura atual:
-
-
-src/pages
-
-- balcao
-- cozinha
-- lanchonete
-- entrega
-- pedido
-- historico
-
+O Controller nunca acessa o Repository diretamente.
 
 ---
 
-## Components
+## Estrutura
 
-Componentes reutilizáveis.
+```
+controller/
 
+PedidoController
 
-Exemplos:
+service/
 
+PedidoService
 
-- Layout
-- PedidoCard
-- PedidoActions
-- ConfirmDialog
-- InputDialog
+repository/
 
+PedidoRepository
+
+mapper/
+
+PedidoMapper
+
+dto/
+
+Request
+Response
+OperacaoResponse
+BalcaoResponse
+EntregaResponse
+
+entity/
+
+Pedido
+PedidoItem
+Produto
+Categoria
+Setor
+```
 
 ---
 
-## Services
+# Frontend
 
-Responsável pela comunicação com backend.
+```
+Pages
+        ↓
+Components
+        ↓
+Services
+        ↓
+API
+        ↓
+Backend
+```
 
+---
 
-Estrutura:
+## Estrutura
 
+```
+src
 
-src/services
+pages/
 
+cliente/
+balcao/
+cozinha/
+lanchonete/
+entrega/
 
-Exemplo:
+components/
+
+pedido/
+
+PedidoCard.jsx
+PedidoActions.jsx
+OperacaoPedidos.jsx
+
+services/
 
 api.js
 
+pedidoService.js
 
-Responsável por:
-
-- configuração Axios
-- URL base
-- chamadas HTTP
-
+App.jsx
+```
 
 ---
 
-# Rotas atuais
+# Organização dos Services
 
+Todos os services devem seguir o mesmo padrão.
 
-## /balcao
+Exemplo:
 
-Tela operacional do balcão.
+```javascript
+// ===============================
+// CLIENTE
+// ===============================
 
+...
 
-Responsável por:
+// ===============================
+// BALCÃO
+// ===============================
 
-- visualizar pedidos recebidos
-- aprovar pedidos
+...
 
+// ===============================
+// PRODUÇÃO
+// ===============================
 
----
+...
 
-## /cozinha
+// ===============================
+// ENTREGA
+// ===============================
 
-Tela de produção.
+...
 
+// ===============================
+// HISTÓRICO
+// ===============================
+```
 
-Observação:
-
-A rota possui nome histórico, porém atualmente representa a operação PIZZARIA.
-
-
-Responsável por:
-
-- visualizar pedidos do setor
-- iniciar produção
-- colocar pendente
-- finalizar produção
-
-
----
-
-## /lanchonete
-
-Tela de produção do setor COZINHA.
-
-
-Responsável por:
-
-- visualizar pedidos do setor
-- acompanhar produção
-
+Nunca deixar funções misturadas.
 
 ---
 
-## /entrega
+# Organização dos Components
 
-Tela de entrega.
+Sempre que possível:
 
-
-Responsável por:
-
-- visualizar pedidos liberados
-- enviar para entrega
-- confirmar entrega
-
-
----
-
-## /entrega/historico
-
-Histórico operacional.
-
-
-Responsável por:
-
-- consultar pedidos encerrados
-
-
----
-
-# Fluxo frontend
-
-
-Balcão
+```
+Page
 
 ↓
 
-Aprovação
+Componente
 
 ↓
 
-Produção por setor
+Subcomponente
+```
 
-↓
+Exemplo
 
+```
 Entrega
 
 ↓
 
-Histórico
+PedidoCard
 
+↓
 
----
-
-# Atualização dos dados
-
-
-As telas operacionais utilizam atualização automática periódica.
-
-
-Comportamento atual:
-
-- busca inicial ao abrir tela
-- atualização automática a cada 10 segundos
-
+PedidoActions
+```
 
 ---
 
-# Estado da aplicação
+# Organização dos Status
 
+```
+RECEBIDO
 
-Atualmente o controle de estado é realizado dentro dos componentes através de:
+↓
 
-- useState
-- useEffect
+APROVADO
 
+↓
 
-Não existe ainda:
+EM_PRODUCAO
 
-- Redux
-- Context API
-- gerenciamento global de estado
+↓
 
+FINALIZADO
+
+↓
+
+SEPARADO
+
+↓
+
+SAIU_ENTREGA
+
+↓
+
+ENTREGUE
+```
+
+Fluxos alternativos
+
+```
+PENDENTE
+
+CANCELADO
+```
 
 ---
 
-# Evoluções futuras
+# Atualização automática
 
+Todas as telas operacionais:
 
-- autenticação de usuários
-- telas responsivas para celular
-- notificações em tempo real
-- WebSocket
-- PWA
-- modo operador por setor
+- atualização inicial
+- atualização automática
+- intervalo de 10 segundos
+
+Futuramente:
+
+WebSocket
+
+---
+
+# Padrões
+
+## Backend
+
+- Controller pequeno
+- Service concentra regras
+- Repository apenas consultas
+- Mapper faz conversões
+- DTO nunca contém regra de negócio
+
+---
+
+## Frontend
+
+- Pages apenas organizam telas.
+- Components exibem informações.
+- Services fazem chamadas HTTP.
+- API centraliza configuração do Axios.
+
+---
+
+# Convenções
+
+## Arquivos
+
+PascalCase
+
+```
+PedidoCard.jsx
+```
+
+---
+
+## Funções
+
+camelCase
+
+```
+carregarPedidos()
+```
+
+---
+
+## Comentários
+
+Sempre separar funções em blocos.
+
+Exemplo
+
+```javascript
+// ================================
+// ENTREGA
+// ================================
+```
+
+---
+
+# Objetivo futuro
+
+O Delivery será apenas um módulo do ERP SIGIN.
+
+Toda arquitetura deve ser reaproveitável para:
+
+- Delivery
+- Caixa
+- Estoque
+- Financeiro
+- Compras
+- Produção
+- Administração

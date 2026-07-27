@@ -1,6 +1,8 @@
 import api from "./api";
 
-// CLIENTE / PEDIDO
+/* ==========================================================
+   CLIENTE
+========================================================== */
 
 export async function criarPedido(data) {
     return api.post("/pedidos", data);
@@ -10,60 +12,109 @@ export async function buscarPedido(id) {
     return api.get(`/pedidos/${id}`);
 }
 
-export async function listarPedidos() {
-    return api.get("/pedidos");
-}
-
-// BALCÃO
+/* ==========================================================
+   BALCÃO
+========================================================== */
 
 export async function listarBalcao() {
-    return api.get("/delivery/balcao/pedidos");
+    return api.get("/pedidos/balcao");
 }
 
-export async function aceitarPedido(id) {
-    return api.put(`/delivery/balcao/${id}/aceitar`);
+export async function aprovarPedido(id) {
+    return api.put(`/pedidos/${id}/aprovar`);
 }
 
-export async function enviarCozinha(id) {
-    return api.put(`/delivery/balcao/${id}/cozinha`);
-}
-
-export async function cancelarPedido(id) {
-    return api.put(`/delivery/balcao/${id}/cancelar`);
-}
-
-export async function colocarPendente(id, motivo) {
-    return api.put(`/delivery/balcao/${id}/pendente`, {
-        motivo
+export async function cancelarPedido(id, justificativa) {
+    return api.put(`/pedidos/${id}/cancelar`, {
+        justificativa
     });
 }
 
-// COZINHA
+export async function enviarCozinha(id) {
+    return api.put(`/pedidos/${id}/producao`);
+}
 
-export async function listarCozinha() {
-    return api.get("/pedidos/cozinha");
+export async function separarPedido(id) {
+    return api.put(`/pedidos/${id}/separar`);
+}
+
+// =====================================
+// LIBERAR PARA ENTREGA
+//
+// Após separação do balcão
+// FINALIZADO -> LIBERADO_ENTREGA
+// =====================================
+
+export async function liberarEntrega(id) {
+    return api.put(`/pedidos/${id}/liberar-entrega`);
+}
+
+/* ==========================================================
+   COZINHA / PRODUÇÃO
+========================================================== */
+
+export async function listarCozinha(setor) {
+    return api.get(`/pedidos/cozinha?setor=${setor}`);
+}
+
+export async function colocarPendente(id, motivo) {
+    return api.put(`/pedidos/${id}/pendente`, {
+        motivo
+    });
 }
 
 export async function iniciarProducao(id) {
     return api.put(`/pedidos/${id}/producao`);
 }
 
-export async function finalizar(id) {
+export async function finalizarPedido(id) {
     return api.put(`/pedidos/${id}/finalizar`);
 }
 
-// ENTREGA
-
-export async function listarEntrega() {
-    return api.get("/pedidos/entrega");
+export async function listarFinalizados() {
+    return api.get("/pedidos/finalizados");
 }
 
-export async function saiuParaEntrega(id) {
-    return api.put(`/pedidos/${id}/saiu-entrega`);
+/* ==========================================================
+   ENTREGA
+========================================================== */
+
+export async function listarEntregaOperacao() {
+    return api.get("/pedidos/entrega-operacao");
 }
 
-// Lanchonete / Operação
+export async function sairEntrega(id) {
+    return api.put(`/pedidos/${id}/sair-entrega`);
+}
 
-export async function listarLanchonete() {
-    return api.get("/pedidos/lanchonete");
+export async function entregarPedido(id) {
+    return api.put(`/pedidos/${id}/entregar`);
+}
+
+export async function listarEntregues() {
+    return api.get("/pedidos/entregues");
+}
+
+/* ==========================================================
+   GERAL
+========================================================== */
+
+export async function listarPedidos() {
+    return api.get("/pedidos");
+}
+
+// =====================================
+// BUSCAR PEDIDOS POR STATUS
+// =====================================
+
+export async function listarPorStatus(status) {
+    return api.get(`/pedidos/status/${status}`);
+}
+
+// =======================================
+// SEPARAÇÃO
+// =======================================
+
+export async function listarSeparacao() {
+    return api.get("/pedidos/entrega-operacao");
 }
