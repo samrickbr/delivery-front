@@ -24,8 +24,8 @@ export async function aprovarPedido(id) {
     return api.put(`/pedidos/${id}/aprovar`);
 }
 
-export async function cancelarPedido(id, justificativa) {
-    return api.put(`/pedidos/${id}/cancelar`, {
+export async function cancelarPedido(id, setor, justificativa) {
+    return api.put(`/pedidos/${id}/cancelar?setor=${setor}`, {
         justificativa
     });
 }
@@ -45,8 +45,10 @@ export async function separarPedido(id) {
 // FINALIZADO -> LIBERADO_ENTREGA
 // =====================================
 
-export async function liberarEntrega(id) {
-    return api.put(`/pedidos/${id}/liberar-entrega`);
+export async function liberarEntrega(id, itens) {
+    return api.put(`/pedidos/${id}/liberar-entrega`, {
+        itens
+    });
 }
 
 /* ==========================================================
@@ -57,18 +59,18 @@ export async function listarCozinha(setor) {
     return api.get(`/pedidos/cozinha?setor=${setor}`);
 }
 
-export async function colocarPendente(id, motivo) {
-    return api.put(`/pedidos/${id}/pendente`, {
+export async function colocarPendente(id, setor, motivo) {
+    return api.put(`/pedidos/${id}/pendente?setor=${setor}`, {
         motivo
     });
 }
 
-export async function iniciarProducao(id) {
-    return api.put(`/pedidos/${id}/producao`);
+export async function iniciarProducao(id, setor) {
+    return api.put(`/pedidos/${id}/producao?setor=${setor}`);
 }
 
-export async function finalizarPedido(id) {
-    return api.put(`/pedidos/${id}/finalizar`);
+export async function finalizarPedido(id, setor) {
+    return api.put(`/pedidos/${id}/finalizar?setor=${setor}`);
 }
 
 export async function listarFinalizados() {

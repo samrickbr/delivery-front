@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import PedidoCard from "../../components/pedido/PedidoCard";
 import { listarPorStatus, aprovarPedido, enviarCozinha, cancelarPedido } from "../../services/pedidoService";
 import ChecklistSeparacao from "../../components/pedido/ChecklistSeparacao";
+import { liberarEntrega } from "../../services/pedidoService";
 
 // =====================================
 // ABAS DO BALCÃO
@@ -16,6 +17,7 @@ const ABAS = {
 function Balcao() {
     const [pedidos, setPedidos] = useState([]);
     const [aba, setAba] = useState(ABAS.PEDIDOS);
+    const [checklist, setChecklist] = useState({});
 
     // =====================================
     // CARREGAMENTO DOS PEDIDOS
@@ -67,6 +69,28 @@ function Balcao() {
     }
 
     // =====================================
+    // SEPARAÇÃO DE ITENS
+    // =====================================
+
+    function marcarItem(itemId, marcado) {
+        setChecklist((old) => ({
+            ...old,
+            [itemId]: marcado
+        }));
+    }
+
+    async function enviarEntrega(pedido) {
+        const itens = pedido.itens.map((item) => ({
+            itemId: item.id,
+            separado: checklist[item.id] || false
+        }));
+
+        await liberarEntrega(pedido.id, itens);
+
+        carregarPedidos();
+    }
+
+    // =====================================
     // CANCELAR PEDIDO
     // =====================================
 
@@ -113,7 +137,6 @@ function Balcao() {
                 >
                     ⏳ Produção
                 </button>
-
                 <button
                     className={`btn ${aba === ABAS.SEPARACAO ? "btn-success" : "btn-outline-success"}`}
                     onClick={() => setAba(ABAS.SEPARACAO)}

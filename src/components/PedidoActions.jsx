@@ -9,13 +9,14 @@ import {
     finalizarPedido
 } from "../services/pedidoService";
 
-function PedidoActions({ pedido, onAtualizar }) {
+function PedidoActions({ pedido, setor, onAtualizar }) {
     const [showDialog, setShowDialog] = useState(false);
     const [acaoSelecionada, setAcaoSelecionada] = useState(null);
     const [showInput, setShowInput] = useState(false);
     const [motivoCancelamento, setMotivoCancelamento] = useState("");
     const [mostrarCancelamento, setMostrarCancelamento] = useState(false);
     const [processando, setProcessando] = useState(false);
+    const statusOperacao = pedido.itens[0]?.statusOperacao;
 
     async function cancelarPedido() {
         await cancelarPedido(pedido.id, motivoCancelamento);
@@ -56,17 +57,21 @@ function PedidoActions({ pedido, onAtualizar }) {
 
     return (
         <div className="d-grid gap-2 mt-3">
-            {pedido.status === "APROVADO" && (
+            {statusOperacao === "APROVADO" && (
                 <>
                     <button
                         className="btn btn-primary btn-lg"
                         disabled={processando}
-                        onClick={() => confirmar(() => iniciarProducao(pedido.id))}
+                        onClick={() => confirmar(() => iniciarProducao(pedido.id, setor))}
                     >
                         Produzir
                     </button>
 
-                    <button className="btn btn-warning" disabled={processando} onClick={abrirEspera}>
+                    <button
+                        className="btn btn-warning"
+                        disabled={processando}
+                        onClick={() => confirmar(() => iniciarProducao(pedido.id, setor))}
+                    >
                         Espera
                     </button>
 
@@ -80,12 +85,12 @@ function PedidoActions({ pedido, onAtualizar }) {
                 </>
             )}
 
-            {pedido.status === "PENDENTE" && (
+            {statusOperacao === "PENDENTE" && (
                 <>
                     <button
                         className="btn btn-primary btn-lg"
                         disabled={processando}
-                        onClick={() => confirmar(() => iniciarProducao(pedido.id))}
+                        onClick={() => confirmar(() => iniciarProducao(pedido.id, setor))}
                     >
                         Retomar
                     </button>
@@ -100,12 +105,12 @@ function PedidoActions({ pedido, onAtualizar }) {
                 </>
             )}
 
-            {pedido.status === "EM_PRODUCAO" && (
+            {statusOperacao === "EM_PRODUCAO" && (
                 <>
                     <button
                         className="btn btn-success"
                         disabled={processando}
-                        onClick={() => confirmar(() => finalizarPedido(pedido.id))}
+                        onClick={() => confirmar(() => finalizarPedido(pedido.id, setor))}
                     >
                         Finalizar
                     </button>

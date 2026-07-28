@@ -122,7 +122,9 @@ function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
                     {pedidosFiltrados.map((pedido) => (
                         <div className="col-12 col-md-6 col-xl-4" key={pedido.id}>
                             <PedidoCard pedido={pedido} mostrarValor={mostrarValor}>
-                                {aba === "producao" && <PedidoActions pedido={pedido} onAtualizar={carregarPedidos} />}
+                                {aba === "producao" && (
+                                    <PedidoActions pedido={pedido} setor={setor} onAtualizar={carregarPedidos} />
+                                )}
                             </PedidoCard>
                         </div>
                     ))}

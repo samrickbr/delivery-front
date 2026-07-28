@@ -29,15 +29,18 @@ function ChecklistSeparacao({ pedido, onAtualizar }) {
     const todosMarcados = itens.length > 0 && itens.every((item) => checks[item.id]);
 
     async function liberar() {
-        await liberarEntrega(pedido.id);
+        const itensSeparados = pedido.itens.map((item) => ({
+            itemId: item.id,
+            separado: checks[`produto-${item.id}`] || false
+        }));
+
+        console.log("ENVIANDO:", itensSeparados);
+
+        await liberarEntrega(pedido.id, itensSeparados);
+
         onAtualizar();
     }
 
-    async function liberar() {
-        await separarPedido(pedido.id);
-        onAtualizar();
-    }
-    
     return (
         <>
             <h5>Checklist</h5>
