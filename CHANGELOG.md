@@ -431,3 +431,274 @@ Comentários adicionados.
 - Componentização das ações
 - Organização do fluxo operacional
 - Base preparada para checklist de separação
+
+# SIGIN Delivery Frontend
+
+## v0.2.0 - Deploy Produção
+
+## Publicação
+
+Primeira versão do frontend publicada em ambiente online.
+
+Ambiente:
+
+- Hospedado no Vercel
+- Comunicação com backend via HTTPS
+- Integração com API REST do SIGIN Delivery
+
+---
+
+# Tecnologias
+
+Frontend desenvolvido utilizando:
+
+- React
+- Vite
+- Bootstrap 5
+- Axios
+
+---
+
+# Estrutura
+src
+
+├── pages
+│
+│ ├── cliente
+│ ├── balcao
+│ ├── cozinha
+│ ├── lanchonete
+│ └── entrega
+│
+├── components
+│
+│ ├── layout
+│ ├── pedido
+│ ├── ConfirmDialog
+│ └── InputDialog
+│
+├── services
+│
+│ ├── api.js
+│ └── pedidoService.js
+│
+└── App.jsx
+
+---
+
+# Telas Operacionais
+
+## Cliente
+
+Responsável pela criação dos pedidos.
+
+Funcionalidades:
+
+- visualização do cardápio
+- seleção de produtos
+- envio do pedido
+
+---
+
+## Balcão
+
+Responsável pelo controle inicial e separação.
+
+Funcionalidades:
+
+- receber pedidos
+- aprovar pedidos
+- cancelar pedidos
+- visualizar histórico
+- acompanhar produção
+- conferência de pedidos
+
+---
+
+## Cozinha
+
+Tela operacional de produção.
+
+Funcionalidades:
+
+- visualizar pedidos do setor
+- iniciar produção
+- colocar pendência
+- retomar produção
+- finalizar produção
+
+---
+
+## Lanchonete
+
+Tela operacional de produção.
+
+Funcionalidades:
+
+- visualizar pedidos do setor LANCHONETE
+- iniciar produção
+- colocar pendência
+- retomar produção
+- finalizar produção
+
+---
+
+## Pizzaria
+
+Tela operacional de produção.
+
+Funcionalidades:
+
+- visualizar pedidos do setor PIZZARIA
+- iniciar produção
+- colocar pendência
+- retomar produção
+- finalizar produção
+
+---
+
+## Entrega
+
+Controle de saída e entrega.
+
+Funcionalidades:
+
+- visualizar pedidos separados
+- informar saída para entrega
+- confirmar entrega
+
+---
+
+# Componentes principais
+
+## PedidoCard
+
+Responsável pela apresentação visual do pedido.
+
+Exibe:
+
+- cliente
+- status
+- valor
+- itens
+- informações operacionais
+
+---
+
+## PedidoActions
+
+Centraliza ações de alteração de status.
+
+Ações:
+
+- iniciar produção
+- finalizar produção
+- colocar pendente
+- cancelar
+
+---
+
+## ConfirmDialog
+
+Modal genérico de confirmação.
+
+Utilizado para:
+
+- iniciar produção
+- finalizar produção
+- ações críticas
+
+---
+
+## InputDialog
+
+Modal para entrada de informações.
+
+Utilizado para:
+
+- motivo de pendência
+- observações
+- justificativas
+
+---
+
+# Serviços
+
+## api.js
+
+Responsável pela configuração do Axios.
+
+Funções:
+
+- URL base da API
+- comunicação HTTP
+- configuração futura de interceptors
+
+---
+
+## pedidoService.js
+
+Responsável pelas chamadas relacionadas aos pedidos.
+
+Exemplos:
+
+- listar pedidos
+- aprovar
+- iniciar produção
+- finalizar
+- cancelar
+- entrega
+
+---
+
+# Atualização automática
+
+As telas operacionais possuem atualização automática.
+
+Configuração atual:
+
+- atualização inicial ao abrir tela
+- atualização periódica a cada 10 segundos
+
+Evolução futura:
+
+- WebSocket
+- eventos em tempo real
+
+---
+
+# Integração com Backend
+
+Fluxo:
+Page
+↓
+Componentes
+↓
+Services
+↓
+Axios
+↓
+API Backend
+
+Exemplo:
+Cozinha.jsx
+↓
+PedidoCard
+↓
+PedidoActions
+↓
+pedidoService
+↓
+PedidoController
+
+
+---
+
+# Pontos futuros
+
+- autenticação de usuários
+- permissões por setor
+- layout responsivo mobile
+- notificações em tempo real
+- painel TV produção
+- integração com SIGIN Core
