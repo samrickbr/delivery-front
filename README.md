@@ -69,6 +69,8 @@ EM_PRODUCAO
 ↓
 FINALIZADO
 ↓
+AGUARDANDO_SEPARACAO
+↓
 SEPARADO
 ↓
 SAIU_ENTREGA
@@ -96,7 +98,7 @@ CANCELADO
 cliente/
 balcao/
 cozinha/
-lanchonete/
+pizzaria/
 entrega/
 
 components/
@@ -141,6 +143,10 @@ entity/
 
 Pedido
 PedidoItem
+PedidoHistorico
+Produto
+Categoria
+Setor
 
 ---
 
@@ -153,6 +159,8 @@ Receber pedidos
 Aprovar pedido
 
 Cancelar pedido
+
+Conferir pedido
 
 Separar pedidos
 
@@ -194,13 +202,25 @@ Futuramente será substituído por WebSocket.
 
 # Próximas funcionalidades
 
-- Checklist de separação
+- Melhorias no checklist de separação
 - Impressão automática
 - Painel de cozinha
 - Painel TV
 - WebSocket
-- Controle por item
 - Controle de retirada no balcão
 - Dashboard operacional
 - Relatórios
 - Integração completa com ERP SIGIN
+
+---
+
+# Documentação
+
+Documentações disponíveis:
+
+- docs
+- docs\ARQUITETURA.md
+- docs\COMPONENTS.md
+- docs\FLUXO_OPERACIONAL.md
+- docs\SPRINTS.md
+- docs\TELAS.md

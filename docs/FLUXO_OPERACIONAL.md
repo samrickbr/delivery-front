@@ -83,7 +83,7 @@ Balcão
 
 ---
 
-## 2 Conferência
+### 2 Aprovação
 
 Balcão verifica:
 
@@ -92,16 +92,15 @@ Balcão verifica:
 - observações
 - disponibilidade
 
+
 Pode:
-
 ✔ Aprovar
-
 ou
-
 ✖ Cancelar
 
-Status
-
+Alteração:
+RECEBIDO
+↓
 APROVADO
 
 ---
@@ -127,10 +126,13 @@ Cozinha recebe
 
 - X Salada
 
-Balcão mantém
+Balcão mantém itens sem produção operacional.
 
-- Coca
-- Chocolate
+Exemplos futuros:
+
+- bebidas
+- doces
+- acessórios
 
 ---
 
@@ -160,19 +162,56 @@ EM_PRODUCAO
 
 ---
 
-## 6 Finalização
+### 6 Finalização
 
-Ao concluir todos os itens daquele setor:
+Cada setor finaliza seus próprios itens.
 
-Status
+Quando todos os itens válidos estiverem:
+
+- FINALIZADO
+- CANCELADO
+
+o pedido recebe:
 
 FINALIZADO
 
-O pedido retorna automaticamente ao Balcão.
+e retorna para o Balcão.
 
 ---
 
-# 7 Separação
+# 7 Conferência
+
+
+Após todos os setores finalizarem a produção:
+
+
+FINALIZADO
+
+↓
+
+CONFERÊNCIA
+
+
+Responsável:
+
+Balcão
+
+
+Valida:
+
+- itens produzidos
+- itens cancelados
+- composição final do pedido
+
+
+Resultado:
+
+
+AGUARDANDO_SEPARACAO
+
+---
+
+# 8 Separação
 
 O Balcão monta o pedido completo.
 
@@ -206,7 +245,7 @@ SEPARADO
 
 ---
 
-# 8 Liberação
+# 9 Liberação
 
 Pedido aparece para o Motoboy.
 
@@ -222,7 +261,7 @@ SAIU_ENTREGA
 
 ---
 
-# 9 Entrega
+# 10 Entrega
 
 Ao entregar ao cliente
 
@@ -240,8 +279,26 @@ Pode ocorrer em qualquer etapa permitida.
 
 Status
 
+# Cancelamento de itens
+
+Itens podem ser cancelados individualmente:
+
+- APROVADO
+- PENDENTE
+- EM_PRODUCAO
+- FINALIZADO
+
+↓
+
 CANCELADO
 
+O pedido continua ativo enquanto existirem itens válidos.
+
+O pedido somente recebe:
+
+CANCELADO
+
+quando todos os itens estiverem cancelados.
 Sempre exige justificativa.
 
 ---
@@ -261,6 +318,10 @@ EM_PRODUCAO
 ↓
 
 FINALIZADO
+
+↓
+
+AGUARDANDO_SEPARACAO
 
 ↓
 
