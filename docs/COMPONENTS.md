@@ -74,7 +74,7 @@ PedidoActions
 
 Local:
 
-src/components/PedidoActions
+src/components/pedido/PedidoActions
 Responsabilidade
 
 Centraliza as ações disponíveis para alteração de status do pedido.
@@ -117,6 +117,23 @@ Obrigatório:
 
 motivo do cancelamento
 ConfirmDialog
+
+## Cancelamento
+
+
+Possui dois fluxos:
+
+
+Cancelamento de itens:
+
+- cancela produtos específicos
+- mantém pedido ativo enquanto existirem itens válidos
+
+
+Cancelamento completo:
+
+- cancela todo pedido
+- altera status geral para CANCELADO
 
 Local:
 
@@ -186,6 +203,27 @@ colocar pendente
 aprovar
 Padrão atual
 
+## PedidoHistorico
+
+
+Local:
+
+src/components/pedido/
+
+
+Responsabilidade:
+
+Exibir rastreamento operacional do pedido.
+
+
+Apresenta:
+
+- ação
+- setor
+- usuário
+- data/hora
+- descrição
+
 As páginas seguem o padrão:
 
 Page
@@ -204,7 +242,7 @@ API
 
 Exemplo:
 
-Cozinha.jsx
+Cozinha.jsx / Pizzaria.jsx
 
 ↓
 
@@ -221,6 +259,38 @@ pedidoService
 ↓
 
 Backend
+
+## Conferência
+
+Responsável:
+
+Balcão
+
+
+Fluxo:
+
+FINALIZADO → AGUARDANDO_SEPARACAO
+
+
+Endpoint:
+
+PUT /pedidos/{id}/conferir
+
+## Separação
+
+Responsável:
+
+Balcão
+
+
+Fluxo:
+
+AGUARDANDO_SEPARACAO → SEPARADO
+
+
+Endpoint:
+
+PUT /pedidos/{id}/liberar-entrega
 
 Pontos de evolução
 Separar ações por domínio
@@ -243,12 +313,23 @@ Motivo:
 
 Cada setor possui responsabilidades diferentes.
 
-Estado global
+## Estado da aplicação
+
 
 Atual:
 
-useState
-useEffect
+Estado local utilizando:
+
+- useState
+- useEffect
+
+
+Utilizado para:
+
+- pedidos carregados
+- filtros de abas
+- checklist de separação
+- modais
 
 Futuro:
 
