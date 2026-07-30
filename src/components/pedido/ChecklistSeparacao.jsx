@@ -1,17 +1,14 @@
 import { useState } from "react";
-import { separarPedido } from "../../services/pedidoService";
 import { liberarEntrega } from "../../services/pedidoService";
 
 function ChecklistSeparacao({ pedido, onAtualizar }) {
-    // ===============================
-    // MONTA CHECKLIST
-    // ===============================
-
-    const itens = [
-        ...pedido.itens.map((item) => ({
-            id: `produto-${item.id}`,
-            nome: `${item.quantidade}x ${item.produto}`
-        })),
+    const itensChecklist = [
+        ...pedido.itens
+            .filter((item) => item.statusOperacao !== "CANCELADO")
+            .map((item) => ({
+                id: `produto-${item.id}`,
+                nome: `${item.quantidade}x ${item.produto}`
+            })),
         { id: "guardanapo", nome: "Guardanapos" },
         { id: "molho", nome: "Molhos" },
         { id: "copo", nome: "Copos" }
@@ -26,15 +23,13 @@ function ChecklistSeparacao({ pedido, onAtualizar }) {
         }));
     }
 
-    const todosMarcados = itens.length > 0 && itens.every((item) => checks[item.id]);
+    const todosMarcados = itensChecklist.length > 0 && itensChecklist.every((item) => checks[item.id]);
 
     async function liberar() {
         const itensSeparados = pedido.itens.map((item) => ({
             itemId: item.id,
-            separado: checks[`produto-${item.id}`] || false
+            separado: item.statusOperacao !== "CANCELADO" ? checks[`produto-${item.id}`] || false : false
         }));
-
-        console.log("ENVIANDO:", itensSeparados);
 
         await liberarEntrega(pedido.id, itensSeparados);
 
@@ -46,16 +41,47 @@ function ChecklistSeparacao({ pedido, onAtualizar }) {
             <h5>Checklist</h5>
 
             <div className="mb-3">
-                {itens.map((item) => (
-                    <div className="form-check" key={item.id}>
-                        <input
-                            className="form-check-input"
-                            type="checkbox"
-                            checked={checks[item.id] || false}
-                            onChange={() => alternar(item.id)}
-                        />
+                {pedido.itens.map((item) => (
+                    <div
+                        key={item.id}
+                        className="d-flex justify-content-between align-items-center border rounded p-2 mb-2"
+                    >
+                        <div>
+                            <strong>
+                                {item.quantidade}x {item.produto}
+                            </strong>
 
-                        <label className="form-check-label">{item.nome}</label>
+                            <div className="small text-muted">{item.categoria}</div>
+                        </div>
+
+                        {item.statusOperacao === "CANCELADO" ? (
+                            <span className="badge bg-danger">❌ CANCELADO</span>
+                        ) : (
+                            <input
+                                type="checkbox"
+                                className="form-check-input fs-5"
+                                checked={checks[`produto-${item.id}`] || false}
+                                onChange={() => alternar(`produto-${item.id}`)}
+                            />
+                        )}
+                    </div>
+                ))}
+
+                <hr />
+
+                {["guardanapo", "molho", "copo"].map((item) => (
+                    <div
+                        key={item}
+                        className="d-flex justify-content-between align-items-center border rounded p-2 mb-2"
+                    >
+                        <strong style={{ textTransform: "capitalize" }}>{item}</strong>
+
+                        <input
+                            type="checkbox"
+                            className="form-check-input fs-5"
+                            checked={checks[item] || false}
+                            onChange={() => alternar(item)}
+                        />
                     </div>
                 ))}
             </div>

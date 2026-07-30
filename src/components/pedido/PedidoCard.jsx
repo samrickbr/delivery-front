@@ -1,3 +1,5 @@
+import HistoricoPedido from "./HistoricoPedido";
+
 function PedidoCard({ pedido, children, mostrarValor = true }) {
     console.log("PEDIDO CARD:", pedido);
     function badgeStatus(status) {
@@ -80,11 +82,24 @@ function PedidoCard({ pedido, children, mostrarValor = true }) {
                                     <small className="text-muted">{item.categoria}</small>
                                 </div>
 
-                                <span className="badge bg-secondary">{item.setor}</span>
+                                <div className="mt-1">
+                                    <span className="badge bg-secondary me-1">{item.setor}</span>
+
+                                    <span className={`badge ${badgeStatus(item.statusOperacao)}`}>
+                                        {item.statusOperacao.replaceAll("_", " ")}
+                                    </span>
+                                </div>
                             </div>
                         </li>
                     ))}
                 </ul>
+
+                {pedido.aguardaConferencia && (
+                    <div className="alert alert-warning">
+                        <strong>Atenção:</strong>
+                        Todos os setores finalizaram a produção. Verifique os itens antes de continuar o pedido.
+                    </div>
+                )}
 
                 {pedido.observacao && (
                     <div className="alert alert-info">
@@ -105,6 +120,8 @@ function PedidoCard({ pedido, children, mostrarValor = true }) {
                         {pedido.observacaoOperacao}
                     </div>
                 )}
+
+                <HistoricoPedido historico={pedido.historico} />
 
                 {children}
             </div>

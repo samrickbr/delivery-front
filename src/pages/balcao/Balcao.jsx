@@ -1,8 +1,16 @@
 import { useEffect, useState } from "react";
 import PedidoCard from "../../components/pedido/PedidoCard";
-import { listarPorStatus, aprovarPedido, enviarCozinha, cancelarPedido } from "../../services/pedidoService";
 import ChecklistSeparacao from "../../components/pedido/ChecklistSeparacao";
-import { liberarEntrega } from "../../services/pedidoService";
+
+import {
+    listarBalcao,
+    aprovarPedido,
+    enviarCozinha,
+    cancelarItens,
+    cancelarPedidoCompleto,
+    conferirPedido,
+    liberarEntrega
+} from "../../services/pedidoService";
 
 // =====================================
 // ABAS DO BALCÃO
@@ -11,6 +19,8 @@ import { liberarEntrega } from "../../services/pedidoService";
 const ABAS = {
     PEDIDOS: "pedidos",
     PRODUCAO: "producao",
+    ESPERA: "espera",
+    CONFERENCIA: "conferencia",
     SEPARACAO: "separacao"
 };
 
@@ -19,36 +29,52 @@ function Balcao() {
     const [aba, setAba] = useState(ABAS.PEDIDOS);
     const [checklist, setChecklist] = useState({});
 
+    // CANCELAMENTO
+    const [pedidoSelecionado, setPedidoSelecionado] = useState(null);
+    const [mostrarModalCancelamento, setMostrarModalCancelamento] = useState(false);
+    const [tipoCancelamento, setTipoCancelamento] = useState("ITEM");
+    const [itensCancelados, setItensCancelados] = useState([]);
+    const [motivoCancelamento, setMotivoCancelamento] = useState("");
+
     // =====================================
-    // CARREGAMENTO DOS PEDIDOS
-    //
-    // PEDIDOS    -> RECEBIDO
-    // PRODUÇÃO   -> APROVADO
-    // SEPARAÇÃO  -> FINALIZADO
+    // CARREGA TODOS OS PEDIDOS DO BALCÃO
     // =====================================
 
     async function carregarPedidos() {
-        let response;
-
-        switch (aba) {
-            case ABAS.PEDIDOS:
-                response = await listarPorStatus("RECEBIDO");
-                break;
-
-            case ABAS.PRODUCAO:
-                response = await listarPorStatus("APROVADO");
-                break;
-
-            case ABAS.SEPARACAO:
-                response = await listarPorStatus("FINALIZADO");
-                break;
-
-            default:
-                response = { data: [] };
-        }
-
+        const response = await listarBalcao();
         setPedidos(response.data);
     }
+
+    // =====================================
+    // FILTROS
+    // =====================================
+
+    const pedidosFiltrados = pedidos.filter((pedido) => {
+        switch (aba) {
+            case ABAS.PEDIDOS:
+                return pedido.status === "RECEBIDO";
+
+            case ABAS.PRODUCAO:
+                return (
+                    pedido.status === "APROVADO" &&
+                    pedido.itens.some(
+                        (item) => item.statusOperacao === "APROVADO" || item.statusOperacao === "EM_PRODUCAO"
+                    )
+                );
+
+            case ABAS.ESPERA:
+                return pedido.status === "APROVADO" && pedido.itens.some((item) => item.statusOperacao === "PENDENTE");
+
+            case ABAS.CONFERENCIA:
+                return pedido.status === "FINALIZADO";
+
+            case ABAS.SEPARACAO:
+                return pedido.status === "AGUARDANDO_SEPARACAO";
+
+            default:
+                return false;
+        }
+    });
 
     // =====================================
     // RECEBIDO -> APROVADO
@@ -60,7 +86,7 @@ function Balcao() {
     }
 
     // =====================================
-    // APROVADO -> EM_PRODUCAO
+    // APROVADO -> PRODUÇÃO
     // =====================================
 
     async function enviarParaCozinha(id) {
@@ -69,7 +95,7 @@ function Balcao() {
     }
 
     // =====================================
-    // SEPARAÇÃO DE ITENS
+    // SEPARAÇÃO
     // =====================================
 
     function marcarItem(itemId, marcado) {
@@ -77,6 +103,11 @@ function Balcao() {
             ...old,
             [itemId]: marcado
         }));
+    }
+
+    async function conferir(id) {
+        await conferirPedido(id);
+        carregarPedidos();
     }
 
     async function enviarEntrega(pedido) {
@@ -91,16 +122,50 @@ function Balcao() {
     }
 
     // =====================================
-    // CANCELAR PEDIDO
+    // CANCELAMENTO
     // =====================================
 
     async function cancelar(id) {
-        await cancelarPedido(id, "");
+        await cancelarPedidoCompleto(id, "BALCAO", "Cancelado pelo balcão");
+        carregarPedidos();
+    }
+
+    function abrirCancelamento(pedido) {
+        setPedidoSelecionado(pedido);
+        setTipoCancelamento("ITEM");
+        setItensCancelados([]);
+        setMotivoCancelamento("");
+        setMostrarModalCancelamento(true);
+    }
+
+    function selecionarItem(itemId) {
+        setItensCancelados((lista) => {
+            if (lista.includes(itemId)) {
+                return lista.filter((id) => id !== itemId);
+            }
+
+            return [...lista, itemId];
+        });
+    }
+
+    async function confirmarCancelamento() {
+        if (!motivoCancelamento) {
+            return;
+        }
+
+        if (tipoCancelamento === "COMPLETO") {
+            await cancelarPedidoCompleto(pedidoSelecionado.id, motivoCancelamento);
+        } else {
+            await cancelarItens(pedidoSelecionado.id, "BALCAO", itensCancelados, motivoCancelamento);
+        }
+
+        setMostrarModalCancelamento(false);
+
         carregarPedidos();
     }
 
     // =====================================
-    // ATUALIZAÇÃO AUTOMÁTICA
+    // AUTO REFRESH
     // =====================================
 
     useEffect(() => {
@@ -113,15 +178,11 @@ function Balcao() {
         }, 10000);
 
         return () => clearInterval(intervalo);
-    }, [aba]);
+    }, []);
 
     return (
         <div className="container mt-4">
             <h1 className="mb-4">Balcão</h1>
-
-            {/* ===========================
-                ABAS
-            ============================ */}
 
             <div className="mb-4">
                 <button
@@ -135,8 +196,16 @@ function Balcao() {
                     className={`btn me-2 ${aba === ABAS.PRODUCAO ? "btn-warning" : "btn-outline-warning"}`}
                     onClick={() => setAba(ABAS.PRODUCAO)}
                 >
-                    ⏳ Produção
+                    👨‍🍳 Produção
                 </button>
+
+                <button
+                    className={`btn me-2 ${aba === ABAS.CONFERENCIA ? "btn-info" : "btn-outline-info"}`}
+                    onClick={() => setAba(ABAS.CONFERENCIA)}
+                >
+                    ✔ Conferência
+                </button>
+
                 <button
                     className={`btn ${aba === ABAS.SEPARACAO ? "btn-success" : "btn-outline-success"}`}
                     onClick={() => setAba(ABAS.SEPARACAO)}
@@ -146,11 +215,9 @@ function Balcao() {
             </div>
 
             <div className="row">
-                {pedidos.map((pedido) => (
+                {pedidosFiltrados.map((pedido) => (
                     <div className="col-md-6" key={pedido.id}>
                         <PedidoCard pedido={pedido}>
-                            {/* RECEBIDO */}
-
                             {pedido.status === "RECEBIDO" && (
                                 <>
                                     <button
@@ -160,23 +227,19 @@ function Balcao() {
                                         ✅ Aceitar Pedido
                                     </button>
 
-                                    <button className="btn btn-danger w-100" onClick={() => cancelar(pedido.id)}>
+                                    <button className="btn btn-danger w-100" onClick={() => abrirCancelamento(pedido)}>
                                         ❌ Cancelar
                                     </button>
                                 </>
                             )}
 
-                            {/* APROVADO */}
-
-                            {pedido.status === "APROVADO" && (
-                                <button className="btn btn-primary w-100" onClick={() => enviarParaCozinha(pedido.id)}>
-                                    🍳 Enviar para Cozinha
+                            {aba === ABAS.CONFERENCIA && (
+                                <button className="btn btn-success w-100" onClick={() => conferir(pedido.id)}>
+                                    ✔ Confirmar Conferência
                                 </button>
                             )}
 
-                            {/* FINALIZADO */}
-
-                            {pedido.status === "FINALIZADO" && (
+                            {aba === ABAS.SEPARACAO && (
                                 <ChecklistSeparacao pedido={pedido} onAtualizar={carregarPedidos} />
                             )}
                         </PedidoCard>
@@ -184,9 +247,96 @@ function Balcao() {
                 ))}
             </div>
 
-            {pedidos.length === 0 && (
+            {pedidosFiltrados.length === 0 && (
                 <div className="text-center mt-5">
                     <h4>Nenhum pedido nesta etapa.</h4>
+                </div>
+            )}
+
+            {mostrarModalCancelamento && (
+                <div className="modal show d-block" tabIndex="-1">
+                    <div className="modal-dialog">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title">Cancelar Pedido #{pedidoSelecionado.id}</h5>
+                            </div>
+
+                            <div className="modal-body">
+                                <div className="mb-3">
+                                    <button
+                                        className={`btn me-2 ${
+                                            tipoCancelamento === "ITEM" ? "btn-primary" : "btn-outline-primary"
+                                        }`}
+                                        onClick={() => setTipoCancelamento("ITEM")}
+                                    >
+                                        Cancelar itens
+                                    </button>
+
+                                    <button
+                                        className={`btn ${
+                                            tipoCancelamento === "COMPLETO" ? "btn-danger" : "btn-outline-danger"
+                                        }`}
+                                        onClick={() => setTipoCancelamento("COMPLETO")}
+                                    >
+                                        Cancelar pedido
+                                    </button>
+                                </div>
+
+                                {tipoCancelamento === "ITEM" && (
+                                    <div>
+                                        <h6>Selecione os itens:</h6>
+
+                                        {pedidoSelecionado.itens.map((item) => (
+                                            <div key={item.id} className="form-check">
+                                                <input
+                                                    className="form-check-input"
+                                                    type="checkbox"
+                                                    checked={itensCancelados.includes(item.id)}
+                                                    onChange={() => selecionarItem(item.id)}
+                                                />
+
+                                                <label className="form-check-label">
+                                                    {item.quantidade}x {item.produto} ({item.setor})
+                                                </label>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                <textarea
+                                    className="form-control mt-3"
+                                    placeholder="Motivo do cancelamento"
+                                    value={motivoCancelamento}
+                                    onChange={(e) => setMotivoCancelamento(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="modal-footer">
+                                <button
+                                    className="btn btn-secondary"
+                                    onClick={() => {
+                                        setMostrarModalCancelamento(false);
+                                        setPedidoSelecionado(null);
+                                        setMotivoCancelamento("");
+                                        setItensCancelados([]);
+                                    }}
+                                >
+                                    Voltar
+                                </button>
+
+                                <button
+                                    className="btn btn-danger"
+                                    disabled={
+                                        !motivoCancelamento ||
+                                        (tipoCancelamento === "ITEM" && itensCancelados.length === 0)
+                                    }
+                                    onClick={confirmarCancelamento}
+                                >
+                                    Confirmar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

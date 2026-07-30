@@ -38,12 +38,30 @@ export async function separarPedido(id) {
     return api.put(`/pedidos/${id}/separar`);
 }
 
+export async function cancelarItens(id, setor, itens, justificativa) {
+    return api.put(`/pedidos/${id}/cancelar-itens?setor=${setor}`, {
+        itens,
+        justificativa
+    });
+}
+
+
+export async function cancelarPedidoCompleto(id, justificativa) {
+    return api.put(`/pedidos/${id}/cancelar-completo`, {
+        justificativa
+    });
+}
+
 // =====================================
 // LIBERAR PARA ENTREGA
 //
 // Após separação do balcão
 // FINALIZADO -> LIBERADO_ENTREGA
 // =====================================
+
+export async function conferirPedido(id) {
+    return api.put(`/pedidos/${id}/conferir`);
+}
 
 export async function liberarEntrega(id, itens) {
     return api.put(`/pedidos/${id}/liberar-entrega`, {

@@ -55,10 +55,20 @@ entity/
 
 Pedido
 PedidoItem
+PedidoHistorico
 Produto
 Categoria
 Setor
 ```
+pedidohistorico/
+
+service/
+
+PedidoHistoricoService
+
+repository/
+
+PedidoHistoricoRepository
 
 ---
 
@@ -90,6 +100,15 @@ balcao/
 cozinha/
 lanchonete/
 entrega/
+
+balcao/
+
+Responsável por:
+
+- recebimento
+- aprovação
+- conferência
+- separação
 
 components/
 
@@ -148,6 +167,32 @@ Exemplo:
 
 Nunca deixar funções misturadas.
 
+# Regra de comunicação
+
+
+Componentes e páginas nunca devem chamar Axios diretamente.
+
+
+Toda comunicação com backend deve passar pelos services.
+
+
+Exemplo:
+
+
+PedidoCard
+
+↓
+
+pedidoService.js
+
+↓
+
+api.js
+
+↓
+
+Backend
+
 ---
 
 # Organização dos Components
@@ -184,7 +229,10 @@ PedidoActions
 
 # Organização dos Status
 
-```
+
+Fluxo principal:
+
+
 RECEBIDO
 
 ↓
@@ -201,6 +249,10 @@ FINALIZADO
 
 ↓
 
+AGUARDANDO_SEPARACAO
+
+↓
+
 SEPARADO
 
 ↓
@@ -210,15 +262,46 @@ SAIU_ENTREGA
 ↓
 
 ENTREGUE
-```
 
-Fluxos alternativos
 
-```
+Fluxos alternativos:
+
+
 PENDENTE
 
 CANCELADO
-```
+
+# Status do pedido x Status do item
+
+
+O pedido possui um status geral.
+
+
+Cada PedidoItem possui seu próprio status operacional.
+
+
+Exemplo:
+
+
+Pedido:
+
+FINALIZADO
+
+
+Itens:
+
+
+Pizza Calabresa
+
+FINALIZADO
+
+
+X Salada
+
+CANCELADO
+
+
+O pedido somente avança quando todos os itens válidos concluírem sua etapa.
 
 ---
 

@@ -7,7 +7,7 @@ import Entrega from "./pages/entrega/Entrega";
 import Balcao from "./pages/balcao/Balcao";
 import Lanchonete from "./pages/lanchonete/Lanchonete";
 import PedidoTeste from "./pages/pedido/PedidoTeste";
-import Cardapio from "./pages/cliente/Cardapio";
+import Cardapio from "./pages/cardapio/Cardapio";
 import Carrinho from "./pages/cliente/Carrinho";
 import Checkout from "./pages/cliente/Checkout";
 

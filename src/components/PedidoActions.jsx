@@ -1,3 +1,4 @@
+import CancelarItensModal from "./pedido/CancelarItensModal";
 import { useState } from "react";
 import ConfirmDialog from "./ConfirmDialog";
 import InputDialog from "./InputDialog";
@@ -9,22 +10,15 @@ import {
     finalizarPedido
 } from "../services/pedidoService";
 
-function PedidoActions({ pedido, setor, onAtualizar }) {
+function PedidoActions({ pedido, setor, onAtualizar, onDigitando }) {
     const [showDialog, setShowDialog] = useState(false);
     const [acaoSelecionada, setAcaoSelecionada] = useState(null);
     const [showInput, setShowInput] = useState(false);
-    const [motivoCancelamento, setMotivoCancelamento] = useState("");
-    const [mostrarCancelamento, setMostrarCancelamento] = useState(false);
+    const [showCancelamento, setShowCancelamento] = useState(false);
     const [processando, setProcessando] = useState(false);
-    const statusOperacao = pedido.itens[0]?.statusOperacao;
-
-    async function cancelarPedido() {
-        await cancelarPedido(pedido.id, motivoCancelamento);
-
-        setMostrarCancelamento(false);
-        setMotivoCancelamento("");
-        onAtualizar();
-    }
+    const itemSetor = pedido.itens.find((item) => item.setor === setor);
+    const statusOperacao = itemSetor?.statusOperacao;
+    const [mostrarCancelamento, setMostrarCancelamento] = useState(false);
 
     function confirmar(acao) {
         setAcaoSelecionada(() => acao);
@@ -67,20 +61,12 @@ function PedidoActions({ pedido, setor, onAtualizar }) {
                         Produzir
                     </button>
 
-                    <button
-                        className="btn btn-warning"
-                        disabled={processando}
-                        onClick={() => confirmar(() => iniciarProducao(pedido.id, setor))}
-                    >
+                    <button className="btn btn-warning" disabled={processando} onClick={abrirEspera}>
                         Espera
                     </button>
 
-                    <button
-                        className="btn btn-danger"
-                        disabled={processando}
-                        onClick={() => setMostrarCancelamento(true)}
-                    >
-                        Cancelar
+                    <button className="btn btn-danger" onClick={() => setMostrarCancelamento(true)}>
+                        ❌ Cancelar
                     </button>
                 </>
             )}
@@ -95,11 +81,7 @@ function PedidoActions({ pedido, setor, onAtualizar }) {
                         Retomar
                     </button>
 
-                    <button
-                        className="btn btn-danger"
-                        disabled={processando}
-                        onClick={() => setMostrarCancelamento(true)}
-                    >
+                    <button className="btn btn-danger" disabled={processando} onClick={() => setShowCancelamento(true)}>
                         Cancelar
                     </button>
                 </>
@@ -129,29 +111,37 @@ function PedidoActions({ pedido, setor, onAtualizar }) {
             />
             <InputDialog
                 show={showInput}
+                onDigitando={onDigitando}
                 titulo="Colocar em espera"
                 mensagem="Informe o motivo."
                 placeholder="Ex.: Sem calabresa"
                 onCancel={() => setShowInput(false)}
                 onConfirm={async (motivo) => {
                     setShowInput(false);
-                    await executar(() => colocarPendente(pedido.id, motivo));
+                    await executar(() => colocarPendente(pedido.id, setor, motivo));
                 }}
             />
-            {mostrarCancelamento && (
-                <div className="mt-2">
-                    <textarea
-                        className="form-control mb-2"
-                        placeholder="Motivo do cancelamento"
-                        value={motivoCancelamento}
-                        onChange={(e) => setMotivoCancelamento(e.target.value)}
-                    />
+            <InputDialog
+                show={showCancelamento}
+                titulo="Cancelar item"
+                mensagem="Informe o motivo do cancelamento."
+                placeholder="Ex.: Sem ingrediente"
+                onCancel={() => setShowCancelamento(false)}
+                onConfirm={async (motivo) => {
+                    setShowCancelamento(false);
 
-                    <button className="btn btn-danger" onClick={cancelarPedido} disabled={!motivoCancelamento}>
-                        Confirmar Cancelamento
-                    </button>
-                </div>
-            )}
+                    await executar(async () => {
+                        await cancelarPedido(pedido.id, setor, motivo);
+                    });
+                }}
+            />
+            <CancelarItensModal
+                pedido={pedido}
+                setor={setor}
+                mostrar={mostrarCancelamento}
+                onFechar={() => setMostrarCancelamento(false)}
+                onAtualizar={onAtualizar}
+            />
         </div>
     );
 }

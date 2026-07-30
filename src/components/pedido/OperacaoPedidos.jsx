@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import PedidoActions from "../PedidoActions";
 import PedidoCard from "./PedidoCard";
 import { listarCozinha, listarFinalizados } from "../../services/pedidoService";
+import api from "../../services/api";
 
 function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
     const [pedidos, setPedidos] = useState([]);
@@ -9,6 +10,7 @@ function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
     const [filtro, setFiltro] = useState("TODOS");
     const [categorias, setCategorias] = useState([]);
     const [carregando, setCarregando] = useState(false);
+    const [digitando, setDigitando] = useState(false);
 
     async function carregarCategorias() {
         const response = await api.get("/categorias");
@@ -47,8 +49,9 @@ function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
         atualizar();
 
         const intervalo = setInterval(() => {
-            if (document.hidden) return;
-            atualizar();
+            if (!document.hidden && !digitando) {
+                carregarPedidos();
+            }
         }, 10000);
 
         return () => clearInterval(intervalo);
@@ -123,7 +126,12 @@ function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
                         <div className="col-12 col-md-6 col-xl-4" key={pedido.id}>
                             <PedidoCard pedido={pedido} mostrarValor={mostrarValor}>
                                 {aba === "producao" && (
-                                    <PedidoActions pedido={pedido} setor={setor} onAtualizar={carregarPedidos} />
+                                    <PedidoActions
+                                        pedido={pedido}
+                                        setor={setor}
+                                        onAtualizar={carregarPedidos}
+                                        onDigitando={setDigitando}
+                                    />
                                 )}
                             </PedidoCard>
                         </div>
