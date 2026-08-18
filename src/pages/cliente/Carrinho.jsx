@@ -46,10 +46,7 @@ function Carrinho() {
             <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
                 <h1 className="mb-0">Carrinho</h1>
 
-                <button
-                    className="btn btn-outline-primary"
-                    onClick={() => navigate("/cardapio")}
-                >
+                <button className="btn btn-outline-primary" onClick={() => navigate("/cardapio")}>
                     Voltar ao cardápio
                 </button>
             </div>
@@ -58,10 +55,7 @@ function Carrinho() {
                 <div className="alert alert-secondary">
                     <p className="mb-3">Seu carrinho está vazio.</p>
 
-                    <button
-                        className="btn btn-primary"
-                        onClick={() => navigate("/cardapio")}
-                    >
+                    <button className="btn btn-primary" onClick={() => navigate("/cardapio")}>
                         Ver cardápio
                     </button>
                 </div>
@@ -100,33 +94,20 @@ function Carrinho() {
                                         <button
                                             type="button"
                                             className="btn btn-outline-secondary"
-                                            onClick={() =>
-                                                alterarQuantidade(
-                                                    item.id,
-                                                    item.quantidade - 1
-                                                )
-                                            }
+                                            onClick={() => alterarQuantidade(item.id, item.quantidade - 1)}
                                             aria-label={`Diminuir quantidade de ${item.nome}`}
                                         >
                                             −
                                         </button>
 
-                                        <strong
-                                            className="px-2"
-                                            style={{ minWidth: "32px", textAlign: "center" }}
-                                        >
+                                        <strong className="px-2" style={{ minWidth: "32px", textAlign: "center" }}>
                                             {item.quantidade}
                                         </strong>
 
                                         <button
                                             type="button"
                                             className="btn btn-outline-secondary"
-                                            onClick={() =>
-                                                alterarQuantidade(
-                                                    item.id,
-                                                    item.quantidade + 1
-                                                )
-                                            }
+                                            onClick={() => alterarQuantidade(item.id, item.quantidade + 1)}
                                             aria-label={`Aumentar quantidade de ${item.nome}`}
                                         >
                                             +
@@ -158,11 +139,8 @@ function Carrinho() {
                         </h3>
                     </div>
 
-                    <button
-                        className="btn btn-success w-100"
-                        onClick={() => navigate("/cardapio")}
-                    >
-                        Continuar comprando
+                    <button className="btn btn-success w-100" onClick={() => navigate("/identificacao")}>
+                        Continuar
                     </button>
                 </>
             )}

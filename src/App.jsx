@@ -10,6 +10,7 @@ import PedidoTeste from "./pages/pedido/PedidoTeste";
 import Cardapio from "./pages/cardapio/Cardapio";
 import Carrinho from "./pages/cliente/Carrinho";
 import Checkout from "./pages/cliente/Checkout";
+import Identificacao from "./pages/cliente/Identificacao";
 
 function App() {
     return (
@@ -24,6 +25,7 @@ function App() {
                 <Route path="/entrega/historico" element={<Historico />} />
                 <Route path="/cardapio" element={<Cardapio />} />
                 <Route path="/carrinho" element={<Carrinho />} />
+                <Route path="/identificacao" element={<Identificacao />} />
                 <Route path="/checkout" element={<Checkout />} />
             </Route>
         </Routes>
