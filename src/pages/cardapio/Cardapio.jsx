@@ -5,28 +5,37 @@ import api from "../../services/api";
 function Cardapio() {
     const [produtos, setProdutos] = useState([]);
     const [quantidadeCarrinho, setQuantidadeCarrinho] = useState(0);
+    const [erro, setErro] = useState(false);
     const [toast, setToast] = useState(false);
 
     const toastTimer = useRef(null);
 
     const navigate = useNavigate();
 
-    async function carregarCardapio() {
-        const response = await api.get("/produtos");
+    useEffect(() => {
+        async function carregarDados() {
+            try {
+                const response = await api.get("/produtos/cardapio");
 
-        setProdutos(response.data);
-    }
+                setProdutos(response.data);
+
+                const carrinho = JSON.parse(sessionStorage.getItem("carrinho")) || [];
+
+                setQuantidadeCarrinho(carrinho.reduce((total, item) => total + item.quantidade, 0));
+            } catch (error) {
+                console.error("Erro ao carregar cardápio.", error);
+                setErro(true);
+            }
+        }
+
+        carregarDados();
+    }, []);
 
     function atualizarCarrinho() {
         const carrinho = JSON.parse(sessionStorage.getItem("carrinho")) || [];
 
         setQuantidadeCarrinho(carrinho.reduce((total, item) => total + item.quantidade, 0));
     }
-
-    useEffect(() => {
-        carregarCardapio();
-        atualizarCarrinho();
-    }, []);
 
     function adicionarProduto(produto) {
         const carrinhoAtual = JSON.parse(sessionStorage.getItem("carrinho")) || [];
@@ -77,38 +86,43 @@ function Cardapio() {
                 </button>
             </div>
 
-            <div className="row">
-                {produtos.map((produto) => (
-                    <div className="col-md-4 mb-3" key={produto.id}>
-                        <div className="card shadow">
-                            {produto.imagem && <img src={produto.imagem} className="card-img-top" alt={produto.nome} />}
+            {erro ? (
+                <div className="alert alert-danger">Não foi possível carregar o cardápio.</div>
+            ) : produtos.length === 0 ? (
+                <div className="alert alert-secondary">Nenhum produto disponível.</div>
+            ) : (
+                <div className="row">
+                    {produtos.map((produto) => (
+                        <div className="col-md-4 mb-3" key={produto.id}>
+                            <div className="card shadow h-100">
+                                {produto.imagem && (
+                                    <img src={produto.imagem} className="card-img-top" alt={produto.nome} />
+                                )}
 
-                            <div className="card-body">
-                                <h5>{produto.nome}</h5>
+                                <div className="card-body d-flex flex-column">
+                                    <h5>{produto.nome}</h5>
 
-                                <p>{produto.descricao}</p>
+                                    {produto.descricao && <p>{produto.descricao}</p>}
 
-                                <strong>
-                                    R${" "}
-                                    {produto.preco.toLocaleString("pt-BR", {
-                                        minimumFractionDigits: 2
-                                    })}
-                                </strong>
+                                    <strong>
+                                        R${" "}
+                                        {produto.preco.toLocaleString("pt-BR", {
+                                            minimumFractionDigits: 2
+                                        })}
+                                    </strong>
 
-                                <button
-                                    className="btn btn-primary mt-3 w-100"
-
-                                    disabled={!produto.disponivel}
-
-                                    onClick={() => adicionarProduto(produto)}
-                                >
-                                    {produto.disponivel ? "Adicionar" : "Indisponível"}
-                                </button>
+                                    <button
+                                        className="btn btn-primary mt-3 w-100"
+                                        onClick={() => adicionarProduto(produto)}
+                                    >
+                                        Adicionar
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
+            )}
 
             {toast && (
                 <div
