@@ -1,187 +1,233 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import api from "../../services/api";
 
-const DADOS_IDENTIFICACAO = "identificacaoCliente";
+function normalizarCpf(cpf) {
+    return cpf.replace(/\D/g, "");
+}
 
 function Identificacao() {
     const navigate = useNavigate();
 
-    const [formulario, setFormulario] = useState(() => {
-        return (
-            JSON.parse(sessionStorage.getItem(DADOS_IDENTIFICACAO)) || {
-                nomeCompleto: "",
-                cpf: "",
-                telefone: "",
-                endereco: "",
-                senha: "",
-                confirmarSenha: ""
-            }
-        );
+    const [modo, setModo] = useState("novo");
+    const [formulario, setFormulario] = useState({
+        nome: "",
+        cpf: "",
+        telefone: "",
+        email: "",
+        senha: "",
+        confirmarSenha: ""
     });
-
     const [erro, setErro] = useState("");
+    const [enviando, setEnviando] = useState(false);
 
-    function alterarCampo(event) {
-        const { name, value } = event.target;
-
-        setFormulario((estadoAtual) => ({
-            ...estadoAtual,
-            [name]: value
+    function alterarCampo(campo, valor) {
+        setFormulario((estado) => ({
+            ...estado,
+            [campo]: valor
         }));
+        setErro("");
     }
 
-    function continuar(event) {
+    async function continuar(event) {
         event.preventDefault();
         setErro("");
 
-        const camposObrigatorios = [
-            "nomeCompleto",
-            "cpf",
-            "telefone",
-            "endereco",
-            "senha",
-            "confirmarSenha"
-        ];
+        const cpf = normalizarCpf(formulario.cpf);
 
-        const campoVazio = camposObrigatorios.some(
-            (campo) => !formulario[campo].trim()
-        );
+        if (modo === "novo") {
+            if (
+                !formulario.nome.trim() ||
+                !cpf ||
+                !formulario.telefone.trim() ||
+                !formulario.email.trim() ||
+                !formulario.senha ||
+                !formulario.confirmarSenha
+            ) {
+                setErro("Preencha todos os campos.");
+                return;
+            }
 
-        if (campoVazio) {
-            setErro("Preencha todos os campos.");
+            if (formulario.senha !== formulario.confirmarSenha) {
+                setErro("A confirmação da senha não confere.");
+                return;
+            }
+
+            try {
+                setEnviando(true);
+
+                const response = await api.post("/cliente/cadastro", {
+                    nome: formulario.nome.trim(),
+                    cpf,
+                    telefone: formulario.telefone.trim(),
+                    email: formulario.email.trim(),
+                    senha: formulario.senha
+                });
+
+                sessionStorage.setItem("cliente", JSON.stringify(response.data));
+
+                navigate("/checkout");
+            } catch (error) {
+                const status = error.response?.status;
+
+                if (status === 400 || status === 409) {
+                    setErro("Este CPF já está cadastrado.");
+                } else {
+                    setErro("Não foi possível realizar o cadastro. Tente novamente.");
+                }
+            } finally {
+                setEnviando(false);
+            }
+
             return;
         }
 
-        if (formulario.senha !== formulario.confirmarSenha) {
-            setErro("A confirmação da senha não corresponde à senha.");
+        if (!cpf || !formulario.senha) {
+            setErro("Informe o CPF e a senha.");
             return;
         }
 
-        sessionStorage.setItem(
-            DADOS_IDENTIFICACAO,
-            JSON.stringify(formulario)
-        );
+        try {
+            setEnviando(true);
 
-        navigate("/checkout");
+            const response = await api.post("/cliente/login", {
+                cpf,
+                senha: formulario.senha
+            });
+
+            sessionStorage.setItem("clienteToken", response.data.token);
+
+            sessionStorage.setItem(
+                "cliente",
+                JSON.stringify({
+                    cpf
+                })
+            );
+
+            navigate("/checkout");
+        } catch (error) {
+            if (error.response?.status === 401 || error.response?.status === 403) {
+                setErro("CPF ou senha inválidos.");
+            } else {
+                setErro("Não foi possível realizar o login. Tente novamente.");
+            }
+        } finally {
+            setEnviando(false);
+        }
     }
 
     return (
-        <div className="container mt-3 mt-md-4">
-            <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
-                <h1 className="mb-0">Identificação</h1>
+        <div className="container mt-4">
+            <div className="card shadow">
+                <div className="card-body">
+                    <h2 className="mb-4">Identificação</h2>
 
-                <button
-                    type="button"
-                    className="btn btn-outline-primary"
-                    onClick={() => navigate("/carrinho")}
-                >
-                    Voltar ao carrinho
-                </button>
+                    <div className="btn-group w-100 mb-4" role="group">
+                        <button
+                            type="button"
+                            className={`btn ${modo === "novo" ? "btn-primary" : "btn-outline-primary"}`}
+                            onClick={() => {
+                                setModo("novo");
+                                setErro("");
+                            }}
+                        >
+                            Novo cliente
+                        </button>
+
+                        <button
+                            type="button"
+                            className={`btn ${modo === "existente" ? "btn-primary" : "btn-outline-primary"}`}
+                            onClick={() => {
+                                setModo("existente");
+                                setErro("");
+                            }}
+                        >
+                            Já sou cliente
+                        </button>
+                    </div>
+
+                    {erro && <div className="alert alert-danger">{erro}</div>}
+
+                    <form onSubmit={continuar}>
+                        {modo === "novo" && (
+                            <>
+                                <label className="form-label">Nome completo</label>
+                                <input
+                                    className="form-control mb-3"
+                                    value={formulario.nome}
+                                    onChange={(e) => alterarCampo("nome", e.target.value)}
+                                />
+
+                                <label className="form-label">CPF</label>
+                                <input
+                                    className="form-control mb-3"
+                                    value={formulario.cpf}
+                                    onChange={(e) => alterarCampo("cpf", e.target.value)}
+                                />
+
+                                <label className="form-label">Telefone / WhatsApp</label>
+                                <input
+                                    type="tel"
+                                    className="form-control mb-3"
+                                    value={formulario.telefone}
+                                    onChange={(e) => alterarCampo("telefone", e.target.value)}
+                                />
+
+                                <label className="form-label">E-mail</label>
+                                <input
+                                    type="email"
+                                    className="form-control mb-3"
+                                    value={formulario.email}
+                                    onChange={(e) => alterarCampo("email", e.target.value)}
+                                />
+
+                                <label className="form-label">Senha</label>
+                                <input
+                                    type="password"
+                                    className="form-control mb-3"
+                                    value={formulario.senha}
+                                    onChange={(e) => alterarCampo("senha", e.target.value)}
+                                />
+
+                                <label className="form-label">Confirmar senha</label>
+                                <input
+                                    type="password"
+                                    className="form-control mb-3"
+                                    value={formulario.confirmarSenha}
+                                    onChange={(e) => alterarCampo("confirmarSenha", e.target.value)}
+                                />
+                            </>
+                        )}
+
+                        {modo === "existente" && (
+                            <>
+                                <label className="form-label">CPF</label>
+                                <input
+                                    className="form-control mb-3"
+                                    value={formulario.cpf}
+                                    onChange={(e) => alterarCampo("cpf", e.target.value)}
+                                />
+
+                                <label className="form-label">Senha</label>
+                                <input
+                                    type="password"
+                                    className="form-control mb-3"
+                                    value={formulario.senha}
+                                    onChange={(e) => alterarCampo("senha", e.target.value)}
+                                />
+                            </>
+                        )}
+
+                        <button type="submit" className="btn btn-success w-100" disabled={enviando}>
+                            {enviando ? "Processando..." : "Continuar"}
+                        </button>
+                    </form>
+
+                    <button type="button" className="btn btn-link w-100 mt-2" onClick={() => navigate("/carrinho")}>
+                        Voltar para o carrinho
+                    </button>
+                </div>
             </div>
-
-            {erro && <div className="alert alert-danger">{erro}</div>}
-
-            <form onSubmit={continuar}>
-                <div className="mb-3">
-                    <label className="form-label" htmlFor="nomeCompleto">
-                        Nome completo
-                    </label>
-
-                    <input
-                        id="nomeCompleto"
-                        name="nomeCompleto"
-                        type="text"
-                        className="form-control"
-                        value={formulario.nomeCompleto}
-                        onChange={alterarCampo}
-                        required
-                    />
-                </div>
-
-                <div className="mb-3">
-                    <label className="form-label" htmlFor="cpf">
-                        CPF
-                    </label>
-
-                    <input
-                        id="cpf"
-                        name="cpf"
-                        type="text"
-                        className="form-control"
-                        value={formulario.cpf}
-                        onChange={alterarCampo}
-                        required
-                    />
-                </div>
-
-                <div className="mb-3">
-                    <label className="form-label" htmlFor="telefone">
-                        Telefone / WhatsApp
-                    </label>
-
-                    <input
-                        id="telefone"
-                        name="telefone"
-                        type="tel"
-                        className="form-control"
-                        value={formulario.telefone}
-                        onChange={alterarCampo}
-                        required
-                    />
-                </div>
-
-                <div className="mb-3">
-                    <label className="form-label" htmlFor="endereco">
-                        Endereço
-                    </label>
-
-                    <input
-                        id="endereco"
-                        name="endereco"
-                        type="text"
-                        className="form-control"
-                        value={formulario.endereco}
-                        onChange={alterarCampo}
-                        required
-                    />
-                </div>
-
-                <div className="mb-3">
-                    <label className="form-label" htmlFor="senha">
-                        Senha
-                    </label>
-
-                    <input
-                        id="senha"
-                        name="senha"
-                        type="password"
-                        className="form-control"
-                        value={formulario.senha}
-                        onChange={alterarCampo}
-                        required
-                    />
-                </div>
-
-                <div className="mb-4">
-                    <label className="form-label" htmlFor="confirmarSenha">
-                        Confirmar senha
-                    </label>
-
-                    <input
-                        id="confirmarSenha"
-                        name="confirmarSenha"
-                        type="password"
-                        className="form-control"
-                        value={formulario.confirmarSenha}
-                        onChange={alterarCampo}
-                        required
-                    />
-                </div>
-
-                <button type="submit" className="btn btn-success w-100">
-                    Continuar para pagamento
-                </button>
-            </form>
         </div>
     );
 }

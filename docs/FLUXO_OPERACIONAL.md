@@ -364,3 +364,61 @@ CANCELADO
 - Nenhum pedido pode ir para entrega sem checklist completo.
 - O checklist será obrigatório na etapa de Separação.
 - Toda alteração de status deve registrar data e hora.
+
+---
+
+## Identificação do Cliente no Checkout
+
+Fluxo público atual:
+
+Cardápio
+→ Carrinho
+→ Identificação
+→ Checkout
+→ Pedido
+
+Na etapa de Identificação existem dois caminhos:
+
+### Novo cliente
+
+- Nome completo
+- CPF
+- Telefone / WhatsApp
+- E-mail
+- Senha
+- Confirmação da senha
+
+O Front envia:
+
+POST /cliente/cadastro
+
+Após o cadastro bem-sucedido, os dados do cliente são armazenados na sessão e o usuário segue para o Checkout.
+
+### Cliente existente
+
+O cliente informa:
+
+- CPF
+- Senha
+
+O Front envia:
+
+POST /cliente/login
+
+Após autenticação:
+
+- token do cliente é armazenado em `sessionStorage`
+- identificação do cliente é armazenada em `sessionStorage`
+- usuário segue para o Checkout
+
+### Checkout
+
+O Checkout exige cliente identificado.
+
+Caso não exista cliente na sessão:
+
+→ redireciona para `/identificacao`
+
+O Checkout reutiliza os dados do cliente identificado e mantém o carrinho existente.
+
+É possível retornar para a identificação através de "Alterar cliente".

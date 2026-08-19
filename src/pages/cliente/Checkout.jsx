@@ -1,38 +1,36 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { criarPedido } from "../../services/pedidoService";
 
-function carregarCarrinhoInicial() {
-    return JSON.parse(sessionStorage.getItem("carrinho")) || [];
-}
-
 function Checkout() {
-    const [clienteNome, setClienteNome] = useState("");
-    const [clienteWhatsapp, setClienteWhatsapp] = useState("");
-    const [observacao, setObservacao] = useState("");
+    const navigate = useNavigate();
 
+    const clienteSessao = JSON.parse(sessionStorage.getItem("cliente") || "null");
+
+    const carrinho = JSON.parse(sessionStorage.getItem("carrinho") || "[]");
+
+    const [clienteNome, setClienteNome] = useState(clienteSessao?.nome || "");
+
+    const [clienteWhatsapp, setClienteWhatsapp] = useState(clienteSessao?.telefone || "");
+
+    const [observacao, setObservacao] = useState("");
     const [enviando, setEnviando] = useState(false);
-    const [erro, setErro] = useState("");
     const [pedidoCriado, setPedidoCriado] = useState(null);
 
-    const [carrinho, setCarrinho] = useState(carregarCarrinhoInicial);
+    if (!clienteSessao) {
+        navigate("/identificacao", { replace: true });
+        return null;
+    }
 
     function limparCarrinho() {
         sessionStorage.removeItem("carrinho");
-        setCarrinho([]);
     }
 
     async function enviarPedido() {
-        const nome = clienteNome.trim();
-        const whatsapp = clienteWhatsapp.trim();
-
-        if (!nome || !whatsapp || carrinho.length === 0) {
-            return;
-        }
-
         const pedido = {
-            clienteNome: nome,
-            clienteWhatsapp: whatsapp,
-            observacao: observacao.trim(),
+            clienteNome,
+            clienteWhatsapp,
+            observacao,
             itens: carrinho.map((item) => ({
                 produtoId: item.id,
                 quantidade: item.quantidade
@@ -41,7 +39,6 @@ function Checkout() {
 
         try {
             setEnviando(true);
-            setErro("");
 
             const response = await criarPedido(pedido);
 
@@ -53,9 +50,9 @@ function Checkout() {
             setClienteWhatsapp("");
             setObservacao("");
         } catch (error) {
-            console.error("Erro ao enviar pedido.", error);
+            console.error(error);
 
-            setErro("Não foi possível enviar o pedido. Tente novamente.");
+            alert("Erro ao enviar pedido.");
         } finally {
             setEnviando(false);
         }
@@ -63,127 +60,78 @@ function Checkout() {
 
     if (pedidoCriado) {
         return (
-            <div className="container mt-3 mt-md-4">
-                <div className="card shadow">
-                    <div className="card-body text-center py-5">
-                        <h2>Pedido recebido!</h2>
+            <div className="card mt-4 shadow">
+                <div className="card-body text-center">
+                    <h2>Pedido recebido!</h2>
 
-                        <p className="mb-3">Seu pedido foi enviado com sucesso.</p>
+                    <p>Seu pedido foi enviado para o balcão.</p>
 
-                        <h3>Pedido #{pedidoCriado.id}</h3>
+                    <h3>Pedido #{pedidoCriado.id}</h3>
 
-                        <p className="mb-0 text-muted">Em breve você receberá atualizações.</p>
-                    </div>
+                    <p>Em breve você receberá atualizações.</p>
                 </div>
             </div>
         );
     }
-
-    if (carrinho.length === 0) {
-        return (
-            <div className="container mt-3 mt-md-4">
-                <div className="alert alert-secondary">Seu carrinho está vazio.</div>
-            </div>
-        );
-    }
-
-    const total = carrinho.reduce((soma, item) => soma + Number(item.preco) * item.quantidade, 0);
 
     return (
-        <div className="container mt-3 mt-md-4 mb-4">
-            <div className="card shadow">
-                <div className="card-body">
-                    <h3 className="mb-4">Confirmar pedido</h3>
+        <div className="card mt-4 shadow">
+            <div className="card-body">
+                <h3>Confirmar pedido</h3>
 
-                    <h5>Itens do pedido</h5>
-
-                    <ul className="list-group mb-4">
-                        {carrinho.map((item) => (
-                            <li
-                                key={item.id}
-                                className="list-group-item d-flex flex-column flex-sm-row justify-content-between gap-2"
-                            >
-                                <span>
-                                    {item.quantidade}x {item.nome}
-                                </span>
-
-                                <span>
-                                    R${" "}
-                                    {(Number(item.preco) * item.quantidade).toLocaleString("pt-BR", {
-                                        minimumFractionDigits: 2
-                                    })}
-                                </span>
-                            </li>
-                        ))}
-                    </ul>
-
-                    <div className="d-flex justify-content-between mb-4">
-                        <strong>Total</strong>
-
-                        <strong>
-                            R${" "}
-                            {total.toLocaleString("pt-BR", {
-                                minimumFractionDigits: 2
-                            })}
-                        </strong>
-                    </div>
-
-                    <h5>Seus dados</h5>
-
-                    {erro && (
-                        <div className="alert alert-danger mt-3" role="alert">
-                            {erro}
-                        </div>
-                    )}
-
-                    <label className="form-label mt-3" htmlFor="clienteNome">
-                        Nome
-                    </label>
-
-                    <input
-                        id="clienteNome"
-                        className="form-control mb-2"
-                        placeholder="Seu nome"
-                        value={clienteNome}
-                        onChange={(e) => setClienteNome(e.target.value)}
-                        autoComplete="name"
-                    />
-
-                    <label className="form-label" htmlFor="clienteWhatsapp">
-                        WhatsApp
-                    </label>
-
-                    <input
-                        id="clienteWhatsapp"
-                        className="form-control mb-2"
-                        placeholder="Seu WhatsApp"
-                        value={clienteWhatsapp}
-                        onChange={(e) => setClienteWhatsapp(e.target.value)}
-                        inputMode="tel"
-                        autoComplete="tel"
-                    />
-
-                    <label className="form-label" htmlFor="observacao">
-                        Observação
-                    </label>
-
-                    <textarea
-                        id="observacao"
-                        className="form-control mb-3"
-                        rows="3"
-                        placeholder="Observação (opcional)"
-                        value={observacao}
-                        onChange={(e) => setObservacao(e.target.value)}
-                    />
-
-                    <button
-                        className="btn btn-success w-100"
-                        disabled={enviando || !clienteNome.trim() || !clienteWhatsapp.trim()}
-                        onClick={enviarPedido}
-                    >
-                        {enviando ? "Enviando pedido..." : "Confirmar pedido"}
-                    </button>
+                <div className="alert alert-success">
+                    Cliente identificado: <strong>{clienteSessao.nome || clienteSessao.cpf}</strong>
                 </div>
+
+                <ul className="list-group mb-3">
+                    {carrinho.map((item) => (
+                        <li key={item.id} className="list-group-item d-flex justify-content-between">
+                            <span>
+                                {item.quantidade}x {item.nome}
+                            </span>
+
+                            <span>
+                                R${" "}
+                                {(item.preco * item.quantidade).toLocaleString("pt-BR", {
+                                    minimumFractionDigits: 2
+                                })}
+                            </span>
+                        </li>
+                    ))}
+                </ul>
+
+                <input
+                    className="form-control mb-2"
+                    placeholder="Nome"
+                    value={clienteNome}
+                    onChange={(event) => setClienteNome(event.target.value)}
+                />
+
+                <input
+                    className="form-control mb-2"
+                    placeholder="WhatsApp"
+                    value={clienteWhatsapp}
+                    onChange={(event) => setClienteWhatsapp(event.target.value)}
+                />
+
+                <textarea
+                    className="form-control mb-3"
+                    placeholder="Observação"
+                    value={observacao}
+                    onChange={(event) => setObservacao(event.target.value)}
+                />
+
+                <button
+                    className="btn btn-success w-100"
+                    disabled={enviando || !clienteNome || !clienteWhatsapp || carrinho.length === 0}
+                    onClick={enviarPedido}
+                >
+                    {enviando ? "Enviando..." : "Enviar pedido"}
+                </button>
+
+                <button type="button" className="btn btn-link w-100 mt-2" onClick={() => navigate("/identificacao")}>
+                    Alterar cliente
+                </button>
             </div>
         </div>
     );
