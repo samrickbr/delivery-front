@@ -265,3 +265,20 @@ FINALIZADO
 Sprint 04 concluiu o primeiro fluxo operacional completo do SIGIN Delivery.
 
 A partir desta Sprint o sistema já é capaz de operar um delivery do recebimento do pedido até a confirmação da entrega.
+
+---
+
+## Evolução — Identificação e Autenticação do Cliente
+
+Implementado no Delivery Front:
+
+- identificação de novo cliente
+- autocadastro integrado ao Delivery Back
+- login de cliente existente
+- normalização do CPF antes da autenticação
+- armazenamento da sessão do cliente
+- integração da identificação com o Checkout
+- bloqueio do Checkout sem cliente identificado
+- opção de alterar cliente antes do fechamento do pedido
+
+Status: CONCLUÍDO
