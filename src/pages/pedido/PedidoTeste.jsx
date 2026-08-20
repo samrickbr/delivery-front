@@ -11,18 +11,28 @@ function PedidoTeste() {
     const [clienteWhatsapp, setClienteWhatsapp] = useState("");
 
     useEffect(() => {
-        carregarProdutos();
-    }, []);
+        let ativo = true;
 
-    async function carregarProdutos() {
-        const response = await api.get("/produtos");
-        setProdutos(response.data);
-    }
+        async function carregar() {
+            const response = await api.get("/produtos");
+
+            if (ativo) {
+                setProdutos(response.data);
+            }
+        }
+
+        carregar();
+
+        return () => {
+            ativo = false;
+        };
+    }, []);
 
     function adicionarItem() {
         const produto = produtos.find((p) => p.id === Number(produtoId));
 
         if (!produto) return;
+
         setItens([
             ...itens,
             {
@@ -31,6 +41,7 @@ function PedidoTeste() {
                 quantidade: Number(quantidade)
             }
         ]);
+
         setProdutoId("");
         setQuantidade(1);
     }
@@ -40,8 +51,6 @@ function PedidoTeste() {
     }
 
     async function criarPedido() {
-        console.log("ENTROU NO CRIAR PEDIDO");
-
         const pedido = {
             clienteNome,
             clienteWhatsapp,
@@ -51,8 +60,6 @@ function PedidoTeste() {
                 quantidade: item.quantidade
             }))
         };
-
-        console.log("PEDIDO:", pedido);
 
         try {
             const response = await api.post("/pedidos", pedido);
@@ -69,17 +76,20 @@ function PedidoTeste() {
     return (
         <div className="container mt-4">
             <h1>Novo Pedido (Teste)</h1>
+
             <div className="mb-3">
                 <label>Cliente</label>
                 <input className="form-control" value={clienteNome} onChange={(e) => setClienteNome(e.target.value)} />
             </div>
-            
-            <input
-                className="form-control"
-                placeholder="WhatsApp"
-                value={clienteWhatsapp}
-                onChange={(e) => setClienteWhatsapp(e.target.value)}
-            />
+
+            <div className="mb-3">
+                <input
+                    className="form-control"
+                    placeholder="WhatsApp"
+                    value={clienteWhatsapp}
+                    onChange={(e) => setClienteWhatsapp(e.target.value)}
+                />
+            </div>
 
             <div className="mb-3">
                 <label>Observação</label>
@@ -89,6 +99,7 @@ function PedidoTeste() {
             <hr />
 
             <h4>Adicionar Item</h4>
+
             <div className="row">
                 <div className="col-md-6">
                     <select className="form-select" value={produtoId} onChange={(e) => setProdutoId(e.target.value)}>
@@ -122,6 +133,7 @@ function PedidoTeste() {
             <hr />
 
             <h4>Itens</h4>
+
             <ul className="list-group">
                 {itens.map((item, index) => (
                     <li key={index} className="list-group-item d-flex justify-content-between">

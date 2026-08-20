@@ -1,17 +1,24 @@
 import { useEffect, useRef, useState } from "react";
 
-function InputDialog({ show, titulo, mensagem, placeholder, onConfirm, onCancel }) {
+function InputDialogContent({ titulo, mensagem, placeholder, onConfirm, onCancel }) {
     const [valor, setValor] = useState("");
     const inputRef = useRef(null);
 
     useEffect(() => {
-        if (show) {
-            setValor("");
-            setTimeout(() => inputRef.current?.focus(), 50);
-        }
-    }, [show]);
+        const timer = setTimeout(() => {
+            inputRef.current?.focus();
+        }, 50);
 
-    if (!show) return null;
+        return () => clearTimeout(timer);
+    }, []);
+
+    function confirmar() {
+        if (!valor.trim()) {
+            return;
+        }
+
+        onConfirm(valor);
+    }
 
     return (
         <div className="modal d-block" style={{ backgroundColor: "rgba(0,0,0,.5)" }}>
@@ -31,9 +38,10 @@ function InputDialog({ show, titulo, mensagem, placeholder, onConfirm, onCancel 
                             placeholder={placeholder}
                             onChange={(e) => setValor(e.target.value)}
                             onKeyDown={(e) => {
-                                if (e.key === "Enter" && valor.trim()) {
-                                    onConfirm(valor);
+                                if (e.key === "Enter") {
+                                    confirmar();
                                 }
+
                                 if (e.key === "Escape") {
                                     onCancel();
                                 }
@@ -46,13 +54,29 @@ function InputDialog({ show, titulo, mensagem, placeholder, onConfirm, onCancel 
                             Cancelar
                         </button>
 
-                        <button className="btn btn-primary" disabled={!valor.trim()} onClick={() => onConfirm(valor)}>
+                        <button className="btn btn-primary" disabled={!valor.trim()} onClick={confirmar}>
                             Confirmar
                         </button>
                     </div>
                 </div>
             </div>
         </div>
+    );
+}
+
+function InputDialog({ show, titulo, mensagem, placeholder, onConfirm, onCancel }) {
+    if (!show) {
+        return null;
+    }
+
+    return (
+        <InputDialogContent
+            titulo={titulo}
+            mensagem={mensagem}
+            placeholder={placeholder}
+            onConfirm={onConfirm}
+            onCancel={onCancel}
+        />
     );
 }
 

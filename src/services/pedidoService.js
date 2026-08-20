@@ -45,19 +45,15 @@ export async function cancelarItens(id, setor, itens, justificativa) {
     });
 }
 
-
 export async function cancelarPedidoCompleto(id, justificativa) {
     return api.put(`/pedidos/${id}/cancelar-completo`, {
         justificativa
     });
 }
 
-// =====================================
-// LIBERAR PARA ENTREGA
-//
-// Após separação do balcão
-// FINALIZADO -> LIBERADO_ENTREGA
-// =====================================
+/* ==========================================================
+   LIBERAR PARA ENTREGA
+========================================================== */
 
 export async function conferirPedido(id) {
     return api.put(`/pedidos/${id}/conferir`);
@@ -123,17 +119,13 @@ export async function listarPedidos() {
     return api.get("/pedidos");
 }
 
-// =====================================
-// BUSCAR PEDIDOS POR STATUS
-// =====================================
-
 export async function listarPorStatus(status) {
     return api.get(`/pedidos/status/${status}`);
 }
 
-// =======================================
-// SEPARAÇÃO
-// =======================================
+/* ==========================================================
+   SEPARAÇÃO
+========================================================== */
 
 export async function listarSeparacao() {
     return api.get("/pedidos/entrega-operacao");

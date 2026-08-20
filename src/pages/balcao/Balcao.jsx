@@ -5,11 +5,9 @@ import ChecklistSeparacao from "../../components/pedido/ChecklistSeparacao";
 import {
     listarBalcao,
     aprovarPedido,
-    enviarCozinha,
     cancelarItens,
     cancelarPedidoCompleto,
-    conferirPedido,
-    liberarEntrega
+    conferirPedido
 } from "../../services/pedidoService";
 
 // =====================================
@@ -27,7 +25,6 @@ const ABAS = {
 function Balcao() {
     const [pedidos, setPedidos] = useState([]);
     const [aba, setAba] = useState(ABAS.PEDIDOS);
-    const [checklist, setChecklist] = useState({});
 
     // CANCELAMENTO
     const [pedidoSelecionado, setPedidoSelecionado] = useState(null);
@@ -82,53 +79,21 @@ function Balcao() {
 
     async function aceitarPedido(id) {
         await aprovarPedido(id);
-        carregarPedidos();
+        await carregarPedidos();
     }
 
     // =====================================
-    // APROVADO -> PRODUÇÃO
+    // CONFERÊNCIA
     // =====================================
-
-    async function enviarParaCozinha(id) {
-        await enviarCozinha(id);
-        carregarPedidos();
-    }
-
-    // =====================================
-    // SEPARAÇÃO
-    // =====================================
-
-    function marcarItem(itemId, marcado) {
-        setChecklist((old) => ({
-            ...old,
-            [itemId]: marcado
-        }));
-    }
 
     async function conferir(id) {
         await conferirPedido(id);
-        carregarPedidos();
-    }
-
-    async function enviarEntrega(pedido) {
-        const itens = pedido.itens.map((item) => ({
-            itemId: item.id,
-            separado: checklist[item.id] || false
-        }));
-
-        await liberarEntrega(pedido.id, itens);
-
-        carregarPedidos();
+        await carregarPedidos();
     }
 
     // =====================================
     // CANCELAMENTO
     // =====================================
-
-    async function cancelar(id) {
-        await cancelarPedidoCompleto(id, "BALCAO", "Cancelado pelo balcão");
-        carregarPedidos();
-    }
 
     function abrirCancelamento(pedido) {
         setPedidoSelecionado(pedido);
@@ -160,8 +125,7 @@ function Balcao() {
         }
 
         setMostrarModalCancelamento(false);
-
-        carregarPedidos();
+        await carregarPedidos();
     }
 
     // =====================================
@@ -169,7 +133,15 @@ function Balcao() {
     // =====================================
 
     useEffect(() => {
-        carregarPedidos();
+        let ativo = true;
+
+        async function inicializar() {
+            if (ativo) {
+                await carregarPedidos();
+            }
+        }
+
+        inicializar();
 
         const intervalo = setInterval(() => {
             if (!document.hidden) {
@@ -177,7 +149,10 @@ function Balcao() {
             }
         }, 10000);
 
-        return () => clearInterval(intervalo);
+        return () => {
+            ativo = false;
+            clearInterval(intervalo);
+        };
     }, []);
 
     return (

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import PedidoActions from "../PedidoActions";
 import PedidoCard from "./PedidoCard";
 import { listarCozinha, listarFinalizados } from "../../services/pedidoService";
@@ -12,26 +12,22 @@ function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
     const [carregando, setCarregando] = useState(false);
     const [digitando, setDigitando] = useState(false);
 
-    async function carregarCategorias() {
+    const carregarCategorias = useCallback(async () => {
         const response = await api.get("/categorias");
         setCategorias(response.data);
-    }
-
-    async function carregarPedidos() {
-        const response = await listarCozinha(setor);
-        setPedidos(response.data);
-    }
-
-    async function carregarFinalizados() {
-        const response = await listarFinalizados();
-        setPedidos(response.data);
-    }
-
-    useEffect(() => {
-        carregarCategorias();
     }, []);
 
-    async function atualizar() {
+    const carregarPedidos = useCallback(async () => {
+        const response = await listarCozinha(setor);
+        setPedidos(response.data);
+    }, [setor]);
+
+    const carregarFinalizados = useCallback(async () => {
+        const response = await listarFinalizados();
+        setPedidos(response.data);
+    }, []);
+
+    const atualizar = useCallback(async () => {
         setCarregando(true);
 
         try {
@@ -43,19 +39,32 @@ function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
         } finally {
             setCarregando(false);
         }
-    }
+    }, [aba, carregarPedidos, carregarFinalizados]);
 
     useEffect(() => {
-        atualizar();
+        const timer = setTimeout(() => {
+            carregarCategorias();
+        }, 0);
+
+        return () => clearTimeout(timer);
+    }, [carregarCategorias]);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            atualizar();
+        }, 0);
 
         const intervalo = setInterval(() => {
             if (!document.hidden && !digitando) {
-                carregarPedidos();
+                atualizar();
             }
         }, 10000);
 
-        return () => clearInterval(intervalo);
-    }, [aba]);
+        return () => {
+            clearTimeout(timer);
+            clearInterval(intervalo);
+        };
+    }, [atualizar, digitando]);
 
     const pedidosFiltrados =
         aba === "finalizados"

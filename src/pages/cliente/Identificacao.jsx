@@ -18,6 +18,7 @@ function Identificacao() {
         senha: "",
         confirmarSenha: ""
     });
+
     const [erro, setErro] = useState("");
     const [enviando, setEnviando] = useState(false);
 
@@ -26,6 +27,7 @@ function Identificacao() {
             ...estado,
             [campo]: valor
         }));
+
         setErro("");
     }
 
@@ -64,7 +66,18 @@ function Identificacao() {
                     senha: formulario.senha
                 });
 
-                sessionStorage.setItem("cliente", JSON.stringify(response.data));
+                sessionStorage.setItem(
+                    "cliente",
+                    JSON.stringify({
+                        clienteId: response.data.id,
+                        nome: response.data.nome,
+                        cpf: response.data.cpf,
+                        telefone: response.data.telefone,
+                        email: response.data.email
+                    })
+                );
+
+                sessionStorage.setItem("clienteId", String(response.data.id));
 
                 navigate("/checkout");
             } catch (error) {
@@ -97,9 +110,12 @@ function Identificacao() {
 
             sessionStorage.setItem("clienteToken", response.data.token);
 
+            sessionStorage.setItem("clienteId", String(response.data.clienteId));
+
             sessionStorage.setItem(
                 "cliente",
                 JSON.stringify({
+                    clienteId: response.data.clienteId,
                     cpf
                 })
             );
@@ -152,6 +168,7 @@ function Identificacao() {
                         {modo === "novo" && (
                             <>
                                 <label className="form-label">Nome completo</label>
+
                                 <input
                                     className="form-control mb-3"
                                     value={formulario.nome}
@@ -159,6 +176,7 @@ function Identificacao() {
                                 />
 
                                 <label className="form-label">CPF</label>
+
                                 <input
                                     className="form-control mb-3"
                                     value={formulario.cpf}
@@ -166,6 +184,7 @@ function Identificacao() {
                                 />
 
                                 <label className="form-label">Telefone / WhatsApp</label>
+
                                 <input
                                     type="tel"
                                     className="form-control mb-3"
@@ -174,6 +193,7 @@ function Identificacao() {
                                 />
 
                                 <label className="form-label">E-mail</label>
+
                                 <input
                                     type="email"
                                     className="form-control mb-3"
@@ -182,6 +202,7 @@ function Identificacao() {
                                 />
 
                                 <label className="form-label">Senha</label>
+
                                 <input
                                     type="password"
                                     className="form-control mb-3"
@@ -190,6 +211,7 @@ function Identificacao() {
                                 />
 
                                 <label className="form-label">Confirmar senha</label>
+
                                 <input
                                     type="password"
                                     className="form-control mb-3"
@@ -202,6 +224,7 @@ function Identificacao() {
                         {modo === "existente" && (
                             <>
                                 <label className="form-label">CPF</label>
+
                                 <input
                                     className="form-control mb-3"
                                     value={formulario.cpf}
@@ -209,6 +232,7 @@ function Identificacao() {
                                 />
 
                                 <label className="form-label">Senha</label>
+
                                 <input
                                     type="password"
                                     className="form-control mb-3"

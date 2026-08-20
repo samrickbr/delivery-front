@@ -5,7 +5,6 @@ import InputDialog from "./InputDialog";
 import {
     cancelarPedido,
     colocarPendente,
-    enviarCozinha,
     iniciarProducao,
     finalizarPedido
 } from "../services/pedidoService";

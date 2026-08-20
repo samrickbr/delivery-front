@@ -1,18 +1,23 @@
 import { useMemo, useState } from "react";
 import { criarPedido } from "../../services/pedidoService";
 
+const TIPOS_RECEBIMENTO = {
+    RETIRADA: "RETIRADA",
+    ENTREGA: "ENTREGA"
+};
+
 const FORMAS_PAGAMENTO = [
     {
-        value: "PIX",
-        label: "PIX"
+        id: 1,
+        nome: "PIX"
     },
     {
-        value: "CARTAO",
-        label: "Cartão"
+        id: 2,
+        nome: "Cartão"
     },
     {
-        value: "DINHEIRO",
-        label: "Dinheiro"
+        id: 3,
+        nome: "Dinheiro"
     }
 ];
 
@@ -23,19 +28,30 @@ function formatarValor(valor) {
     });
 }
 
+function obterCliente() {
+    try {
+        return JSON.parse(sessionStorage.getItem("cliente")) || {};
+    } catch {
+        return {};
+    }
+}
+
 function Checkout() {
-    const [clienteNome, setClienteNome] = useState("");
-    const [clienteWhatsapp, setClienteWhatsapp] = useState("");
+    const cliente = obterCliente();
+
+    const [tipoRecebimento, setTipoRecebimento] = useState(TIPOS_RECEBIMENTO.RETIRADA);
+
+    const [enderecoSelecionado, setEnderecoSelecionado] = useState("");
+
+    const [pagamentos, setPagamentos] = useState([]);
+
     const [observacao, setObservacao] = useState("");
 
-    const [formaPagamento, setFormaPagamento] = useState("");
-
-    const [precisaTroco, setPrecisaTroco] = useState(false);
-    const [trocoPara, setTrocoPara] = useState("");
+    const [erro, setErro] = useState("");
 
     const [enviando, setEnviando] = useState(false);
+
     const [pedidoCriado, setPedidoCriado] = useState(null);
-    const [erro, setErro] = useState("");
 
     const [carrinho, setCarrinho] = useState(() => {
         try {
@@ -45,76 +61,141 @@ function Checkout() {
         }
     });
 
-    const subtotal = useMemo(() => {
+    const valorProdutos = useMemo(() => {
         return carrinho.reduce((total, item) => {
             return total + Number(item.preco || 0) * Number(item.quantidade || 0);
         }, 0);
     }, [carrinho]);
 
-    function limparCarrinho() {
-        sessionStorage.removeItem("carrinho");
-        setCarrinho([]);
+    /*
+     * Nesta etapa:
+     * - retirada = taxa 0
+     * - entrega = aguarda cálculo oficial do Backend
+     */
+    const taxaEntrega = tipoRecebimento === TIPOS_RECEBIMENTO.RETIRADA ? 0 : null;
+
+    const valorTotal = taxaEntrega === null ? null : valorProdutos + taxaEntrega;
+
+    const totalPagamentos = useMemo(() => {
+        return pagamentos.reduce((total, pagamento) => total + Number(pagamento.valor || 0), 0);
+    }, [pagamentos]);
+
+    const diferencaPagamento = valorTotal === null ? null : valorTotal - totalPagamentos;
+
+    function adicionarPagamento() {
+        setPagamentos((estado) => [
+            ...estado,
+            {
+                formaPagamentoId: "",
+                valor: "",
+                confirmado: false
+            }
+        ]);
+
+        setErro("");
     }
 
-    function selecionarFormaPagamento(forma) {
-        setFormaPagamento(forma);
+    function alterarPagamento(index, campo, valor) {
+        setPagamentos((estado) =>
+            estado.map((pagamento, pagamentoIndex) =>
+                pagamentoIndex === index
+                    ? {
+                          ...pagamento,
+                          [campo]: valor,
+                          confirmado: false
+                      }
+                    : pagamento
+            )
+        );
+
+        setErro("");
+    }
+
+    function confirmarPagamento(index) {
+        setPagamentos((estado) =>
+            estado.map((pagamento, pagamentoIndex) =>
+                pagamentoIndex === index
+                    ? {
+                          ...pagamento,
+                          confirmado: true
+                      }
+                    : pagamento
+            )
+        );
+
+        setErro("");
+    }
+
+    function removerPagamento(index) {
+        setPagamentos((estado) => estado.filter((_, pagamentoIndex) => pagamentoIndex !== index));
+
+        setErro("");
+    }
+
+    function selecionarTipoRecebimento(tipo) {
+        setTipoRecebimento(tipo);
         setErro("");
 
-        if (forma !== "DINHEIRO") {
-            setPrecisaTroco(false);
-            setTrocoPara("");
+        if (tipo === TIPOS_RECEBIMENTO.RETIRADA) {
+            setEnderecoSelecionado("");
         }
     }
 
-    function validarTroco() {
-        if (formaPagamento !== "DINHEIRO" || !precisaTroco) {
-            return true;
-        }
-
-        if (!trocoPara) {
-            setErro("Informe para quanto precisa de troco.");
+    function validarCheckout() {
+        if (carrinho.length === 0) {
+            setErro("Seu carrinho está vazio.");
             return false;
         }
 
-        const valorTroco = Number(trocoPara);
-
-        if (!Number.isFinite(valorTroco) || valorTroco <= 0) {
-            setErro("Informe um valor válido para o troco.");
+        if (!cliente.clienteId) {
+            setErro("Cliente não identificado. Volte para a identificação.");
             return false;
         }
 
-        if (valorTroco < subtotal) {
-            setErro(`O valor para troco deve ser igual ou maior que o total de ${formatarValor(subtotal)}.`);
+        if (tipoRecebimento === TIPOS_RECEBIMENTO.ENTREGA && !enderecoSelecionado) {
+            setErro("Selecione um endereço para entrega.");
+            return false;
+        }
+
+        if (pagamentos.length === 0) {
+            setErro("Adicione pelo menos uma forma de pagamento.");
+            return false;
+        }
+
+        for (const pagamento of pagamentos) {
+            if (!pagamento.formaPagamentoId) {
+                setErro("Selecione a forma de pagamento.");
+                return false;
+            }
+
+            if (!pagamento.valor || Number(pagamento.valor) <= 0) {
+                setErro("Informe um valor válido para cada pagamento.");
+                return false;
+            }
+
+            if (!pagamento.confirmado) {
+                setErro("Confirme todos os pagamentos antes de validar o checkout.");
+                return false;
+            }
+        }
+
+        if (valorTotal === null) {
+            setErro("O total oficial do pedido ainda não está disponível.");
+            return false;
+        }
+
+        if (Math.abs(totalPagamentos - valorTotal) > 0.009) {
+            setErro(`A soma dos pagamentos deve corresponder ao total de ${formatarValor(valorTotal)}.`);
             return false;
         }
 
         return true;
     }
 
-    async function enviarPedido() {
+    async function prepararCheckout() {
         setErro("");
 
-        if (carrinho.length === 0) {
-            setErro("Seu carrinho está vazio.");
-            return;
-        }
-
-        if (!clienteNome.trim()) {
-            setErro("Informe seu nome.");
-            return;
-        }
-
-        if (!clienteWhatsapp.trim()) {
-            setErro("Informe seu WhatsApp.");
-            return;
-        }
-
-        if (!formaPagamento) {
-            setErro("Selecione uma forma de pagamento.");
-            return;
-        }
-
-        if (!validarTroco()) {
+        if (!validarCheckout()) {
             return;
         }
 
@@ -123,10 +204,15 @@ function Checkout() {
         }
 
         const pedido = {
-            clienteNome: clienteNome.trim(),
-            clienteWhatsapp: clienteWhatsapp.trim(),
+            clienteNome: cliente.nome?.trim() || "",
+            clienteWhatsapp: cliente.telefone || cliente.whatsapp || "",
             observacao: observacao.trim(),
-            formaPagamento,
+            pagamentos: pagamentos.map((pagamento) => ({
+                formaPagamentoId: Number(pagamento.formaPagamentoId),
+                valor: Number(pagamento.valor)
+            })),
+            tipoRecebimento,
+            enderecoId: tipoRecebimento === TIPOS_RECEBIMENTO.ENTREGA ? Number(enderecoSelecionado) : null,
             itens: carrinho.map((item) => ({
                 produtoId: item.id,
                 quantidade: item.quantidade
@@ -136,11 +222,15 @@ function Checkout() {
         try {
             setEnviando(true);
 
+            console.log("Enviando pedido:", pedido);
+
             const response = await criarPedido(pedido);
 
             setPedidoCriado(response.data);
 
-            limparCarrinho();
+            sessionStorage.removeItem("carrinho");
+
+            setCarrinho([]);
         } catch (error) {
             console.error(error);
 
@@ -164,12 +254,6 @@ function Checkout() {
                         {pedidoCriado.status && (
                             <p className="mb-2">
                                 <strong>Status:</strong> {pedidoCriado.status}
-                            </p>
-                        )}
-
-                        {pedidoCriado.formaPagamento && (
-                            <p className="mb-2">
-                                <strong>Pagamento:</strong> {pedidoCriado.formaPagamento}
                             </p>
                         )}
 
@@ -197,28 +281,26 @@ function Checkout() {
                     </div>
                 )}
 
-                {/* Cliente */}
+                {/* CLIENTE */}
                 <div className="mb-4">
                     <h5>Cliente</h5>
 
-                    <input
-                        className="form-control mb-2"
-                        placeholder="Nome"
-                        value={clienteNome}
-                        onChange={(e) => setClienteNome(e.target.value)}
-                        disabled={enviando}
-                    />
+                    <div className="border rounded p-3">
+                        <p className="mb-1">
+                            <strong>Nome:</strong> {cliente.nome || "Não disponível"}
+                        </p>
 
-                    <input
-                        className="form-control"
-                        placeholder="WhatsApp"
-                        value={clienteWhatsapp}
-                        onChange={(e) => setClienteWhatsapp(e.target.value)}
-                        disabled={enviando}
-                    />
+                        <p className="mb-1">
+                            <strong>CPF:</strong> {cliente.cpf || "Não disponível"}
+                        </p>
+
+                        <p className="mb-0">
+                            <strong>WhatsApp:</strong> {cliente.telefone || cliente.whatsapp || "Não disponível"}
+                        </p>
+                    </div>
                 </div>
 
-                {/* Pedido */}
+                {/* PEDIDO */}
                 <div className="mb-4">
                     <h5>Pedido</h5>
 
@@ -244,147 +326,236 @@ function Checkout() {
                             })}
                         </ul>
                     )}
+                </div>
+
+                {/* TIPO DE RECEBIMENTO */}
+                <div className="mb-4">
+                    <h5>Como deseja receber?</h5>
+
+                    <div className="d-grid gap-2">
+                        <button
+                            type="button"
+                            className={
+                                tipoRecebimento === TIPOS_RECEBIMENTO.RETIRADA
+                                    ? "btn btn-primary"
+                                    : "btn btn-outline-primary"
+                            }
+                            onClick={() => selecionarTipoRecebimento(TIPOS_RECEBIMENTO.RETIRADA)}
+                            disabled={enviando}
+                        >
+                            Retirar no local
+                        </button>
+
+                        <button
+                            type="button"
+                            className={
+                                tipoRecebimento === TIPOS_RECEBIMENTO.ENTREGA
+                                    ? "btn btn-primary"
+                                    : "btn btn-outline-primary"
+                            }
+                            onClick={() => selecionarTipoRecebimento(TIPOS_RECEBIMENTO.ENTREGA)}
+                            disabled={enviando}
+                        >
+                            Receber por entrega
+                        </button>
+                    </div>
+                </div>
+
+                {/* ENDEREÇO */}
+                {tipoRecebimento === TIPOS_RECEBIMENTO.ENTREGA && (
+                    <div className="mb-4">
+                        <h5>Endereço de entrega</h5>
+
+                        <div className="alert alert-warning">
+                            O endpoint de endereços do cliente ainda não está exposto pelo Delivery Back.
+                        </div>
+
+                        <input
+                            className="form-control"
+                            type="number"
+                            placeholder="enderecoId"
+                            value={enderecoSelecionado}
+                            onChange={(e) => setEnderecoSelecionado(e.target.value)}
+                            disabled={enviando}
+                        />
+                    </div>
+                )}
+
+                {/* VALORES */}
+                <div className="border rounded p-3 mb-4">
+                    <h5>Valores</h5>
+
+                    <div className="d-flex justify-content-between mb-1">
+                        <span>Produtos</span>
+
+                        <strong>{formatarValor(valorProdutos)}</strong>
+                    </div>
+
+                    <div className="d-flex justify-content-between mb-1">
+                        <span>Taxa de entrega</span>
+
+                        <strong>{taxaEntrega === null ? "A calcular pelo Backend" : formatarValor(taxaEntrega)}</strong>
+                    </div>
+
+                    <hr />
 
                     <div className="d-flex justify-content-between">
                         <strong>Total</strong>
 
-                        <strong>{formatarValor(subtotal)}</strong>
+                        <strong>{valorTotal === null ? "Aguardando Backend" : formatarValor(valorTotal)}</strong>
                     </div>
                 </div>
 
-                {/* Pagamento */}
+                {/* PAGAMENTOS */}
                 <div className="mb-4">
-                    <h5>Forma de pagamento</h5>
+                    <h5 className="mb-3">Pagamentos</h5>
 
-                    <div className="d-grid gap-2">
-                        {FORMAS_PAGAMENTO.map((forma) => (
-                            <button
-                                key={forma.value}
-                                type="button"
-                                className={
-                                    formaPagamento === forma.value ? "btn btn-primary" : "btn btn-outline-primary"
-                                }
-                                onClick={() => selecionarFormaPagamento(forma.value)}
-                                disabled={enviando}
-                            >
-                                {forma.label}
-                            </button>
-                        ))}
-                    </div>
+                    {pagamentos.length === 0 && (
+                        <div className="alert alert-secondary">Nenhum pagamento adicionado.</div>
+                    )}
 
-                    {formaPagamento === "DINHEIRO" && (
-                        <div className="border rounded p-3 mt-3">
-                            <h6>Troco</h6>
+                    {pagamentos.map((pagamento, index) => (
+                        <div key={index} className="border rounded p-3 mb-3">
+                            <div className="fw-semibold mb-3">Pagamento {index + 1}</div>
 
-                            <div className="form-check mb-3">
-                                <input
-                                    id="precisaTroco"
-                                    className="form-check-input"
-                                    type="checkbox"
-                                    checked={precisaTroco}
-                                    onChange={(e) => {
-                                        setPrecisaTroco(e.target.checked);
+                            <div className="row g-2 align-items-end">
+                                <div className="col-md-5">
+                                    <label className="form-label">Forma de pagamento</label>
 
-                                        if (!e.target.checked) {
-                                            setTrocoPara("");
-                                        }
+                                    <select
+                                        className="form-select"
+                                        value={pagamento.formaPagamentoId}
+                                        onChange={(e) => alterarPagamento(index, "formaPagamentoId", e.target.value)}
+                                        disabled={enviando}
+                                    >
+                                        <option value="">Selecione</option>
 
-                                        setErro("");
-                                    }}
-                                    disabled={enviando}
-                                />
+                                        {FORMAS_PAGAMENTO.map((forma) => (
+                                            <option key={forma.id} value={forma.id}>
+                                                {forma.nome}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
 
-                                <label className="form-check-label" htmlFor="precisaTroco">
-                                    Precisa de troco?
-                                </label>
-                            </div>
-
-                            {precisaTroco && (
-                                <div>
-                                    <label className="form-label" htmlFor="trocoPara">
-                                        Troco para quanto?
-                                    </label>
+                                <div className="col-md-4">
+                                    <label className="form-label">Valor</label>
 
                                     <input
-                                        id="trocoPara"
                                         className="form-control"
                                         type="number"
-                                        min={subtotal}
+                                        min="0.01"
                                         step="0.01"
-                                        placeholder={subtotal.toFixed(2)}
-                                        value={trocoPara}
-                                        onChange={(e) => {
-                                            setTrocoPara(e.target.value);
-                                            setErro("");
-                                        }}
+                                        placeholder="0,00"
+                                        value={pagamento.valor}
+                                        onChange={(e) => alterarPagamento(index, "valor", e.target.value)}
                                         disabled={enviando}
                                     />
-
-                                    {trocoPara && Number(trocoPara) >= subtotal && (
-                                        <small className="text-muted">
-                                            Troco: {formatarValor(Number(trocoPara) - subtotal)}
-                                        </small>
-                                    )}
                                 </div>
-                            )}
+
+                                <div className="col-md-3 d-flex gap-2">
+                                    <button
+                                        type="button"
+                                        className={
+                                            pagamento.confirmado
+                                                ? "btn btn-success flex-grow-1"
+                                                : "btn btn-outline-success flex-grow-1"
+                                        }
+                                        onClick={() => confirmarPagamento(index)}
+                                        disabled={enviando || !pagamento.formaPagamentoId || !pagamento.valor}
+                                    >
+                                        {pagamento.confirmado ? "OK" : "OK"}
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        className="btn btn-outline-danger"
+                                        onClick={() => removerPagamento(index)}
+                                        disabled={enviando}
+                                    >
+                                        Remover
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                    )}
+                    ))}
+
+                    <div className="text-center mb-3">
+                        <button
+                            type="button"
+                            className="btn btn-outline-primary"
+                            onClick={adicionarPagamento}
+                            disabled={enviando}
+                        >
+                            + Adicionar pagamento
+                        </button>
+                    </div>
+
+                    <div className="border rounded p-3">
+                        <div className="d-flex justify-content-between">
+                            <span>Total dos pagamentos</span>
+
+                            <strong>{formatarValor(totalPagamentos)}</strong>
+                        </div>
+
+                        {diferencaPagamento !== null && (
+                            <div className="d-flex justify-content-between mt-2">
+                                <span>Diferença</span>
+
+                                <strong>{formatarValor(diferencaPagamento)}</strong>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
-                {/* Observação */}
+                {/* OBSERVAÇÃO */}
                 <div className="mb-4">
                     <h5>Observação</h5>
 
                     <textarea
                         className="form-control"
+                        rows={3}
                         placeholder="Observação do pedido (opcional)"
                         value={observacao}
                         onChange={(e) => setObservacao(e.target.value)}
                         disabled={enviando}
-                        rows={3}
                     />
                 </div>
 
-                {/* Revisão final */}
+                {/* RESUMO */}
                 <div className="border rounded p-3 mb-4">
                     <h5>Resumo final</h5>
 
                     <p className="mb-1">
-                        <strong>Cliente:</strong> {clienteNome || "Não informado"}
+                        <strong>Cliente:</strong> {cliente.nome || "Não disponível"}
                     </p>
 
                     <p className="mb-1">
-                        <strong>WhatsApp:</strong> {clienteWhatsapp || "Não informado"}
+                        <strong>Recebimento:</strong> {tipoRecebimento}
                     </p>
 
-                    <p className="mb-1">
-                        <strong>Pagamento:</strong> {formaPagamento || "Não selecionado"}
-                    </p>
-
-                    {formaPagamento === "DINHEIRO" && precisaTroco && trocoPara && (
+                    {tipoRecebimento === TIPOS_RECEBIMENTO.ENTREGA && (
                         <p className="mb-1">
-                            <strong>Troco para:</strong> {formatarValor(Number(trocoPara))}
+                            <strong>Endereço:</strong> {enderecoSelecionado || "Não selecionado"}
                         </p>
                     )}
 
+                    <p className="mb-1">
+                        <strong>Total:</strong> {valorTotal === null ? "Aguardando Backend" : formatarValor(valorTotal)}
+                    </p>
+
                     <p className="mb-0">
-                        <strong>Total:</strong> {formatarValor(subtotal)}
+                        <strong>Pagamentos:</strong> {formatarValor(totalPagamentos)}
                     </p>
                 </div>
 
                 <button
                     type="button"
                     className="btn btn-success btn-lg w-100"
-                    disabled={
-                        enviando ||
-                        !clienteNome.trim() ||
-                        !clienteWhatsapp.trim() ||
-                        !formaPagamento ||
-                        carrinho.length === 0
-                    }
-                    onClick={enviarPedido}
+                    disabled={enviando || carrinho.length === 0}
+                    onClick={prepararCheckout}
                 >
-                    {enviando ? "Enviando pedido..." : "Confirmar pedido"}
+                    {enviando ? "Enviando pedido..." : "Validar checkout"}
                 </button>
             </div>
         </div>

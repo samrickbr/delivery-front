@@ -1,23 +1,38 @@
 import { useEffect, useRef } from "react";
 
 function ConfirmDialog({ show, titulo, mensagem, onConfirm, onCancel }) {
-    if (!show) return null;
     const confirmarRef = useRef(null);
 
     useEffect(() => {
-        if (show) {
-            setTimeout(() => confirmarRef.current?.focus(), 50);
-        }
+        if (!show) return;
+
+        const timer = setTimeout(() => {
+            confirmarRef.current?.focus();
+        }, 50);
+
+        return () => clearTimeout(timer);
     }, [show]);
 
+    if (!show) return null;
+
     return (
-        <div className="modal d-block" style={{ backgroundColor: "rgba(0,0,0,.5)" }}>
+        <div
+            className="modal d-block"
+            style={{
+                backgroundColor: "rgba(0,0,0,.5)"
+            }}
+        >
             <div className="modal-dialog modal-dialog-centered">
                 <div
                     className="modal-content"
                     onKeyDown={(e) => {
-                        if (e.key === "Escape") onCancel();
-                        if (e.key === "Enter") onConfirm();
+                        if (e.key === "Escape") {
+                            onCancel();
+                        }
+
+                        if (e.key === "Enter") {
+                            onConfirm();
+                        }
                     }}
                     tabIndex={0}
                 >

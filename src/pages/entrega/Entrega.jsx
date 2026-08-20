@@ -6,39 +6,22 @@ function Entrega() {
     const [pedidos, setPedidos] = useState([]);
     const [aba, setAba] = useState("separacao");
 
-    // ================================
-    // CARREGAR PEDIDOS ENTREGA
-    //
-    // FINALIZADO  -> Separação
-    // SAIU_ENTREGA -> Em entrega
-    // ================================
     async function carregarPedidos() {
         const response = await api.get("/pedidos/entrega-operacao");
-
         setPedidos(response.data);
     }
 
-    // ================================
-    // FINALIZADO -> SAIU_ENTREGA
-    // ================================
     async function sairEntrega(id) {
         await api.put(`/pedidos/${id}/sair-entrega`);
-
-        carregarPedidos();
+        await carregarPedidos();
     }
 
-    // ================================
-    // SAIU_ENTREGA -> ENTREGUE
-    // ================================
     async function confirmarEntrega(id) {
         await api.put(`/pedidos/${id}/entregar`);
-
-        carregarPedidos();
+        await carregarPedidos();
     }
 
     useEffect(() => {
-        carregarPedidos();
-
         const intervalo = setInterval(() => {
             if (!document.hidden) {
                 carregarPedidos();
@@ -48,35 +31,15 @@ function Entrega() {
         return () => clearInterval(intervalo);
     }, []);
 
-    // ================================
-    // FILTROS DAS ABAS
-    // ================================
     const pedidosSeparacao = pedidos.filter((pedido) => pedido.status === "SEPARADO");
 
     const pedidosEmEntrega = pedidos.filter((pedido) => pedido.status === "SAIU_ENTREGA");
 
-    let pedidosExibidos = [];
-
-    switch (aba) {
-        case "separacao":
-            pedidosExibidos = pedidosSeparacao;
-            break;
-
-        case "entrega":
-            pedidosExibidos = pedidosEmEntrega;
-            break;
-
-        default:
-            pedidosExibidos = [];
-    }
+    const pedidosExibidos = aba === "separacao" ? pedidosSeparacao : pedidosEmEntrega;
 
     return (
         <div className="container mt-4">
             <h1 className="mb-4">Entrega</h1>
-
-            {/* ================================
-                ABAS
-            ================================= */}
 
             <div className="mb-4">
                 <button
@@ -93,10 +56,6 @@ function Entrega() {
                     🚚 Em entrega ({pedidosEmEntrega.length})
                 </button>
             </div>
-
-            {/* ================================
-                LISTAGEM
-            ================================= */}
 
             <div className="row">
                 {pedidosExibidos.map((pedido) => (

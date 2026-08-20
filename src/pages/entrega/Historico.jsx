@@ -4,19 +4,27 @@ import api from "../../services/api";
 function Historico() {
     const [pedidos, setPedidos] = useState([]);
 
-    async function carregarPedidos() {
-        const response = await api.get("/pedidos/entregues");
-        setPedidos(response.data);
-    }
-
     useEffect(() => {
+        let ativo = true;
+
+        async function carregarPedidos() {
+            const response = await api.get("/pedidos/entregues");
+
+            if (ativo) {
+                setPedidos(response.data);
+            }
+        }
+
         carregarPedidos();
 
         const intervalo = setInterval(() => {
             carregarPedidos();
         }, 30000);
 
-        return () => clearInterval(intervalo);
+        return () => {
+            ativo = false;
+            clearInterval(intervalo);
+        };
     }, []);
 
     return (

@@ -411,14 +411,112 @@ Após autenticação:
 - identificação do cliente é armazenada em `sessionStorage`
 - usuário segue para o Checkout
 
-### Checkout
+## Checkout Delivery
 
-O Checkout exige cliente identificado.
+Fluxo atual:
 
-Caso não exista cliente na sessão:
+CARDÁPIO
+↓
+CARRINHO
+↓
+IDENTIFICAÇÃO
+↓
+CLIENTE AUTENTICADO
+↓
+ENDEREÇO
+↓
+TIPO DE RECEBIMENTO
+↓
+TAXA
+↓
+PAGAMENTO
+↓
+CHECKOUT PREPARADO
+↓
+AGUARDA INTEGRAÇÃO DEFINITIVA DO PEDIDO
 
-→ redireciona para `/identificacao`
+### Identificação
 
-O Checkout reutiliza os dados do cliente identificado e mantém o carrinho existente.
+O login do cliente utiliza:
 
-É possível retornar para a identificação através de "Alterar cliente".
+POST /cliente/login
+
+A resposta fornece:
+
+- clienteId;
+- tipo;
+- token.
+
+O Delivery Front mantém a sessão do cliente em sessionStorage.
+
+A senha nunca é armazenada.
+
+### Tipo de recebimento
+
+O Checkout trabalha com:
+
+- RETIRADA;
+- ENTREGA.
+
+RETIRADA:
+
+- endereço não obrigatório;
+- taxa de entrega igual a zero.
+
+ENTREGA:
+
+- endereço obrigatório;
+- endereço representado por enderecoId;
+- taxa fornecida pelo Backend.
+
+### Valores
+
+O Front não é autoridade para taxa de entrega.
+
+O contrato definitivo utiliza:
+
+- valorProdutos;
+- taxaEntrega;
+- valorTotal.
+
+### Pagamentos
+
+O domínio utiliza múltiplos pagamentos:
+
+```json
+{
+  "pagamentos": [
+    {
+      "formaPagamentoId": 1,
+      "valor": 50
+    }
+  ]
+}
+O Front valida a soma dos pagamentos para fins de UX.
+
+A validação definitiva pertence ao Backend/Core.
+
+Pedido
+
+O Delivery Front NÃO envia o pedido definitivo nesta etapa.
+
+A integração:
+
+Delivery Front
+↓
+Delivery Back
+↓
+Core
+↓
+POST /pedidos
+
+será concluída posteriormente, após o Delivery Back implementar a integração definitiva com o Core.
+
+Fora desta etapa
+
+Não implementar:
+
+POST final do pedido;
+troco;
+gateway de pagamento;
+chamada direta ao Core.
