@@ -1,32 +1,48 @@
 import { TIPOS_RECEBIMENTO, formatarValor } from "../checkoutUtils";
 
 function ResumoFinal({ cliente, tipoRecebimento, enderecoSelecionado, valorTotal, totalPagamentos }) {
+    const nomeCliente = cliente?.nome || "Não disponível";
+
+    const recebimento = tipoRecebimento === TIPOS_RECEBIMENTO.ENTREGA ? "Entrega" : "Retirada no local";
+
     return (
-        <div className="border rounded p-3 mb-4">
-            <h5>Resumo final</h5>
+        <section className="card border-0 shadow-sm">
+            <div className="card-body px-3 py-2">
+                <strong className="d-block mb-2">Resumo final</strong>
 
-            <p className="mb-1">
-                <strong>Cliente:</strong> {cliente.nome || "Não disponível"}
-            </p>
+                <div className="d-flex justify-content-between small mb-1">
+                    <span className="text-muted">Cliente</span>
 
-            <p className="mb-1">
-                <strong>Recebimento:</strong> {tipoRecebimento}
-            </p>
+                    <strong className="text-end ms-2">{nomeCliente}</strong>
+                </div>
 
-            {tipoRecebimento === TIPOS_RECEBIMENTO.ENTREGA && (
-                <p className="mb-1">
-                    <strong>Endereço:</strong> {enderecoSelecionado || "Não selecionado"}
-                </p>
-            )}
+                <div className="d-flex justify-content-between small mb-1">
+                    <span className="text-muted">Recebimento</span>
 
-            <p className="mb-1">
-                <strong>Total:</strong> {valorTotal === null ? "Aguardando Backend" : formatarValor(valorTotal)}
-            </p>
+                    <strong>{recebimento}</strong>
+                </div>
 
-            <p className="mb-0">
-                <strong>Pagamentos:</strong> {formatarValor(totalPagamentos)}
-            </p>
-        </div>
+                {tipoRecebimento === TIPOS_RECEBIMENTO.ENTREGA && (
+                    <div className="d-flex justify-content-between small mb-1">
+                        <span className="text-muted">Endereço</span>
+
+                        <strong className="text-end ms-2">{enderecoSelecionado || "Não selecionado"}</strong>
+                    </div>
+                )}
+
+                <div className="d-flex justify-content-between small mb-1">
+                    <span className="text-muted">Total</span>
+
+                    <strong>{valorTotal === null ? "Aguardando" : formatarValor(valorTotal)}</strong>
+                </div>
+
+                <div className="d-flex justify-content-between small">
+                    <span className="text-muted">Pagamentos</span>
+
+                    <strong>{formatarValor(totalPagamentos)}</strong>
+                </div>
+            </div>
+        </section>
     );
 }
 

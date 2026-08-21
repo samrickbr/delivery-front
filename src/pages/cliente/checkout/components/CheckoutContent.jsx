@@ -41,40 +41,66 @@ function CheckoutContent({
 
             <CheckoutErro erro={erro} />
 
-            <ClienteResumo cliente={cliente} />
+            <div className="row g-2 align-items-start">
+                <div className="col-12 col-lg-8">
+                    <div className="d-flex flex-column gap-2">
+                        <ClienteResumo cliente={cliente} />
 
-            <PedidoItens carrinho={carrinho} />
+                        <PedidoItens carrinho={carrinho} />
 
-            <TipoRecebimento tipoRecebimento={tipoRecebimento} onChange={onTipoRecebimento} disabled={enviando} />
+                        <TipoRecebimento
+                            tipoRecebimento={tipoRecebimento}
+                            onChange={onTipoRecebimento}
+                            disabled={enviando}
+                        />
 
-            {tipoRecebimento === TIPOS_RECEBIMENTO.ENTREGA && (
-                <EnderecoEntrega enderecoSelecionado={enderecoSelecionado} onChange={onEndereco} disabled={enviando} />
-            )}
+                        {tipoRecebimento === TIPOS_RECEBIMENTO.ENTREGA && (
+                            <EnderecoEntrega
+                                enderecoSelecionado={enderecoSelecionado}
+                                onChange={onEndereco}
+                                disabled={enviando}
+                            />
+                        )}
 
-            <ResumoValores valorProdutos={valorProdutos} taxaEntrega={taxaEntrega} valorTotal={valorTotal} />
+                        <Pagamentos
+                            pagamentos={pagamentos}
+                            totalPagamentos={totalPagamentos}
+                            diferencaPagamento={diferencaPagamento}
+                            onAdicionar={onAdicionarPagamento}
+                            onAlterar={onAlterarPagamento}
+                            onConfirmar={onConfirmarPagamento}
+                            onRemover={onRemoverPagamento}
+                            disabled={enviando}
+                        />
 
-            <Pagamentos
-                pagamentos={pagamentos}
-                totalPagamentos={totalPagamentos}
-                diferencaPagamento={diferencaPagamento}
-                onAdicionar={onAdicionarPagamento}
-                onAlterar={onAlterarPagamento}
-                onConfirmar={onConfirmarPagamento}
-                onRemover={onRemoverPagamento}
-                disabled={enviando}
-            />
+                        <Observacao value={observacao} onChange={onObservacao} disabled={enviando} />
+                    </div>
+                </div>
 
-            <Observacao value={observacao} onChange={onObservacao} disabled={enviando} />
+                <div className="col-12 col-lg-4">
+                    <div className="d-flex flex-column gap-2 sticky-lg-top" style={{ top: "1rem" }}>
+                        <ResumoValores
+                            valorProdutos={valorProdutos}
+                            taxaEntrega={taxaEntrega}
+                            valorTotal={valorTotal}
+                        />
 
-            <ResumoFinal
-                cliente={cliente}
-                tipoRecebimento={tipoRecebimento}
-                enderecoSelecionado={enderecoSelecionado}
-                valorTotal={valorTotal}
-                totalPagamentos={totalPagamentos}
-            />
+                        <ResumoFinal
+                            cliente={cliente}
+                            tipoRecebimento={tipoRecebimento}
+                            enderecoSelecionado={enderecoSelecionado}
+                            valorTotal={valorTotal}
+                            totalPagamentos={totalPagamentos}
+                        />
 
-            <CheckoutButton enviando={enviando} disabled={carrinho.length === 0} onClick={onPrepararCheckout} />
+                        <CheckoutButton
+                            enviando={enviando}
+                            disabled={carrinho.length === 0}
+                            onClick={onPrepararCheckout}
+                        />
+                    </div>
+                </div>
+            </div>
         </>
     );
 }
