@@ -117,16 +117,34 @@ function Identificacao() {
             });
 
             sessionStorage.setItem("clienteToken", response.data.token);
-
             sessionStorage.setItem("clienteId", String(response.data.clienteId));
 
-            sessionStorage.setItem(
-                "cliente",
-                JSON.stringify({
-                    clienteId: response.data.clienteId,
-                    cpf
-                })
-            );
+            try {
+                const clienteResponse = await api.get("/cliente/me", {
+                    headers: {
+                        Authorization: `Bearer ${response.data.token}`
+                    }
+                });
+
+                sessionStorage.setItem(
+                    "cliente",
+                    JSON.stringify({
+                        clienteId: clienteResponse.data.id,
+                        nome: clienteResponse.data.nome,
+                        cpf: clienteResponse.data.cpf,
+                        telefone: clienteResponse.data.telefone,
+                        email: clienteResponse.data.email
+                    })
+                );
+            } catch {
+                sessionStorage.setItem(
+                    "cliente",
+                    JSON.stringify({
+                        clienteId: response.data.clienteId,
+                        cpf
+                    })
+                );
+            }
 
             window.dispatchEvent(new Event("clienteAtualizado"));
 

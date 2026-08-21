@@ -1,6 +1,18 @@
 import { validarCheckout } from "../checkoutValidation";
 import { montarPedido } from "../checkoutPayload";
-import { enviarPedido } from "../checkoutSubmit";
+import { prepararPedido } from "../checkoutSubmit";
+
+function montarObservacaoComTroco(observacao, troco) {
+    const observacaoBase = observacao?.trim() || "";
+
+    if (troco <= 0) {
+        return observacaoBase;
+    }
+
+    const textoTroco = `Troco em dinheiro: R$ ${troco.toFixed(2).replace(".", ",")}`;
+
+    return observacaoBase ? `${observacaoBase}\n${textoTroco}` : textoTroco;
+}
 
 export function useCheckoutSubmit({
     cliente,
@@ -11,13 +23,10 @@ export function useCheckoutSubmit({
     valorTotal,
     totalPagamentos,
     observacao,
-    enviando,
     setErro,
-    setEnviando,
-    setPedidoCriado,
-    setCarrinho
+    setPedidoPreparado
 }) {
-    async function prepararCheckout() {
+    function prepararCheckout() {
         setErro("");
 
         const erroValidacao = validarCheckout({
@@ -35,38 +44,22 @@ export function useCheckoutSubmit({
             return;
         }
 
-        if (enviando) {
-            return;
-        }
+        const troco = Math.max(0, totalPagamentos - valorTotal);
+
+        const observacaoFinal = montarObservacaoComTroco(observacao, troco);
 
         const pedido = montarPedido({
             cliente,
-            observacao,
+            observacao: observacaoFinal,
             pagamentos,
             tipoRecebimento,
             enderecoSelecionado,
             carrinho
         });
 
-        try {
-            setEnviando(true);
+        const payload = prepararPedido(pedido);
 
-            console.log("Enviando pedido:", pedido);
-
-            const pedidoCriado = await enviarPedido(pedido);
-
-            setPedidoCriado(pedidoCriado);
-
-            sessionStorage.removeItem("carrinho");
-
-            setCarrinho([]);
-        } catch (error) {
-            console.error(error);
-
-            setErro(error?.response?.data?.message || "Não foi possível enviar o pedido. Tente novamente.");
-        } finally {
-            setEnviando(false);
-        }
+        setPedidoPreparado(payload);
     }
 
     return {

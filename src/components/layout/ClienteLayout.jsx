@@ -46,6 +46,18 @@ function ClienteLayout() {
         };
     }, []);
 
+    function sair() {
+        sessionStorage.removeItem("clienteToken");
+        sessionStorage.removeItem("clienteId");
+        sessionStorage.removeItem("cliente");
+
+        setCliente(null);
+
+        window.dispatchEvent(new Event("clienteAtualizado"));
+
+        navigate("/cardapio");
+    }
+
     const primeiroNome = cliente?.nome?.trim()?.split(/\s+/)[0];
 
     return (
@@ -60,13 +72,33 @@ function ClienteLayout() {
                         </NavLink>
 
                         <div className="d-flex align-items-center gap-2">
-                            <button
-                                type="button"
-                                className="btn btn-outline-light rounded-pill"
-                                onClick={() => navigate(cliente ? "/checkout" : "/identificacao")}
-                            >
-                                {cliente ? `Olá, ${primeiroNome || "cliente"}` : "Entrar"}
-                            </button>
+                            {cliente ? (
+                                <>
+                                    <button
+                                        type="button"
+                                        className="btn btn-outline-light rounded-pill"
+                                        onClick={() => navigate("/minha-conta")}
+                                    >
+                                        Olá, {primeiroNome || "cliente"}
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        className="btn btn-outline-warning rounded-pill"
+                                        onClick={sair}
+                                    >
+                                        Sair
+                                    </button>
+                                </>
+                            ) : (
+                                <button
+                                    type="button"
+                                    className="btn btn-outline-light rounded-pill"
+                                    onClick={() => navigate("/identificacao")}
+                                >
+                                    Entrar
+                                </button>
+                            )}
 
                             <button
                                 type="button"
@@ -100,6 +132,19 @@ function ClienteLayout() {
                         >
                             Carrinho
                         </NavLink>
+
+                        {cliente && (
+                            <NavLink
+                                to="/minha-conta"
+                                className={({ isActive }) =>
+                                    `btn btn-sm rounded-pill flex-shrink-0 ${
+                                        isActive ? "btn-light" : "btn-outline-light"
+                                    }`
+                                }
+                            >
+                                Minha conta
+                            </NavLink>
+                        )}
                     </nav>
                 </div>
             </header>

@@ -1,5 +1,3 @@
-import { formatarValor } from "./checkoutUtils";
-
 export function validarCheckout({
     carrinho,
     cliente,
@@ -13,12 +11,20 @@ export function validarCheckout({
         return "Seu carrinho está vazio.";
     }
 
-    if (!cliente.clienteId) {
+    if (!cliente?.clienteId) {
         return "Cliente não identificado. Volte para a identificação.";
+    }
+
+    if (!tipoRecebimento) {
+        return "Selecione o tipo de recebimento.";
     }
 
     if (tipoRecebimento === "ENTREGA" && !enderecoSelecionado) {
         return "Selecione um endereço para entrega.";
+    }
+
+    if (tipoRecebimento === "ENTREGA" && valorTotal === null) {
+        return "A taxa de entrega ainda não está disponível pelo Backend.";
     }
 
     if (pagamentos.length === 0) {
@@ -35,7 +41,7 @@ export function validarCheckout({
         }
 
         if (!pagamento.confirmado) {
-            return "Confirme todos os pagamentos antes de validar o checkout.";
+            return "Confirme todos os pagamentos antes de continuar.";
         }
     }
 
@@ -43,8 +49,8 @@ export function validarCheckout({
         return "O total oficial do pedido ainda não está disponível.";
     }
 
-    if (Math.abs(totalPagamentos - valorTotal) > 0.009) {
-        return `A soma dos pagamentos deve corresponder ao total de ${formatarValor(valorTotal)}.`;
+    if (totalPagamentos < valorTotal) {
+        return "A soma dos pagamentos não pode ser menor que o total do pedido.";
     }
 
     return null;

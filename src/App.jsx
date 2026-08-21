@@ -14,11 +14,11 @@ import Cardapio from "./pages/cardapio/Cardapio";
 import Carrinho from "./pages/cliente/Carrinho";
 import Checkout from "./pages/cliente/Checkout";
 import Identificacao from "./pages/cliente/Identificacao";
+import MinhaConta from "./pages/cliente/MinhaConta";
 
 function App() {
     return (
         <Routes>
-            {/* ÁREA OPERACIONAL */}
             <Route element={<Layout />}>
                 <Route path="/pedidoteste" element={<PedidoTeste />} />
                 <Route path="/" element={<Navigate to="/cozinha" replace />} />
@@ -29,12 +29,12 @@ function App() {
                 <Route path="/entrega/historico" element={<Historico />} />
             </Route>
 
-            {/* ÁREA DO CLIENTE */}
             <Route element={<ClienteLayout />}>
                 <Route path="/cardapio" element={<Cardapio />} />
                 <Route path="/carrinho" element={<Carrinho />} />
                 <Route path="/identificacao" element={<Identificacao />} />
                 <Route path="/checkout" element={<Checkout />} />
+                <Route path="/minha-conta" element={<MinhaConta />} />
             </Route>
         </Routes>
     );

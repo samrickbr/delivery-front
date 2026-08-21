@@ -18,6 +18,8 @@ function CheckoutContent({
     carrinho,
     tipoRecebimento,
     enderecoSelecionado,
+    enderecos,
+    carregandoCliente,
     valorProdutos,
     taxaEntrega,
     valorTotal,
@@ -25,7 +27,7 @@ function CheckoutContent({
     totalPagamentos,
     diferencaPagamento,
     observacao,
-    enviando,
+    pedidoPreparado,
     onTipoRecebimento,
     onEndereco,
     onAdicionarPagamento,
@@ -41,6 +43,17 @@ function CheckoutContent({
 
             <CheckoutErro erro={erro} />
 
+            {pedidoPreparado && (
+                <div className="alert alert-success" role="alert">
+                    <strong className="d-block mb-1">Checkout validado</strong>
+
+                    <span className="small">
+                        O payload do pedido foi preparado localmente. O envio definitivo será conectado na próxima
+                        microetapa.
+                    </span>
+                </div>
+            )}
+
             <div className="row g-2 align-items-start">
                 <div className="col-12 col-lg-8">
                     <div className="d-flex flex-column gap-2">
@@ -51,14 +64,16 @@ function CheckoutContent({
                         <TipoRecebimento
                             tipoRecebimento={tipoRecebimento}
                             onChange={onTipoRecebimento}
-                            disabled={enviando}
+                            disabled={carregandoCliente}
                         />
 
                         {tipoRecebimento === TIPOS_RECEBIMENTO.ENTREGA && (
                             <EnderecoEntrega
+                                enderecos={enderecos}
                                 enderecoSelecionado={enderecoSelecionado}
                                 onChange={onEndereco}
-                                disabled={enviando}
+                                disabled={carregandoCliente}
+                                carregando={carregandoCliente}
                             />
                         )}
 
@@ -70,10 +85,10 @@ function CheckoutContent({
                             onAlterar={onAlterarPagamento}
                             onConfirmar={onConfirmarPagamento}
                             onRemover={onRemoverPagamento}
-                            disabled={enviando}
+                            disabled={true}
                         />
 
-                        <Observacao value={observacao} onChange={onObservacao} disabled={enviando} />
+                        <Observacao value={observacao} onChange={onObservacao} disabled={carregandoCliente} />
                     </div>
                 </div>
 
@@ -94,8 +109,8 @@ function CheckoutContent({
                         />
 
                         <CheckoutButton
-                            enviando={enviando}
-                            disabled={carrinho.length === 0}
+                            enviando={false}
+                            disabled={carregandoCliente || carrinho.length === 0}
                             onClick={onPrepararCheckout}
                         />
                     </div>

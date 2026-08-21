@@ -63,6 +63,10 @@ function Carrinho() {
         [itens]
     );
 
+    function clienteAutenticado() {
+        return Boolean(sessionStorage.getItem("clienteToken"));
+    }
+
     return (
         <div className="pb-5">
             <section className="mb-4">
@@ -253,7 +257,7 @@ function Carrinho() {
                                     <button
                                         type="button"
                                         className="btn btn-success btn-lg w-100 rounded-pill"
-                                        onClick={() => navigate("/identificacao")}
+                                        onClick={() => navigate(clienteAutenticado() ? "/checkout" : "/identificacao")}
                                     >
                                         Continuar pedido
                                     </button>
