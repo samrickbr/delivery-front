@@ -10,6 +10,7 @@ function Identificacao() {
     const navigate = useNavigate();
 
     const [modo, setModo] = useState("novo");
+
     const [formulario, setFormulario] = useState({
         nome: "",
         cpf: "",
@@ -28,6 +29,11 @@ function Identificacao() {
             [campo]: valor
         }));
 
+        setErro("");
+    }
+
+    function alterarModo(novoModo) {
+        setModo(novoModo);
         setErro("");
     }
 
@@ -79,6 +85,8 @@ function Identificacao() {
 
                 sessionStorage.setItem("clienteId", String(response.data.id));
 
+                window.dispatchEvent(new Event("clienteAtualizado"));
+
                 navigate("/checkout");
             } catch (error) {
                 const status = error.response?.status;
@@ -120,6 +128,8 @@ function Identificacao() {
                 })
             );
 
+            window.dispatchEvent(new Event("clienteAtualizado"));
+
             navigate("/checkout");
         } catch (error) {
             if (error.response?.status === 401 || error.response?.status === 403) {
@@ -132,124 +142,214 @@ function Identificacao() {
         }
     }
 
+    const novoCliente = modo === "novo";
+
     return (
-        <div className="container mt-4">
-            <div className="card shadow">
-                <div className="card-body">
-                    <h2 className="mb-4">Identificação</h2>
+        <div className="pb-5">
+            <section className="mb-4">
+                <div className="card border-0 shadow-sm">
+                    <div className="card-body p-4 p-md-5">
+                        <div className="row align-items-center g-4">
+                            <div className="col-12 col-lg-8">
+                                <span className="badge text-bg-primary rounded-pill mb-3">Quase lá</span>
 
-                    <div className="btn-group w-100 mb-4" role="group">
-                        <button
-                            type="button"
-                            className={`btn ${modo === "novo" ? "btn-primary" : "btn-outline-primary"}`}
-                            onClick={() => {
-                                setModo("novo");
-                                setErro("");
-                            }}
-                        >
-                            Novo cliente
-                        </button>
+                                <h1 className="display-6 fw-bold mb-2">Identificação</h1>
 
-                        <button
-                            type="button"
-                            className={`btn ${modo === "existente" ? "btn-primary" : "btn-outline-primary"}`}
-                            onClick={() => {
-                                setModo("existente");
-                                setErro("");
-                            }}
-                        >
-                            Já sou cliente
-                        </button>
+                                <p className="lead text-muted mb-0">
+                                    Entre na sua conta ou faça seu cadastro para continuar o pedido.
+                                </p>
+                            </div>
+
+                            <div className="col-12 col-lg-4 text-lg-end">
+                                <div className="fs-1" aria-hidden="true">
+                                    👤
+                                </div>
+                            </div>
+                        </div>
                     </div>
+                </div>
+            </section>
 
-                    {erro && <div className="alert alert-danger">{erro}</div>}
+            <div className="row justify-content-center">
+                <div className="col-12 col-md-9 col-lg-7 col-xl-6">
+                    <div className="card border-0 shadow-sm">
+                        <div className="card-body p-4 p-md-5">
+                            <div className="btn-group w-100 mb-4" role="group" aria-label="Tipo de identificação">
+                                <button
+                                    type="button"
+                                    className={novoCliente ? "btn btn-primary" : "btn btn-outline-primary"}
+                                    onClick={() => alterarModo("novo")}
+                                    disabled={enviando}
+                                >
+                                    Criar cadastro
+                                </button>
 
-                    <form onSubmit={continuar}>
-                        {modo === "novo" && (
-                            <>
-                                <label className="form-label">Nome completo</label>
+                                <button
+                                    type="button"
+                                    className={!novoCliente ? "btn btn-primary" : "btn btn-outline-primary"}
+                                    onClick={() => alterarModo("existente")}
+                                    disabled={enviando}
+                                >
+                                    Já sou cliente
+                                </button>
+                            </div>
 
-                                <input
-                                    className="form-control mb-3"
-                                    value={formulario.nome}
-                                    onChange={(e) => alterarCampo("nome", e.target.value)}
-                                />
+                            <div className="mb-4">
+                                <h2 className="h4 mb-1">{novoCliente ? "Crie sua conta" : "Acesse sua conta"}</h2>
 
-                                <label className="form-label">CPF</label>
+                                <p className="text-muted mb-0">
+                                    {novoCliente
+                                        ? "Preencha seus dados para finalizar o pedido."
+                                        : "Informe seus dados para continuar."}
+                                </p>
+                            </div>
 
-                                <input
-                                    className="form-control mb-3"
-                                    value={formulario.cpf}
-                                    onChange={(e) => alterarCampo("cpf", e.target.value)}
-                                />
+                            {erro && (
+                                <div className="alert alert-danger" role="alert">
+                                    {erro}
+                                </div>
+                            )}
 
-                                <label className="form-label">Telefone / WhatsApp</label>
+                            <form onSubmit={continuar}>
+                                {novoCliente && (
+                                    <>
+                                        <div className="mb-3">
+                                            <label className="form-label fw-semibold">Nome completo</label>
 
-                                <input
-                                    type="tel"
-                                    className="form-control mb-3"
-                                    value={formulario.telefone}
-                                    onChange={(e) => alterarCampo("telefone", e.target.value)}
-                                />
+                                            <input
+                                                type="text"
+                                                className="form-control form-control-lg"
+                                                value={formulario.nome}
+                                                onChange={(event) => alterarCampo("nome", event.target.value)}
+                                                disabled={enviando}
+                                                autoComplete="name"
+                                            />
+                                        </div>
 
-                                <label className="form-label">E-mail</label>
+                                        <div className="mb-3">
+                                            <label className="form-label fw-semibold">CPF</label>
 
-                                <input
-                                    type="email"
-                                    className="form-control mb-3"
-                                    value={formulario.email}
-                                    onChange={(e) => alterarCampo("email", e.target.value)}
-                                />
+                                            <input
+                                                type="text"
+                                                className="form-control form-control-lg"
+                                                value={formulario.cpf}
+                                                onChange={(event) => alterarCampo("cpf", event.target.value)}
+                                                disabled={enviando}
+                                                inputMode="numeric"
+                                                autoComplete="off"
+                                            />
+                                        </div>
 
-                                <label className="form-label">Senha</label>
+                                        <div className="mb-3">
+                                            <label className="form-label fw-semibold">Telefone / WhatsApp</label>
 
-                                <input
-                                    type="password"
-                                    className="form-control mb-3"
-                                    value={formulario.senha}
-                                    onChange={(e) => alterarCampo("senha", e.target.value)}
-                                />
+                                            <input
+                                                type="tel"
+                                                className="form-control form-control-lg"
+                                                value={formulario.telefone}
+                                                onChange={(event) => alterarCampo("telefone", event.target.value)}
+                                                disabled={enviando}
+                                                autoComplete="tel"
+                                            />
+                                        </div>
 
-                                <label className="form-label">Confirmar senha</label>
+                                        <div className="mb-3">
+                                            <label className="form-label fw-semibold">E-mail</label>
 
-                                <input
-                                    type="password"
-                                    className="form-control mb-3"
-                                    value={formulario.confirmarSenha}
-                                    onChange={(e) => alterarCampo("confirmarSenha", e.target.value)}
-                                />
-                            </>
-                        )}
+                                            <input
+                                                type="email"
+                                                className="form-control form-control-lg"
+                                                value={formulario.email}
+                                                onChange={(event) => alterarCampo("email", event.target.value)}
+                                                disabled={enviando}
+                                                autoComplete="email"
+                                            />
+                                        </div>
 
-                        {modo === "existente" && (
-                            <>
-                                <label className="form-label">CPF</label>
+                                        <div className="mb-3">
+                                            <label className="form-label fw-semibold">Senha</label>
 
-                                <input
-                                    className="form-control mb-3"
-                                    value={formulario.cpf}
-                                    onChange={(e) => alterarCampo("cpf", e.target.value)}
-                                />
+                                            <input
+                                                type="password"
+                                                className="form-control form-control-lg"
+                                                value={formulario.senha}
+                                                onChange={(event) => alterarCampo("senha", event.target.value)}
+                                                disabled={enviando}
+                                                autoComplete="new-password"
+                                            />
+                                        </div>
 
-                                <label className="form-label">Senha</label>
+                                        <div className="mb-4">
+                                            <label className="form-label fw-semibold">Confirmar senha</label>
 
-                                <input
-                                    type="password"
-                                    className="form-control mb-3"
-                                    value={formulario.senha}
-                                    onChange={(e) => alterarCampo("senha", e.target.value)}
-                                />
-                            </>
-                        )}
+                                            <input
+                                                type="password"
+                                                className="form-control form-control-lg"
+                                                value={formulario.confirmarSenha}
+                                                onChange={(event) => alterarCampo("confirmarSenha", event.target.value)}
+                                                disabled={enviando}
+                                                autoComplete="new-password"
+                                            />
+                                        </div>
+                                    </>
+                                )}
 
-                        <button type="submit" className="btn btn-success w-100" disabled={enviando}>
-                            {enviando ? "Processando..." : "Continuar"}
-                        </button>
-                    </form>
+                                {!novoCliente && (
+                                    <>
+                                        <div className="mb-3">
+                                            <label className="form-label fw-semibold">CPF</label>
 
-                    <button type="button" className="btn btn-link w-100 mt-2" onClick={() => navigate("/carrinho")}>
-                        Voltar para o carrinho
-                    </button>
+                                            <input
+                                                type="text"
+                                                className="form-control form-control-lg"
+                                                value={formulario.cpf}
+                                                onChange={(event) => alterarCampo("cpf", event.target.value)}
+                                                disabled={enviando}
+                                                inputMode="numeric"
+                                                autoComplete="username"
+                                            />
+                                        </div>
+
+                                        <div className="mb-4">
+                                            <label className="form-label fw-semibold">Senha</label>
+
+                                            <input
+                                                type="password"
+                                                className="form-control form-control-lg"
+                                                value={formulario.senha}
+                                                onChange={(event) => alterarCampo("senha", event.target.value)}
+                                                disabled={enviando}
+                                                autoComplete="current-password"
+                                            />
+                                        </div>
+                                    </>
+                                )}
+
+                                <button
+                                    type="submit"
+                                    className="btn btn-success btn-lg w-100 rounded-pill"
+                                    disabled={enviando}
+                                >
+                                    {enviando
+                                        ? "Processando..."
+                                        : novoCliente
+                                          ? "Criar conta e continuar"
+                                          : "Entrar e continuar"}
+                                </button>
+                            </form>
+
+                            <div className="text-center mt-4 pt-3 border-top">
+                                <button
+                                    type="button"
+                                    className="btn btn-link text-decoration-none"
+                                    onClick={() => navigate("/carrinho")}
+                                    disabled={enviando}
+                                >
+                                    ← Voltar para o carrinho
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
