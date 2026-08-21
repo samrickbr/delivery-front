@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+
 import { buscarClienteAutenticado, buscarEnderecosCliente } from "../../../../services/clienteService";
 
 export function useCheckoutCliente() {
@@ -45,6 +46,7 @@ export function useCheckoutCliente() {
                 };
 
                 setCliente(clienteNormalizado);
+
                 setEnderecos(Array.isArray(enderecosCliente) ? enderecosCliente : []);
 
                 sessionStorage.setItem("cliente", JSON.stringify(clienteNormalizado));
