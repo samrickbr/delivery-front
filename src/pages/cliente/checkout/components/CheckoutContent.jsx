@@ -35,7 +35,8 @@ function CheckoutContent({
     onConfirmarPagamento,
     onRemoverPagamento,
     onObservacao,
-    onPrepararCheckout
+    onPrepararCheckout,
+    onNovoEndereco
 }) {
     return (
         <>
@@ -74,6 +75,7 @@ function CheckoutContent({
                                 onChange={onEndereco}
                                 disabled={carregandoCliente}
                                 carregando={carregandoCliente}
+                                onNovoEndereco={onNovoEndereco}
                             />
                         )}
 

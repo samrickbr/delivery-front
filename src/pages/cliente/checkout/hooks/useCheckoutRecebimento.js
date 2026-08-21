@@ -1,9 +1,9 @@
 import { useState } from "react";
+
 import { TIPOS_RECEBIMENTO } from "../checkoutUtils";
 
-export function useCheckoutRecebimento() {
+export function useCheckoutRecebimento(enderecos = []) {
     const [tipoRecebimento, setTipoRecebimento] = useState(TIPOS_RECEBIMENTO.RETIRADA);
-
     const [enderecoSelecionado, setEnderecoSelecionado] = useState("");
 
     function selecionarTipoRecebimento(tipo) {
@@ -11,6 +11,13 @@ export function useCheckoutRecebimento() {
 
         if (tipo === TIPOS_RECEBIMENTO.RETIRADA) {
             setEnderecoSelecionado("");
+            return;
+        }
+
+        const enderecoPrincipal = enderecos.find((endereco) => endereco.principal);
+
+        if (enderecoPrincipal?.id) {
+            setEnderecoSelecionado(String(enderecoPrincipal.id));
         }
     }
 

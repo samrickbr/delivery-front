@@ -10,11 +10,13 @@ import { useCheckoutSubmit } from "./checkout/hooks/useCheckoutSubmit";
 import { useCheckoutCliente } from "./checkout/hooks/useCheckoutCliente";
 
 import CheckoutContent from "./checkout/components/CheckoutContent";
+import EnderecoModal from "./checkout/components/EnderecoModal";
 
 function Checkout() {
     const [pedidoPreparado, setPedidoPreparado] = useState(null);
+    const [enderecoModalAberto, setEnderecoModalAberto] = useState(false);
 
-    const { cliente, enderecos, carregando: carregandoCliente, erro: erroCliente } = useCheckoutCliente();
+    const { cliente, enderecos, carregando: carregandoCliente, erro: erroCliente, recarregar } = useCheckoutCliente();
 
     const { observacao, setObservacao } = useCheckoutObservacao();
 
@@ -26,7 +28,7 @@ function Checkout() {
         useCheckoutPagamentos();
 
     const { tipoRecebimento, enderecoSelecionado, setEnderecoSelecionado, selecionarTipoRecebimento } =
-        useCheckoutRecebimento();
+        useCheckoutRecebimento(enderecos);
 
     const { taxaEntrega, valorTotal, diferencaPagamento } = useCheckoutValores({
         tipoRecebimento,
@@ -47,34 +49,55 @@ function Checkout() {
         setPedidoPreparado
     });
 
+    async function tratarEnderecoSalvo(endereco) {
+        await recarregar();
+
+        if (endereco?.id) {
+            setEnderecoSelecionado(String(endereco.id));
+        }
+    }
+
+    function abrirNovoEndereco() {
+        setEnderecoModalAberto(true);
+    }
+
+    function fecharEnderecoModal() {
+        setEnderecoModalAberto(false);
+    }
+
     const erroAtual = erroCliente || erro;
 
     return (
-        <CheckoutContent
-            erro={erroAtual}
-            cliente={cliente || {}}
-            carrinho={carrinho}
-            tipoRecebimento={tipoRecebimento}
-            enderecoSelecionado={enderecoSelecionado}
-            enderecos={enderecos}
-            carregandoCliente={carregandoCliente}
-            valorProdutos={valorProdutos}
-            taxaEntrega={taxaEntrega}
-            valorTotal={valorTotal}
-            pagamentos={pagamentos}
-            totalPagamentos={totalPagamentos}
-            diferencaPagamento={diferencaPagamento}
-            observacao={observacao}
-            pedidoPreparado={pedidoPreparado}
-            onTipoRecebimento={selecionarTipoRecebimento}
-            onEndereco={setEnderecoSelecionado}
-            onAdicionarPagamento={adicionarPagamento}
-            onAlterarPagamento={alterarPagamento}
-            onConfirmarPagamento={confirmarPagamento}
-            onRemoverPagamento={removerPagamento}
-            onObservacao={setObservacao}
-            onPrepararCheckout={prepararCheckout}
-        />
+        <>
+            <CheckoutContent
+                erro={erroAtual}
+                cliente={cliente || {}}
+                carrinho={carrinho}
+                tipoRecebimento={tipoRecebimento}
+                enderecoSelecionado={enderecoSelecionado}
+                enderecos={enderecos}
+                carregandoCliente={carregandoCliente}
+                valorProdutos={valorProdutos}
+                taxaEntrega={taxaEntrega}
+                valorTotal={valorTotal}
+                pagamentos={pagamentos}
+                totalPagamentos={totalPagamentos}
+                diferencaPagamento={diferencaPagamento}
+                observacao={observacao}
+                pedidoPreparado={pedidoPreparado}
+                onTipoRecebimento={selecionarTipoRecebimento}
+                onEndereco={setEnderecoSelecionado}
+                onAdicionarPagamento={adicionarPagamento}
+                onAlterarPagamento={alterarPagamento}
+                onConfirmarPagamento={confirmarPagamento}
+                onRemoverPagamento={removerPagamento}
+                onObservacao={setObservacao}
+                onPrepararCheckout={prepararCheckout}
+                onNovoEndereco={abrirNovoEndereco}
+            />
+
+            <EnderecoModal aberto={enderecoModalAberto} onFechar={fecharEnderecoModal} onSalvo={tratarEnderecoSalvo} />
+        </>
     );
 }
 
