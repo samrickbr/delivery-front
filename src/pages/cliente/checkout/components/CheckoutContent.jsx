@@ -77,6 +77,42 @@ function CheckoutContent({
                             />
                         )}
 
+                        {tipoRecebimento === TIPOS_RECEBIMENTO.RETIRADA && (
+                            <section className="card border-0 shadow-sm">
+                                <div className="card-body p-4">
+                                    <div className="d-flex align-items-center gap-3 mb-3">
+                                        <div
+                                            className="d-flex align-items-center justify-content-center bg-primary-subtle text-primary rounded-circle"
+                                            style={{
+                                                width: "48px",
+                                                height: "48px",
+                                                flexShrink: 0
+                                            }}
+                                            aria-hidden="true"
+                                        >
+                                            🏪
+                                        </div>
+
+                                        <div>
+                                            <h2 className="h5 mb-1">Retirada no local</h2>
+
+                                            <p className="text-muted small mb-0">
+                                                Seu pedido ficará disponível para retirada neste endereço.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="border rounded-3 p-3 bg-light">
+                                        <div className="fw-semibold">Rota da Casa</div>
+
+                                        <div className="text-muted">Avenida Ivo Jangada, 348</div>
+
+                                        <div className="text-muted">Centro — Imbaú/PR</div>
+                                    </div>
+                                </div>
+                            </section>
+                        )}
+
                         <Pagamentos
                             pagamentos={pagamentos}
                             totalPagamentos={totalPagamentos}
