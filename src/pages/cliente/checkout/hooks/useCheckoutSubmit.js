@@ -2,18 +2,6 @@ import { validarCheckout } from "../checkoutValidation";
 import { montarPedido } from "../checkoutPayload";
 import { prepararPedido } from "../checkoutSubmit";
 
-function montarObservacaoComTroco(observacao, troco) {
-    const observacaoBase = observacao?.trim() || "";
-
-    if (troco <= 0) {
-        return observacaoBase;
-    }
-
-    const textoTroco = `Troco em dinheiro: R$ ${troco.toFixed(2).replace(".", ",")}`;
-
-    return observacaoBase ? `${observacaoBase}\n${textoTroco}` : textoTroco;
-}
-
 export function useCheckoutSubmit({
     cliente,
     carrinho,
@@ -44,13 +32,9 @@ export function useCheckoutSubmit({
             return;
         }
 
-        const troco = Math.max(0, totalPagamentos - valorTotal);
-
-        const observacaoFinal = montarObservacaoComTroco(observacao, troco);
-
         const pedido = montarPedido({
             cliente,
-            observacao: observacaoFinal,
+            observacao,
             pagamentos,
             tipoRecebimento,
             enderecoSelecionado,

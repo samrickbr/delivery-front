@@ -25,12 +25,14 @@ function CheckoutContent({
     valorTotal,
     pagamentos,
     totalPagamentos,
-    diferencaPagamento,
     observacao,
     pedidoPreparado,
+    formasPagamento,
+    carregandoFormasPagamento,
+    erroFormasPagamento,
     onTipoRecebimento,
     onEndereco,
-    onAdicionarPagamento,
+    onSelecionarFormaPagamento,
     onAlterarPagamento,
     onConfirmarPagamento,
     onRemoverPagamento,
@@ -116,14 +118,15 @@ function CheckoutContent({
                         )}
 
                         <Pagamentos
+                            formasPagamento={formasPagamento}
+                            carregando={carregandoFormasPagamento}
+                            erro={erroFormasPagamento}
                             pagamentos={pagamentos}
-                            totalPagamentos={totalPagamentos}
-                            diferencaPagamento={diferencaPagamento}
-                            onAdicionar={onAdicionarPagamento}
-                            onAlterar={onAlterarPagamento}
+                            valorTotal={valorTotal}
+                            onSelecionarForma={onSelecionarFormaPagamento}
+                            onAlterarValor={onAlterarPagamento}
                             onConfirmar={onConfirmarPagamento}
                             onRemover={onRemoverPagamento}
-                            disabled={true}
                         />
 
                         <Observacao value={observacao} onChange={onObservacao} disabled={carregandoCliente} />

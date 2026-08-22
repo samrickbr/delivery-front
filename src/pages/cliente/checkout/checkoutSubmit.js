@@ -1,3 +1,5 @@
 export function prepararPedido(pedido) {
-    return pedido;
+    return {
+        ...pedido
+    };
 }

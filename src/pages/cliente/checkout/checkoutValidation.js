@@ -28,7 +28,7 @@ export function validarCheckout({
     }
 
     if (pagamentos.length === 0) {
-        return "Adicione pelo menos uma forma de pagamento.";
+        return "Selecione uma forma de pagamento.";
     }
 
     for (const pagamento of pagamentos) {
@@ -41,7 +41,7 @@ export function validarCheckout({
         }
 
         if (!pagamento.confirmado) {
-            return "Confirme todos os pagamentos antes de continuar.";
+            return "Confirme o pagamento antes de continuar.";
         }
     }
 
@@ -49,7 +49,7 @@ export function validarCheckout({
         return "O total oficial do pedido ainda não está disponível.";
     }
 
-    if (totalPagamentos < valorTotal) {
+    if (Number(totalPagamentos) < Number(valorTotal)) {
         return "A soma dos pagamentos não pode ser menor que o total do pedido.";
     }
 

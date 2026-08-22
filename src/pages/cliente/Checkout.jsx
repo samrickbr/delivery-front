@@ -8,6 +8,7 @@ import { useCheckoutObservacao } from "./checkout/hooks/useCheckoutObservacao";
 import { useCheckoutErro } from "./checkout/hooks/useCheckoutErro";
 import { useCheckoutSubmit } from "./checkout/hooks/useCheckoutSubmit";
 import { useCheckoutCliente } from "./checkout/hooks/useCheckoutCliente";
+import { useCheckoutFormasPagamento } from "./checkout/hooks/useCheckoutFormasPagamento";
 
 import CheckoutContent from "./checkout/components/CheckoutContent";
 import EnderecoModal from "./checkout/components/EnderecoModal";
@@ -24,17 +25,29 @@ function Checkout() {
 
     const { carrinho, valorProdutos } = useCheckoutCarrinho();
 
-    const { pagamentos, totalPagamentos, adicionarPagamento, alterarPagamento, confirmarPagamento, removerPagamento } =
-        useCheckoutPagamentos();
+    const {
+        pagamentos,
+        totalPagamentos,
+        adicionarPagamento,
+        selecionarFormaPagamento,
+        alterarValorPagamento,
+        confirmarPagamento,
+        removerPagamento
+    } = useCheckoutPagamentos();
+
+    const {
+        formasPagamento,
+        carregando: carregandoFormasPagamento,
+        erro: erroFormasPagamento
+    } = useCheckoutFormasPagamento();
 
     const { tipoRecebimento, enderecoSelecionado, setEnderecoSelecionado, selecionarTipoRecebimento } =
         useCheckoutRecebimento(enderecos);
 
-    const { taxaEntrega, valorTotal, diferencaPagamento } = useCheckoutValores({
-        tipoRecebimento,
-        valorProdutos,
-        totalPagamentos
-    });
+   const { taxaEntrega, valorTotal } = useCheckoutValores({
+       tipoRecebimento,
+       valorProdutos
+   });
 
     const { prepararCheckout } = useCheckoutSubmit({
         cliente: cliente || {},
@@ -82,13 +95,18 @@ function Checkout() {
                 valorTotal={valorTotal}
                 pagamentos={pagamentos}
                 totalPagamentos={totalPagamentos}
-                diferencaPagamento={diferencaPagamento}
+                onAdicionarPagamento={adicionarPagamento}
+                formasPagamento={formasPagamento}
+                carregandoFormasPagamento={carregandoFormasPagamento}
+                erroFormasPagamento={erroFormasPagamento}
                 observacao={observacao}
                 pedidoPreparado={pedidoPreparado}
                 onTipoRecebimento={selecionarTipoRecebimento}
                 onEndereco={setEnderecoSelecionado}
-                onAdicionarPagamento={adicionarPagamento}
-                onAlterarPagamento={alterarPagamento}
+                onSelecionarFormaPagamento={(formaPagamentoId) =>
+                    selecionarFormaPagamento(formaPagamentoId, valorTotal)
+                }
+                onAlterarPagamento={alterarValorPagamento}
                 onConfirmarPagamento={confirmarPagamento}
                 onRemoverPagamento={removerPagamento}
                 onObservacao={setObservacao}
