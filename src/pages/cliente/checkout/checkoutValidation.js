@@ -23,10 +23,6 @@ export function validarCheckout({
         return "Selecione um endereço para entrega.";
     }
 
-    if (tipoRecebimento === "ENTREGA" && valorTotal === null) {
-        return "A taxa de entrega ainda não está disponível pelo Backend.";
-    }
-
     if (pagamentos.length === 0) {
         return "Selecione uma forma de pagamento.";
     }
@@ -43,10 +39,6 @@ export function validarCheckout({
         if (!pagamento.confirmado) {
             return "Confirme o pagamento antes de continuar.";
         }
-    }
-
-    if (valorTotal === null) {
-        return "O total oficial do pedido ainda não está disponível.";
     }
 
     if (Number(totalPagamentos) < Number(valorTotal)) {

@@ -43,6 +43,10 @@ export function useCheckoutSubmit({
 
         const payload = prepararPedido(pedido);
 
+        console.log("[CHECKOUT] Confirmando pedido");
+        console.log("[CHECKOUT] Payload do pedido:");
+        console.log(JSON.stringify(payload, null, 2));
+
         setPedidoPreparado(payload);
     }
 
