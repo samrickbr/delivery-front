@@ -38,6 +38,7 @@ function CheckoutContent({
     onRemoverPagamento,
     onObservacao,
     onPrepararCheckout,
+    enviando,
     onNovoEndereco
 }) {
     return (
@@ -150,7 +151,7 @@ function CheckoutContent({
                         />
 
                         <CheckoutButton
-                            enviando={false}
+                            enviando={enviando}
                             disabled={carregandoCliente || carrinho.length === 0}
                             onClick={onPrepararCheckout}
                         />

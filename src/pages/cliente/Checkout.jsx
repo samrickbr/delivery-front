@@ -44,12 +44,12 @@ function Checkout() {
     const { tipoRecebimento, enderecoSelecionado, setEnderecoSelecionado, selecionarTipoRecebimento } =
         useCheckoutRecebimento(enderecos);
 
-   const { taxaEntrega, valorTotal } = useCheckoutValores({
-       tipoRecebimento,
-       valorProdutos
-   });
+    const { taxaEntrega, valorTotal } = useCheckoutValores({
+        tipoRecebimento,
+        valorProdutos
+    });
 
-    const { prepararCheckout } = useCheckoutSubmit({
+    const { prepararCheckout, enviando } = useCheckoutSubmit({
         cliente: cliente || {},
         carrinho,
         pagamentos,
@@ -112,6 +112,7 @@ function Checkout() {
                 onObservacao={setObservacao}
                 onPrepararCheckout={prepararCheckout}
                 onNovoEndereco={abrirNovoEndereco}
+                enviando={enviando}
             />
 
             <EnderecoModal aberto={enderecoModalAberto} onFechar={fecharEnderecoModal} onSalvo={tratarEnderecoSalvo} />
