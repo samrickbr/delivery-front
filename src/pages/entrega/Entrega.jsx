@@ -1,34 +1,48 @@
 import { useEffect, useState } from "react";
-import api from "../../services/api";
 import PedidoCard from "../../components/pedido/PedidoCard";
+
+import { listarEntrega, sairEntrega, entregarPedido } from "../../services/pedidoService";
 
 function Entrega() {
     const [pedidos, setPedidos] = useState([]);
     const [aba, setAba] = useState("separacao");
 
     async function carregarPedidos() {
-        const response = await api.get("/pedidos/entrega-operacao");
+        const response = await listarEntrega();
         setPedidos(response.data);
     }
 
-    async function sairEntrega(id) {
-        await api.put(`/pedidos/${id}/sair-entrega`);
+    async function sairParaEntrega(id) {
+        await sairEntrega(id);
         await carregarPedidos();
     }
 
     async function confirmarEntrega(id) {
-        await api.put(`/pedidos/${id}/entregar`);
+        await entregarPedido(id);
         await carregarPedidos();
     }
 
     useEffect(() => {
+        let ativo = true;
+
+        async function inicializar() {
+            if (ativo) {
+                await carregarPedidos();
+            }
+        }
+
+        inicializar();
+
         const intervalo = setInterval(() => {
             if (!document.hidden) {
                 carregarPedidos();
             }
         }, 10000);
 
-        return () => clearInterval(intervalo);
+        return () => {
+            ativo = false;
+            clearInterval(intervalo);
+        };
     }, []);
 
     const pedidosSeparacao = pedidos.filter((pedido) => pedido.status === "SEPARADO");
@@ -62,7 +76,7 @@ function Entrega() {
                     <div className="col-md-6" key={pedido.id}>
                         <PedidoCard pedido={pedido} mostrarValor={true}>
                             {pedido.status === "SEPARADO" && (
-                                <button className="btn btn-primary w-100" onClick={() => sairEntrega(pedido.id)}>
+                                <button className="btn btn-primary w-100" onClick={() => sairParaEntrega(pedido.id)}>
                                     🚚 Sair para entrega
                                 </button>
                             )}

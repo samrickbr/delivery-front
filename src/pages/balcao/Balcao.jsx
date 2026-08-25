@@ -4,10 +4,12 @@ import ChecklistSeparacao from "../../components/pedido/ChecklistSeparacao";
 
 import {
     listarBalcao,
+    listarRetirada,
     aprovarPedido,
     cancelarItens,
     cancelarPedidoCompleto,
-    conferirPedido
+    conferirPedido,
+    entregarPedido
 } from "../../services/pedidoService";
 
 // =====================================
@@ -16,14 +18,14 @@ import {
 
 const ABAS = {
     PEDIDOS: "pedidos",
-    PRODUCAO: "producao",
-    ESPERA: "espera",
     CONFERENCIA: "conferencia",
-    SEPARACAO: "separacao"
+    SEPARACAO: "separacao",
+    RETIRADA: "retirada"
 };
 
 function Balcao() {
     const [pedidos, setPedidos] = useState([]);
+    const [retiradas, setRetiradas] = useState([]);
     const [aba, setAba] = useState(ABAS.PEDIDOS);
 
     // CANCELAMENTO
@@ -34,7 +36,7 @@ function Balcao() {
     const [motivoCancelamento, setMotivoCancelamento] = useState("");
 
     // =====================================
-    // CARREGA TODOS OS PEDIDOS DO BALCÃO
+    // CARREGA DADOS DO BALCÃO
     // =====================================
 
     async function carregarPedidos() {
@@ -42,25 +44,23 @@ function Balcao() {
         setPedidos(response.data);
     }
 
+    async function carregarRetiradas() {
+        const response = await listarRetirada();
+        setRetiradas(response.data);
+    }
+
+    async function carregarDados() {
+        await Promise.all([carregarPedidos(), carregarRetiradas()]);
+    }
+
     // =====================================
-    // FILTROS
+    // FILTROS DO BALCÃO
     // =====================================
 
     const pedidosFiltrados = pedidos.filter((pedido) => {
         switch (aba) {
             case ABAS.PEDIDOS:
                 return pedido.status === "RECEBIDO";
-
-            case ABAS.PRODUCAO:
-                return (
-                    pedido.status === "APROVADO" &&
-                    pedido.itens.some(
-                        (item) => item.statusOperacao === "APROVADO" || item.statusOperacao === "EM_PRODUCAO"
-                    )
-                );
-
-            case ABAS.ESPERA:
-                return pedido.status === "APROVADO" && pedido.itens.some((item) => item.statusOperacao === "PENDENTE");
 
             case ABAS.CONFERENCIA:
                 return pedido.status === "FINALIZADO";
@@ -74,12 +74,20 @@ function Balcao() {
     });
 
     // =====================================
+    // RETIRADAS
+    // =====================================
+
+    const retiradasFiltradas = retiradas.filter(
+        (pedido) => pedido.status === "SEPARADO" && pedido.tipoRecebimento === "RETIRADA"
+    );
+
+    // =====================================
     // RECEBIDO -> APROVADO
     // =====================================
 
     async function aceitarPedido(id) {
         await aprovarPedido(id);
-        await carregarPedidos();
+        await carregarDados();
     }
 
     // =====================================
@@ -88,7 +96,16 @@ function Balcao() {
 
     async function conferir(id) {
         await conferirPedido(id);
-        await carregarPedidos();
+        await carregarDados();
+    }
+
+    // =====================================
+    // CONCLUSÃO DA RETIRADA
+    // =====================================
+
+    async function concluirRetirada(id) {
+        await entregarPedido(id);
+        await carregarDados();
     }
 
     // =====================================
@@ -125,7 +142,8 @@ function Balcao() {
         }
 
         setMostrarModalCancelamento(false);
-        await carregarPedidos();
+        setPedidoSelecionado(null);
+        await carregarDados();
     }
 
     // =====================================
@@ -135,17 +153,22 @@ function Balcao() {
     useEffect(() => {
         let ativo = true;
 
-        async function inicializar() {
-            if (ativo) {
-                await carregarPedidos();
+        async function carregar() {
+            const [balcaoResponse, retiradaResponse] = await Promise.all([listarBalcao(), listarRetirada()]);
+
+            if (!ativo) {
+                return;
             }
+
+            setPedidos(balcaoResponse.data);
+            setRetiradas(retiradaResponse.data);
         }
 
-        inicializar();
+        carregar();
 
         const intervalo = setInterval(() => {
             if (!document.hidden) {
-                carregarPedidos();
+                carregar();
             }
         }, 10000);
 
@@ -159,19 +182,16 @@ function Balcao() {
         <div className="container mt-4">
             <h1 className="mb-4">Balcão</h1>
 
+            {/* =====================================
+                ABAS
+            ===================================== */}
+
             <div className="mb-4">
                 <button
                     className={`btn me-2 ${aba === ABAS.PEDIDOS ? "btn-primary" : "btn-outline-primary"}`}
                     onClick={() => setAba(ABAS.PEDIDOS)}
                 >
                     📥 Pedidos
-                </button>
-
-                <button
-                    className={`btn me-2 ${aba === ABAS.PRODUCAO ? "btn-warning" : "btn-outline-warning"}`}
-                    onClick={() => setAba(ABAS.PRODUCAO)}
-                >
-                    👨‍🍳 Produção
                 </button>
 
                 <button
@@ -182,51 +202,93 @@ function Balcao() {
                 </button>
 
                 <button
-                    className={`btn ${aba === ABAS.SEPARACAO ? "btn-success" : "btn-outline-success"}`}
+                    className={`btn me-2 ${aba === ABAS.SEPARACAO ? "btn-success" : "btn-outline-success"}`}
                     onClick={() => setAba(ABAS.SEPARACAO)}
                 >
                     📦 Separação
                 </button>
+
+                <button
+                    className={`btn ${aba === ABAS.RETIRADA ? "btn-warning" : "btn-outline-warning"}`}
+                    onClick={() => setAba(ABAS.RETIRADA)}
+                >
+                    🛍️ Retirada ({retiradasFiltradas.length})
+                </button>
             </div>
 
-            <div className="row">
-                {pedidosFiltrados.map((pedido) => (
-                    <div className="col-md-6" key={pedido.id}>
-                        <PedidoCard pedido={pedido}>
-                            {pedido.status === "RECEBIDO" && (
-                                <>
-                                    <button
-                                        className="btn btn-success w-100 mb-2"
-                                        onClick={() => aceitarPedido(pedido.id)}
-                                    >
-                                        ✅ Aceitar Pedido
-                                    </button>
+            {/* =====================================
+                PEDIDOS DO BALCÃO
+            ===================================== */}
 
-                                    <button className="btn btn-danger w-100" onClick={() => abrirCancelamento(pedido)}>
-                                        ❌ Cancelar
-                                    </button>
-                                </>
-                            )}
+            {aba !== ABAS.RETIRADA && (
+                <div className="row">
+                    {pedidosFiltrados.map((pedido) => (
+                        <div className="col-md-6" key={pedido.id}>
+                            <PedidoCard pedido={pedido}>
+                                {pedido.status === "RECEBIDO" && (
+                                    <>
+                                        <button
+                                            className="btn btn-success w-100 mb-2"
+                                            onClick={() => aceitarPedido(pedido.id)}
+                                        >
+                                            ✅ Aceitar Pedido
+                                        </button>
 
-                            {aba === ABAS.CONFERENCIA && (
-                                <button className="btn btn-success w-100" onClick={() => conferir(pedido.id)}>
-                                    ✔ Confirmar Conferência
+                                        <button
+                                            className="btn btn-danger w-100"
+                                            onClick={() => abrirCancelamento(pedido)}
+                                        >
+                                            ❌ Cancelar
+                                        </button>
+                                    </>
+                                )}
+
+                                {aba === ABAS.CONFERENCIA && (
+                                    <button className="btn btn-success w-100" onClick={() => conferir(pedido.id)}>
+                                        ✔ Confirmar Conferência
+                                    </button>
+                                )}
+
+                                {aba === ABAS.SEPARACAO && (
+                                    <ChecklistSeparacao pedido={pedido} onAtualizar={carregarDados} />
+                                )}
+                            </PedidoCard>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* =====================================
+                RETIRADAS
+            ===================================== */}
+
+            {aba === ABAS.RETIRADA && (
+                <div className="row">
+                    {retiradasFiltradas.map((pedido) => (
+                        <div className="col-md-6" key={pedido.id}>
+                            <PedidoCard pedido={pedido} mostrarValor={true}>
+                                <button className="btn btn-warning w-100" onClick={() => concluirRetirada(pedido.id)}>
+                                    🛍️ Concluir retirada
                                 </button>
-                            )}
+                            </PedidoCard>
+                        </div>
+                    ))}
+                </div>
+            )}
 
-                            {aba === ABAS.SEPARACAO && (
-                                <ChecklistSeparacao pedido={pedido} onAtualizar={carregarPedidos} />
-                            )}
-                        </PedidoCard>
-                    </div>
-                ))}
-            </div>
+            {/* =====================================
+                VAZIO
+            ===================================== */}
 
-            {pedidosFiltrados.length === 0 && (
+            {(aba === ABAS.RETIRADA ? retiradasFiltradas.length === 0 : pedidosFiltrados.length === 0) && (
                 <div className="text-center mt-5">
                     <h4>Nenhum pedido nesta etapa.</h4>
                 </div>
             )}
+
+            {/* =====================================
+                MODAL DE CANCELAMENTO
+            ===================================== */}
 
             {mostrarModalCancelamento && (
                 <div className="modal show d-block" tabIndex="-1">

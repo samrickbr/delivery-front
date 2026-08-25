@@ -36,6 +36,10 @@ function ChecklistSeparacao({ pedido, onAtualizar }) {
         onAtualizar();
     }
 
+    const retirada = pedido.tipoRecebimento?.toUpperCase() === "RETIRADA";
+
+    const textoLiberacao = retirada ? "🛍️ Liberar para retirada" : "🚚 Liberar para entrega";
+
     return (
         <>
             <h5>Checklist</h5>
@@ -87,7 +91,7 @@ function ChecklistSeparacao({ pedido, onAtualizar }) {
             </div>
 
             <button className="btn btn-success w-100" disabled={!todosMarcados} onClick={liberar}>
-                🚚 Liberar para entrega
+                {textoLiberacao}
             </button>
         </>
     );

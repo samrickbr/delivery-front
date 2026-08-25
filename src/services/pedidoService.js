@@ -43,11 +43,11 @@ export async function aprovarPedido(id) {
 }
 
 export async function cancelarPedido(id, setor, justificativa) {
-    return api.put(`/pedidos/${id}/cancelar?setor=${setor}`, { justificativa }, configAutenticado());
+    return api.put(`/pedidos/${id}/cancelar/${setor}`, { justificativa }, configAutenticado());
 }
 
-export async function enviarCozinha(id) {
-    return api.put(`/pedidos/${id}/producao`, null, configAutenticado());
+export async function enviarCozinha(id, setor) {
+    return api.put(`/pedidos/${id}/iniciar-producao/${setor}`, null, configAutenticado());
 }
 
 export async function separarPedido(id) {
@@ -56,7 +56,7 @@ export async function separarPedido(id) {
 
 export async function cancelarItens(id, setor, itens, justificativa) {
     return api.put(
-        `/pedidos/${id}/cancelar-itens?setor=${setor}`,
+        `/pedidos/${id}/cancelar-itens/${setor}`,
         {
             itens,
             justificativa
@@ -70,7 +70,7 @@ export async function cancelarPedidoCompleto(id, justificativa) {
 }
 
 /* ==========================================================
-   LIBERAR PARA ENTREGA
+   LIBERAR PARA ENTREGA / RETIRADA
 ========================================================== */
 
 export async function conferirPedido(id) {
@@ -90,15 +90,15 @@ export async function listarCozinha(setor) {
 }
 
 export async function colocarPendente(id, setor, motivo) {
-    return api.put(`/pedidos/${id}/pendente?setor=${setor}`, { motivo }, configAutenticado());
+    return api.put(`/pedidos/${id}/pendente/${setor}`, { motivo }, configAutenticado());
 }
 
 export async function iniciarProducao(id, setor) {
-    return api.put(`/pedidos/${id}/producao?setor=${setor}`, null, configAutenticado());
+    return api.put(`/pedidos/${id}/iniciar-producao/${setor}`, null, configAutenticado());
 }
 
 export async function finalizarPedido(id, setor) {
-    return api.put(`/pedidos/${id}/finalizar?setor=${setor}`, null, configAutenticado());
+    return api.put(`/pedidos/${id}/finalizar/${setor}`, null, configAutenticado());
 }
 
 export async function listarFinalizados() {
@@ -108,10 +108,14 @@ export async function listarFinalizados() {
 /* ==========================================================
    ENTREGA
 ========================================================== */
+export async function listarEntrega() {
+    return api.get("/pedidos/entrega", configAutenticado());
+}
 
 export async function listarEntregaOperacao() {
-    return api.get("/pedidos/entrega-operacao", configAutenticado());
+    return api.get("/pedidos/operacao/entrega", configAutenticado());
 }
+
 
 export async function sairEntrega(id) {
     return api.put(`/pedidos/${id}/sair-entrega`, null, configAutenticado());
@@ -123,6 +127,14 @@ export async function entregarPedido(id) {
 
 export async function listarEntregues() {
     return api.get("/pedidos/entregues", configAutenticado());
+}
+
+/* ==========================================================
+   RETIRADA
+========================================================== */
+
+export async function listarRetirada() {
+    return api.get("/pedidos/retirada", configAutenticado());
 }
 
 /* ==========================================================
@@ -142,5 +154,5 @@ export async function listarPorStatus(status) {
 ========================================================== */
 
 export async function listarSeparacao() {
-    return api.get("/pedidos/entrega-operacao", configAutenticado());
+    return api.get("/pedidos/separacao", configAutenticado());
 }
