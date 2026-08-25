@@ -4,44 +4,10 @@ function formatarValor(valor) {
         .replace(".", ",")}`;
 }
 
-function Pagamentos({
-    formasPagamento,
-    carregando,
-    erro,
-    pagamentos,
-    valorTotal,
-    onSelecionarForma,
-    onAlterarValor,
-    onConfirmar,
-    onRemover
-}) {
-    const totalPago = pagamentos.reduce((total, pagamento) => {
-        return total + (Number(pagamento.valor) || 0);
-    }, 0);
-
-    const diferenca = valorTotal === null ? null : Number(valorTotal) - totalPago;
-    const falta = diferenca !== null && diferenca > 0 ? diferenca : 0;
-    const troco = diferenca !== null && diferenca < 0 ? Math.abs(diferenca) : 0;
-
+function Pagamentos({ formasPagamento, carregando, erro, pagamentos, valorTotal, onSelecionarForma }) {
     const formasSelecionadas = pagamentos.map((pagamento) => Number(pagamento.formaPagamentoId));
 
-    function adicionarForma(event) {
-        const formaPagamentoId = Number(event.target.value);
-
-        if (!formaPagamentoId) {
-            return;
-        }
-
-        onSelecionarForma(formaPagamentoId);
-    }
-
-    function alterarValor(index, event) {
-        onAlterarValor(index, event.target.value);
-    }
-
-    function confirmar(index) {
-        onConfirmar(index);
-    }
+    const totalSelecionado = pagamentos.length > 0 ? Number(valorTotal) || 0 : 0;
 
     return (
         <section className="card border-0 shadow-sm mb-3">
@@ -50,22 +16,8 @@ function Pagamentos({
                     <h5 className="fw-semibold mb-0">Pagamento</h5>
 
                     {valorTotal !== null && (
-                        <div className="d-flex align-items-center gap-3 small">
-                            <span className="text-muted">
-                                Total: <strong>{formatarValor(valorTotal)}</strong>
-                            </span>
-
-                            <span className="text-muted">
-                                Pago: <strong>{formatarValor(totalPago)}</strong>
-                            </span>
-
-                            {falta > 0 && (
-                                <span className="text-danger fw-semibold">Falta: {formatarValor(falta)}</span>
-                            )}
-
-                            {troco > 0 && (
-                                <span className="text-success fw-semibold">Troco: {formatarValor(troco)}</span>
-                            )}
+                        <div className="small text-muted">
+                            Total: <strong>{formatarValor(valorTotal)}</strong>
                         </div>
                     )}
                 </div>
@@ -90,95 +42,46 @@ function Pagamentos({
                 )}
 
                 {!carregando && !erro && formasPagamento.length > 0 && (
-                    <>
-                        {pagamentos.length > 0 && (
-                            <div className="d-flex flex-column gap-2 mb-3">
-                                {pagamentos.map((pagamento, index) => {
-                                    const forma = formasPagamento.find(
-                                        (item) => Number(item.id) === Number(pagamento.formaPagamentoId)
-                                    );
+                    <div className="d-flex flex-column gap-2">
+                        {formasPagamento.map((forma) => {
+                            const selecionada = formasSelecionadas.includes(Number(forma.id));
 
-                                    return (
-                                        <div
-                                            key={`${pagamento.formaPagamentoId}-${index}`}
-                                            className="border rounded-3 px-3 py-2"
-                                        >
-                                            <div className="d-flex align-items-center gap-3">
-                                                <div className="flex-grow-1">
-                                                    <div className="fw-semibold">
-                                                        {forma?.descricao || "Forma de pagamento"}
-                                                    </div>
-                                                </div>
+                            return (
+                                <label
+                                    key={forma.id}
+                                    className={`border rounded-3 px-3 py-3 d-flex align-items-center gap-3 ${
+                                        selecionada ? "border-primary bg-light" : ""
+                                    }`}
+                                    style={{ cursor: "pointer" }}
+                                >
+                                    <input
+                                        type="checkbox"
+                                        className="form-check-input mt-0"
+                                        checked={selecionada}
+                                        onChange={() => onSelecionarForma(forma.id)}
+                                    />
 
-                                                <div
-                                                    className="input-group input-group-sm"
-                                                    style={{ maxWidth: "150px" }}
-                                                >
-                                                    <span className="input-group-text">R$</span>
+                                    <span className="fw-semibold">{forma.descricao}</span>
 
-                                                    <input
-                                                        type="number"
-                                                        className="form-control"
-                                                        min="0.01"
-                                                        step="0.01"
-                                                        value={pagamento.valor ?? ""}
-                                                        onChange={(event) => alterarValor(index, event)}
-                                                        aria-label={`Valor do pagamento ${forma?.descricao || ""}`}
-                                                    />
-                                                </div>
+                                    {selecionada && (
+                                        <span className="ms-auto text-success small fw-semibold">Selecionado</span>
+                                    )}
+                                </label>
+                            );
+                        })}
 
-                                                <button
-                                                    type="button"
-                                                    className="btn btn-success btn-sm"
-                                                    disabled={!pagamento.valor}
-                                                    onClick={() => confirmar(index)}
-                                                >
-                                                    {pagamento.confirmado ? "Confirmado" : "Confirmar"}
-                                                </button>
-
-                                                <button
-                                                    type="button"
-                                                    className="btn btn-outline-danger btn-sm"
-                                                    onClick={() => onRemover(index)}
-                                                    title="Remover pagamento"
-                                                >
-                                                    ×
-                                                </button>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
+                        {pagamentos.length === 0 && (
+                            <div className="text-muted small mt-2">
+                                Selecione uma forma de pagamento para continuar.
                             </div>
                         )}
 
-                        <div className="d-flex align-items-center gap-2">
-                            <label htmlFor="nova-forma-pagamento" className="form-label mb-0 fw-semibold">
-                                Adicionar forma:
-                            </label>
-
-                            <select
-                                id="nova-forma-pagamento"
-                                className="form-select form-select-sm"
-                                style={{ maxWidth: "240px" }}
-                                value=""
-                                onChange={adicionarForma}
-                            >
-                                <option value="">Selecione...</option>
-
-                                {formasPagamento
-                                    .filter((forma) => !formasSelecionadas.includes(Number(forma.id)))
-                                    .map((forma) => (
-                                        <option key={forma.id} value={forma.id}>
-                                            {forma.descricao}
-                                        </option>
-                                    ))}
-                            </select>
-                        </div>
-
-                        {pagamentos.length === 0 && (
-                            <div className="text-muted small mt-2">Adicione uma forma de pagamento para continuar.</div>
+                        {pagamentos.length > 0 && (
+                            <div className="alert alert-info py-2 mt-2 mb-0">
+                                Valor do pedido: <strong>{formatarValor(totalSelecionado)}</strong>
+                            </div>
                         )}
-                    </>
+                    </div>
                 )}
             </div>
         </section>

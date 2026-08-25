@@ -1,87 +1,151 @@
 import { useState } from "react";
-
-import { validarCheckout } from "../checkoutValidation";
-import { montarPedido } from "../checkoutPayload";
-import { prepararPedido } from "../checkoutSubmit";
 import { criarPedido } from "../../../../services/pedidoService";
+import { montarPedido } from "../checkoutPayload";
 
 export function useCheckoutSubmit({
     cliente,
     carrinho,
+    setCarrinho,
     pagamentos,
+    formasPagamento,
     tipoRecebimento,
     enderecoSelecionado,
     valorTotal,
     totalPagamentos,
     observacao,
+    setObservacao,
     setErro,
     setPedidoPreparado
 }) {
     const [enviando, setEnviando] = useState(false);
 
-    async function prepararCheckout() {
-        if (enviando) {
-            return;
+    function possuiPagamentoEmDinheiro() {
+        return pagamentos.some((pagamento) => {
+            const forma = formasPagamento.find((item) => Number(item.id) === Number(pagamento.formaPagamentoId));
+
+            const nomeForma = forma?.descricao || forma?.nome || "";
+
+            return nomeForma.trim().toLowerCase() === "dinheiro";
+        });
+    }
+
+    function solicitarTroco(total) {
+        const precisaTroco = window.confirm("Você precisa de troco?");
+
+        if (!precisaTroco) {
+            return "Cliente não solicitou troco.";
         }
 
-        setErro("");
+        const valorTroco = window.prompt(
+            `Troco para quanto?\nValor do pedido: R$ ${total.toFixed(2).replace(".", ",")}`
+        );
 
-        const erroValidacao = validarCheckout({
-            carrinho,
-            cliente,
-            tipoRecebimento,
-            enderecoSelecionado,
-            pagamentos,
-            valorTotal,
-            totalPagamentos
+        if (valorTroco === null) {
+            return null;
+        }
+
+        const valor = Number(String(valorTroco).replace(/\./g, "").replace(",", "."));
+
+        if (!Number.isFinite(valor) || valor <= total) {
+            window.alert("Informe um valor maior que o total do pedido para calcular o troco.");
+
+            return null;
+        }
+
+        const valorFormatado = valor.toLocaleString("pt-BR", {
+            style: "currency",
+            currency: "BRL"
         });
 
-        if (erroValidacao) {
-            setErro(erroValidacao);
+        return `Levar troco para ${valorFormatado}.`;
+    }
+
+    function adicionarObservacaoTroco(textoTroco) {
+        const observacaoAtual = observacao.trim();
+
+        return observacaoAtual ? `${observacaoAtual} ${textoTroco}` : textoTroco;
+    }
+
+    async function prepararCheckout() {
+        setErro("");
+
+        if (!cliente?.nome) {
+            setErro("Cliente não identificado.");
             return;
         }
+
+        if (!carrinho?.length) {
+            setErro("O carrinho está vazio.");
+            return;
+        }
+
+        if (tipoRecebimento === "ENTREGA" && !enderecoSelecionado) {
+            setErro("Selecione um endereço para entrega.");
+            return;
+        }
+
+        if (!pagamentos?.length) {
+            setErro("Selecione uma forma de pagamento.");
+            return;
+        }
+
+        const total = Number(valorTotal || 0);
+        const pago = Number(totalPagamentos || 0);
+
+        if (Math.abs(pago - total) > 0.01) {
+            setErro("O pagamento precisa corresponder ao valor total do pedido.");
+            return;
+        }
+
+        let observacaoFinal = observacao;
+
+        /*
+         * A pergunta de troco acontece somente aqui,
+         * no momento da confirmação do pedido.
+         */
+        if (possuiPagamentoEmDinheiro()) {
+            const textoTroco = solicitarTroco(total);
+
+            if (textoTroco === null) {
+                return;
+            }
+
+            observacaoFinal = adicionarObservacaoTroco(textoTroco);
+        }
+
+        /*
+         * O Core recebe sempre o valor exato do pedido.
+         * O eventual valor entregue pelo cliente para gerar
+         * troco fica somente na observação.
+         */
+        const pagamentosFinais = pagamentos.map((pagamento) => ({
+            formaPagamentoId: Number(pagamento.formaPagamentoId),
+            valor: total
+        }));
 
         const pedido = montarPedido({
             cliente,
-            observacao,
-            pagamentos,
+            observacao: observacaoFinal,
+            pagamentos: pagamentosFinais,
             tipoRecebimento,
             enderecoSelecionado,
             carrinho
         });
 
-        const payload = prepararPedido(pedido);
-
-        console.log("[CHECKOUT] Confirmando pedido");
-        console.log("[CHECKOUT] Payload do pedido:");
-        console.log(JSON.stringify(payload, null, 2));
-
-        setEnviando(true);
-
         try {
-            const response = await criarPedido(payload);
+            setEnviando(true);
 
-            console.log("[CHECKOUT] Pedido criado com sucesso");
-            console.log("[CHECKOUT] Resposta:");
-            console.log(JSON.stringify(response.data, null, 2));
+            const response = await criarPedido(pedido);
 
+            setObservacao(observacaoFinal);
             setPedidoPreparado(response.data);
-        } catch (error) {
-            console.error("[CHECKOUT] Erro ao criar pedido:", error);
 
-            if (error.response?.status === 401) {
-                setErro("Sua sessão expirou. Faça login novamente.");
-            } else if (error.response?.status === 403) {
-                setErro("Você não tem autorização para realizar este pedido.");
-            } else if (error.response?.status === 400) {
-                setErro("Não foi possível confirmar o pedido. Verifique os dados informados.");
-            } else if (error.response?.status === 409) {
-                setErro("Não foi possível confirmar o pedido neste momento. Tente novamente.");
-            } else if (error.response) {
-                setErro("Não foi possível confirmar o pedido. Tente novamente.");
-            } else {
-                setErro("Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.");
-            }
+            sessionStorage.removeItem("carrinho");
+            setCarrinho([]);
+
+            window.dispatchEvent(new Event("carrinhoAtualizado"));
+        } catch (error) {
+            setErro(error?.response?.data?.message || "Não foi possível enviar o pedido. Tente novamente.");
         } finally {
             setEnviando(false);
         }

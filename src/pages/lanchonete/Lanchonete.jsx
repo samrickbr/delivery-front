@@ -1,7 +1,7 @@
 import OperacaoPedidos from "../../components/pedido/OperacaoPedidos";
 
 function Lanchonete() {
-    return <OperacaoPedidos setor="LANCHONETE" titulo="Lanchonete" mostrarValor={false} />;
+    return <OperacaoPedidos setor="COZINHA" titulo="Cozinha" mostrarValor={false} />;
 }
 
 export default Lanchonete;

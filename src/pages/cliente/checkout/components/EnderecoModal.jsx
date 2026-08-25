@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { criarEnderecoCliente } from "../../../../services/clienteService";
+import { buscarCep } from "../../../../services/cepService";
 
 const ENDERECO_INICIAL = {
     cep: "",
@@ -17,18 +18,60 @@ function EnderecoModal({ aberto, onFechar, onSalvo }) {
     const [formulario, setFormulario] = useState(ENDERECO_INICIAL);
     const [salvando, setSalvando] = useState(false);
     const [erro, setErro] = useState("");
+    const [consultandoCep, setConsultandoCep] = useState(false);
 
     if (!aberto) {
         return null;
     }
 
-    function alterarCampo(event) {
-        const { name, value, type, checked } = event.target;
+   function alterarCampo(event) {
+       const { name, value, type, checked } = event.target;
 
-        setFormulario((atual) => ({
-            ...atual,
-            [name]: type === "checkbox" ? checked : value
-        }));
+       let novoValor = value;
+
+       if (name === "cep") {
+           const cep = value.replace(/\D/g, "").slice(0, 8);
+
+           novoValor = cep.length > 5 ? `${cep.slice(0, 5)}-${cep.slice(5)}` : cep;
+       }
+
+       setFormulario((atual) => ({
+           ...atual,
+           [name]: type === "checkbox" ? checked : novoValor
+       }));
+   }
+    async function consultarCep() {
+        const cep = formulario.cep.replace(/\D/g, "");
+
+        if (cep.length !== 8) {
+            return;
+        }
+
+        try {
+            setConsultandoCep(true);
+            setErro("");
+
+            const endereco = await buscarCep(cep);
+
+            setFormulario((atual) => ({
+                ...atual,
+                cep: endereco.cep || atual.cep,
+                logradouro: endereco.logradouro || "",
+                bairro: endereco.bairro || "",
+                cidade: endereco.localidade || "",
+                uf: endereco.uf || ""
+            }));
+        } catch (error) {
+            console.error(error);
+
+            setErro(
+                error?.message === "CEP não encontrado."
+                    ? "CEP não encontrado. Confira o número informado."
+                    : error?.message || "Não foi possível consultar o CEP."
+            );
+        } finally {
+            setConsultandoCep(false);
+        }
     }
 
     function fechar() {
@@ -126,7 +169,11 @@ function EnderecoModal({ aberto, onFechar, onSalvo }) {
                                         className="form-control"
                                         value={formulario.cep}
                                         onChange={alterarCampo}
+                                        onBlur={consultarCep}
+                                        maxLength="9"
+                                        placeholder="00000-000"
                                         required
+                                        disabled={consultandoCep || salvando}
                                     />
                                 </div>
 
@@ -256,7 +303,7 @@ function EnderecoModal({ aberto, onFechar, onSalvo }) {
                             </button>
 
                             <button type="submit" className="btn btn-primary" disabled={salvando}>
-                                {salvando ? "Salvando..." : "Salvar endereço"}
+                                {salvando ? "Salvando..." : consultandoCep ? "Consultando CEP..." : "Salvar endereço"}
                             </button>
                         </div>
                     </form>

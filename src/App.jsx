@@ -13,8 +13,10 @@ import PedidoTeste from "./pages/pedido/PedidoTeste";
 import Cardapio from "./pages/cardapio/Cardapio";
 import Carrinho from "./pages/cliente/Carrinho";
 import Checkout from "./pages/cliente/Checkout";
+
 import Identificacao from "./pages/cliente/Identificacao";
 import MinhaConta from "./pages/cliente/MinhaConta";
+import AcompanharPedido from "./pages/cliente/AcompanharPedido";
 
 function App() {
     return (
@@ -35,6 +37,7 @@ function App() {
                 <Route path="/identificacao" element={<Identificacao />} />
                 <Route path="/checkout" element={<Checkout />} />
                 <Route path="/minha-conta" element={<MinhaConta />} />
+                <Route path="/acompanhar-pedido" element={<AcompanharPedido />} />
             </Route>
         </Routes>
     );

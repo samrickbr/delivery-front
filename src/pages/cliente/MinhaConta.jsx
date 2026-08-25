@@ -7,6 +7,7 @@ import {
     definirEnderecoPrincipalCliente,
     excluirEnderecoCliente
 } from "../../services/clienteService";
+import { buscarCep } from "../../services/cepService";
 import { useCheckoutCliente } from "./checkout/hooks/useCheckoutCliente";
 
 const ENDERECO_INICIAL = {
@@ -74,11 +75,14 @@ function MinhaConta() {
     const [formulario, setFormulario] = useState(ENDERECO_INICIAL);
     const [salvando, setSalvando] = useState(false);
     const [erroFormulario, setErroFormulario] = useState("");
+    const [consultandoCep, setConsultandoCep] = useState(false);
+    const [erroCep, setErroCep] = useState("");
 
     function abrirNovoEndereco() {
         setEnderecoEditando(null);
         setFormulario({ ...ENDERECO_INICIAL });
         setErroFormulario("");
+        setErroCep("");
         setFormularioAberto(true);
     }
 
@@ -86,6 +90,7 @@ function MinhaConta() {
         setEnderecoEditando(endereco);
         setFormulario(obterFormularioEndereco(endereco));
         setErroFormulario("");
+        setErroCep("");
         setFormularioAberto(true);
     }
 
@@ -98,15 +103,66 @@ function MinhaConta() {
         setEnderecoEditando(null);
         setFormulario({ ...ENDERECO_INICIAL });
         setErroFormulario("");
+        setErroCep("");
     }
 
     function alterarCampo(event) {
         const { name, value, type, checked } = event.target;
 
+        let novoValor = type === "checkbox" ? checked : value;
+
+        if (name === "cep") {
+            const cep = value.replace(/\D/g, "").slice(0, 8);
+
+            novoValor = cep.length > 5 ? `${cep.slice(0, 5)}-${cep.slice(5)}` : cep;
+
+            setErroCep("");
+        }
+
+        if (name === "uf") {
+            novoValor = value
+                .replace(/[^a-zA-Z]/g, "")
+                .slice(0, 2)
+                .toUpperCase();
+        }
+
         setFormulario((atual) => ({
             ...atual,
-            [name]: type === "checkbox" ? checked : value
+            [name]: novoValor
         }));
+    }
+
+    async function consultarCep() {
+        const cep = formulario.cep.replace(/\D/g, "");
+
+        setErroCep("");
+
+        if (cep.length !== 8) {
+            return;
+        }
+
+        try {
+            setConsultandoCep(true);
+
+            const endereco = await buscarCep(cep);
+
+            setFormulario((atual) => ({
+                ...atual,
+                cep: endereco.cep || atual.cep,
+                logradouro: endereco.logradouro || "",
+                bairro: endereco.bairro || "",
+                cidade: endereco.localidade || "",
+                uf: endereco.uf || ""
+            }));
+        } catch (error) {
+            setErroCep(
+                error?.message === "CEP não encontrado."
+                    ? "CEP não encontrado. Confira o número informado."
+                    : error?.message || "Não foi possível consultar o CEP."
+            );
+        } finally {
+            setConsultandoCep(false);
+        }
     }
 
     async function salvarEndereco(event) {
@@ -148,6 +204,7 @@ function MinhaConta() {
     async function tornarPrincipal(enderecoId) {
         try {
             setErroFormulario("");
+
             await definirEnderecoPrincipalCliente(enderecoId);
             await recarregar();
         } catch (error) {
@@ -164,6 +221,7 @@ function MinhaConta() {
 
         try {
             setErroFormulario("");
+
             await excluirEnderecoCliente(enderecoId);
             await recarregar();
         } catch (error) {
@@ -186,11 +244,23 @@ function MinhaConta() {
             <section className="mb-4">
                 <div className="card border-0 shadow-sm">
                     <div className="card-body p-4 p-md-5">
-                        <span className="badge text-bg-primary rounded-pill mb-2">Minha conta</span>
+                        <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                            <div>
+                                <span className="badge text-bg-primary rounded-pill mb-2">Minha conta</span>
 
-                        <h1 className="display-6 fw-bold mb-2">Meus dados</h1>
+                                <h1 className="display-6 fw-bold mb-2">Meus dados</h1>
 
-                        <p className="text-muted mb-0">Consulte seus dados e endereços cadastrados.</p>
+                                <p className="text-muted mb-0">Consulte seus dados e endereços cadastrados.</p>
+                            </div>
+
+                            <button
+                                type="button"
+                                className="btn btn-outline-primary rounded-pill"
+                                onClick={() => navigate("/acompanhar-pedido")}
+                            >
+                                Meus pedidos
+                            </button>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -215,27 +285,30 @@ function MinhaConta() {
 
                             <div className="mb-3">
                                 <div className="small text-muted mb-1">Nome</div>
+
                                 <div className="fw-semibold">{cliente?.nome || "-"}</div>
                             </div>
 
                             <div className="mb-3">
                                 <div className="small text-muted mb-1">CPF</div>
+
                                 <div className="fw-semibold">{formatarCpf(cliente?.cpf)}</div>
                             </div>
 
                             <div className="mb-3">
                                 <div className="small text-muted mb-1">Telefone</div>
+
                                 <div className="fw-semibold">{cliente?.telefone || "-"}</div>
                             </div>
 
                             <div>
                                 <div className="small text-muted mb-1">E-mail</div>
+
                                 <div className="fw-semibold">{cliente?.email || "-"}</div>
                             </div>
 
                             <div className="alert alert-info mt-4 mb-0">
-                                A edição dos dados pessoais será disponibilizada quando o contrato de manutenção do
-                                cliente estiver disponível.
+                                A edição dos dados pessoais será disponibilizada em breve.
                             </div>
                         </div>
                     </section>
@@ -368,11 +441,17 @@ function MinhaConta() {
                                                 id="cep"
                                                 name="cep"
                                                 type="text"
-                                                className="form-control"
+                                                className={`form-control${erroCep ? " is-invalid" : ""}`}
                                                 value={formulario.cep}
                                                 onChange={alterarCampo}
+                                                onBlur={consultarCep}
+                                                disabled={consultandoCep || salvando}
+                                                inputMode="numeric"
+                                                autoComplete="postal-code"
                                                 required
                                             />
+
+                                            {erroCep && <div className="invalid-feedback d-block">{erroCep}</div>}
                                         </div>
 
                                         <div className="col-12 col-md-8">
@@ -500,8 +579,16 @@ function MinhaConta() {
                                         Cancelar
                                     </button>
 
-                                    <button type="submit" className="btn btn-primary" disabled={salvando}>
-                                        {salvando ? "Salvando..." : "Salvar endereço"}
+                                    <button
+                                        type="submit"
+                                        className="btn btn-primary"
+                                        disabled={salvando || consultandoCep}
+                                    >
+                                        {salvando
+                                            ? "Salvando..."
+                                            : consultandoCep
+                                              ? "Consultando CEP..."
+                                              : "Salvar endereço"}
                                     </button>
                                 </div>
                             </form>

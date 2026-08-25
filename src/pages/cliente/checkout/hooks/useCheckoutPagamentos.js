@@ -1,71 +1,38 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 export function useCheckoutPagamentos() {
     const [pagamentos, setPagamentos] = useState([]);
 
     function selecionarFormaPagamento(formaPagamentoId, valorTotal) {
         setPagamentos((atuais) => {
-            const pagamentoExistente = atuais.find(
-                (pagamento) => Number(pagamento.formaPagamentoId) === Number(formaPagamentoId)
-            );
+            const id = Number(formaPagamentoId);
 
-            if (pagamentoExistente) {
-                return atuais;
+            const jaSelecionado = atuais.some((pagamento) => Number(pagamento.formaPagamentoId) === id);
+
+            if (jaSelecionado) {
+                return [];
             }
 
             return [
-                ...atuais,
                 {
-                    formaPagamentoId,
-                    valor: atuais.length === 0 ? (valorTotal ?? 0) : 0,
-                    confirmado: false
+                    formaPagamentoId: id,
+                    valor: Number(valorTotal) || 0,
+                    confirmado: true
                 }
             ];
         });
     }
 
-    function alterarValorPagamento(index, valor) {
-        setPagamentos((atuais) =>
-            atuais.map((pagamento, pagamentoIndex) =>
-                pagamentoIndex === index
-                    ? {
-                          ...pagamento,
-                          valor,
-                          confirmado: false
-                      }
-                    : pagamento
-            )
-        );
+    function removerPagamento() {
+        setPagamentos([]);
     }
 
-    function confirmarPagamento(index) {
-        setPagamentos((atuais) =>
-            atuais.map((pagamento, pagamentoIndex) =>
-                pagamentoIndex === index
-                    ? {
-                          ...pagamento,
-                          confirmado: true
-                      }
-                    : pagamento
-            )
-        );
-    }
-
-    function removerPagamento(index) {
-        setPagamentos((atuais) => atuais.filter((_, pagamentoIndex) => pagamentoIndex !== index));
-    }
-
-    const totalPagamentos = useMemo(
-        () => pagamentos.reduce((total, pagamento) => total + (Number(pagamento.valor) || 0), 0),
-        [pagamentos]
-    );
+    const totalPagamentos = pagamentos.reduce((total, pagamento) => total + (Number(pagamento.valor) || 0), 0);
 
     return {
         pagamentos,
         totalPagamentos,
         selecionarFormaPagamento,
-        alterarValorPagamento,
-        confirmarPagamento,
         removerPagamento
     };
 }

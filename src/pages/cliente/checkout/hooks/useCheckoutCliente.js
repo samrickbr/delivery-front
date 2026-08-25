@@ -39,6 +39,7 @@ export function useCheckoutCliente() {
             setEnderecos(Array.isArray(enderecosCliente) ? enderecosCliente : []);
 
             sessionStorage.setItem("cliente", JSON.stringify(clienteNormalizado));
+            window.dispatchEvent(new Event("clienteAtualizado"));
         } catch (error) {
             console.error(error);
 

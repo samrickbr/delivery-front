@@ -26,6 +26,10 @@ export async function buscarPedido(id) {
     return api.get(`/pedidos/${id}`, configAutenticado());
 }
 
+export async function listarMeusPedidos() {
+    return api.get("/pedidos/meus", configAutenticado());
+}
+
 /* ==========================================================
    BALCÃO
 ========================================================== */

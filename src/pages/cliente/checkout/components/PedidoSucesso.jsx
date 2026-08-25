@@ -1,30 +1,56 @@
+import { useNavigate } from "react-router-dom";
 import { formatarValor } from "../checkoutUtils";
 
 function PedidoSucesso({ pedido }) {
+    const navigate = useNavigate();
+
     return (
-        <div className="card mt-4 shadow">
-            <div className="card-body">
-                <div className="text-center">
-                    <h2>Pedido recebido!</h2>
-
-                    <p className="mb-3">Seu pedido foi enviado com sucesso.</p>
-
-                    {pedido.id && <h3 className="mb-3">Pedido #{pedido.id}</h3>}
-
-                    {pedido.status && (
-                        <p className="mb-2">
-                            <strong>Status:</strong> {pedido.status}
-                        </p>
-                    )}
-
-                    {pedido.valorTotal !== undefined && (
-                        <p className="mb-3">
-                            <strong>Total:</strong> {formatarValor(pedido.valorTotal)}
-                        </p>
-                    )}
-
-                    <p className="text-muted mb-0">Em breve você receberá atualizações sobre o pedido.</p>
+        <div className="card mt-4 border-0 shadow-sm">
+            <div className="card-body text-center p-4 p-md-5">
+                <div
+                    className="d-flex align-items-center justify-content-center bg-success-subtle text-success rounded-circle mx-auto mb-3"
+                    style={{
+                        width: "64px",
+                        height: "64px",
+                        fontSize: "1.75rem"
+                    }}
+                    aria-hidden="true"
+                >
+                    ✓
                 </div>
+
+                <h2 className="h3 mb-2">Pedido enviado com sucesso!</h2>
+
+                {pedido?.id != null && (
+                    <p className="fs-5 mb-2">
+                        Pedido <strong>#{pedido.id}</strong>
+                    </p>
+                )}
+
+                <p className="text-muted mb-4">Seu pedido foi recebido e será processado.</p>
+
+                {pedido?.valorTotal !== undefined && pedido?.valorTotal !== null && (
+                    <p className="mb-4">
+                        <span className="text-muted">Total do pedido: </span>
+                        <strong>{formatarValor(pedido.valorTotal)}</strong>
+                    </p>
+                )}
+
+                <button
+                    type="button"
+                    className="btn btn-outline-primary rounded-pill"
+                    onClick={() => navigate("/cardapio")}
+                >
+                    Voltar ao cardápio
+                </button>
+
+                <button
+                    type="button"
+                    className="btn btn-primary rounded-pill"
+                    onClick={() => navigate("/acompanhar-pedido")}
+                >
+                    Acompanhar pedido
+                </button>
             </div>
         </div>
     );
