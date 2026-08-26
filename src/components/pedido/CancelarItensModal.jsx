@@ -5,61 +5,101 @@ function CancelarItensModal({ pedido, setor, mostrar, onFechar, onAtualizar, per
     const [tipo, setTipo] = useState("ITEM");
     const [itensSelecionados, setItensSelecionados] = useState([]);
     const [motivo, setMotivo] = useState("");
+    const [processando, setProcessando] = useState(false);
 
     if (!mostrar) {
         return null;
     }
 
-    function selecionarItem(id) {
-        setItensSelecionados((lista) => {
-            if (lista.includes(id)) {
-                return lista.filter((item) => item !== id);
-            }
+    const itensDisponiveis =
+        pedido.itens?.filter(
+            (item) => item.statusOperacao !== "CANCELADO" && (permitirCompleto || item.setor === setor)
+        ) || [];
 
-            return [...lista, id];
-        });
+    function selecionarItem(id) {
+        setItensSelecionados((lista) =>
+            lista.includes(id) ? lista.filter((itemId) => itemId !== id) : [...lista, id]
+        );
     }
 
     async function confirmar() {
-        if (!motivo) {
+        if (!motivo.trim() || processando) {
             return;
         }
 
-        if (tipo === "COMPLETO") {
-            await cancelarPedidoCompleto(pedido.id, setor, motivo);
-        } else {
-            await cancelarItens(pedido.id, setor, itensSelecionados, motivo);
+        if (tipo === "ITEM" && itensSelecionados.length === 0) {
+            return;
+        }
+
+        setProcessando(true);
+
+        try {
+            if (tipo === "COMPLETO") {
+                await cancelarPedidoCompleto(pedido.id, motivo.trim());
+            } else {
+                await cancelarItens(pedido.id, setor, itensSelecionados, motivo.trim());
+            }
+
+            setMotivo("");
+            setItensSelecionados([]);
+            setTipo("ITEM");
+
+            onFechar();
+            await onAtualizar();
+        } catch (error) {
+            console.error(error);
+            alert(error?.response?.data?.message || "Erro ao cancelar o pedido.");
+        } finally {
+            setProcessando(false);
+        }
+    }
+
+    function fechar() {
+        if (processando) {
+            return;
         }
 
         setMotivo("");
         setItensSelecionados([]);
+        setTipo("ITEM");
         onFechar();
-        onAtualizar();
     }
 
     return (
-        <div className="modal show d-block" tabIndex="-1">
+        <div className="modal show d-block" tabIndex="-1" role="dialog" aria-modal="true">
             <div className="modal-dialog">
                 <div className="modal-content">
                     <div className="modal-header">
-                        <h5>Cancelar Pedido #{pedido.id}</h5>
+                        <h5 className="modal-title">Cancelar Pedido #{pedido.id}</h5>
+
+                        <button type="button" className="btn-close" onClick={fechar} disabled={processando} />
                     </div>
 
                     <div className="modal-body">
                         {permitirCompleto && (
                             <div className="mb-3">
                                 <button
+                                    type="button"
                                     className={
                                         tipo === "ITEM" ? "btn btn-primary me-2" : "btn btn-outline-primary me-2"
                                     }
-                                    onClick={() => setTipo("ITEM")}
+                                    onClick={() => {
+                                        setTipo("ITEM");
+                                        setItensSelecionados([]);
+                                    }}
+                                    disabled={processando}
                                 >
                                     Cancelar itens
                                 </button>
 
                                 <button
+                                    type="button"
                                     className={tipo === "COMPLETO" ? "btn btn-danger" : "btn btn-outline-danger"}
-                                    onClick={() => setTipo("COMPLETO")}
+                                    onClick={() => {
+                                        setTipo("COMPLETO");
+                                        setItensSelecionados([]);
+                                    }}
+                                    disabled={processando}
                                 >
                                     Cancelar pedido
                                 </button>
@@ -70,47 +110,59 @@ function CancelarItensModal({ pedido, setor, mostrar, onFechar, onAtualizar, per
                             <>
                                 <h6>Selecione os itens:</h6>
 
-                                {pedido.itens
-                                    .filter((item) => item.setor === setor || permitirCompleto)
-                                    .map((item) => (
-                                        <div key={item.id} className="form-check">
+                                {itensDisponiveis.length === 0 ? (
+                                    <div className="alert alert-secondary">
+                                        Nenhum item disponível para cancelamento.
+                                    </div>
+                                ) : (
+                                    itensDisponiveis.map((item) => (
+                                        <div key={item.id} className="form-check mb-2">
                                             <input
+                                                id={`cancelar-item-${item.id}`}
                                                 className="form-check-input"
                                                 type="checkbox"
                                                 checked={itensSelecionados.includes(item.id)}
                                                 onChange={() => selecionarItem(item.id)}
+                                                disabled={processando}
                                             />
 
-                                            <label className="form-check-label">
+                                            <label htmlFor={`cancelar-item-${item.id}`} className="form-check-label">
                                                 {item.quantidade}x {item.produto}
                                             </label>
                                         </div>
-                                    ))}
+                                    ))
+                                )}
                             </>
+                        )}
+
+                        {tipo === "COMPLETO" && (
+                            <div className="alert alert-danger">O pedido inteiro será cancelado.</div>
                         )}
 
                         <textarea
                             className="form-control mt-3"
-
+                            rows="3"
                             placeholder="Motivo do cancelamento"
-
                             value={motivo}
-
                             onChange={(e) => setMotivo(e.target.value)}
+                            disabled={processando}
                         />
                     </div>
 
                     <div className="modal-footer">
-                        <button className="btn btn-secondary" onClick={onFechar}>
+                        <button type="button" className="btn btn-secondary" onClick={fechar} disabled={processando}>
                             Voltar
                         </button>
 
                         <button
+                            type="button"
                             className="btn btn-danger"
-                            disabled={!motivo || (tipo === "ITEM" && itensSelecionados.length === 0)}
+                            disabled={
+                                processando || !motivo.trim() || (tipo === "ITEM" && itensSelecionados.length === 0)
+                            }
                             onClick={confirmar}
                         >
-                            Confirmar
+                            {processando ? "Cancelando..." : "Confirmar"}
                         </button>
                     </div>
                 </div>

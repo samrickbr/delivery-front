@@ -1,9 +1,8 @@
-import CancelarItensModal from "./pedido/CancelarItensModal";
 import { useState } from "react";
+import CancelarItensModal from "./pedido/CancelarItensModal";
 import ConfirmDialog from "./ConfirmDialog";
 import InputDialog from "./InputDialog";
 import {
-    cancelarPedido,
     colocarPendente,
     iniciarProducao,
     finalizarPedido
@@ -13,101 +12,204 @@ function PedidoActions({ pedido, setor, onAtualizar, onDigitando }) {
     const [showDialog, setShowDialog] = useState(false);
     const [acaoSelecionada, setAcaoSelecionada] = useState(null);
     const [showInput, setShowInput] = useState(false);
-    const [showCancelamento, setShowCancelamento] = useState(false);
-    const [processando, setProcessando] = useState(false);
-    const itemSetor = pedido.itens.find((item) => item.setor === setor);
-    const statusOperacao = itemSetor?.statusOperacao;
     const [mostrarCancelamento, setMostrarCancelamento] = useState(false);
+    const [processando, setProcessando] = useState(false);
+
+    const itensDoSetor =
+        pedido.itens?.filter(
+            (item) =>
+                item.setor === setor &&
+                item.statusOperacao !== "CANCELADO"
+        ) || [];
 
     function confirmar(acao) {
         setAcaoSelecionada(() => acao);
         setShowDialog(true);
     }
+
     function abrirEspera() {
         setShowInput(true);
     }
 
     async function executar(acao) {
-        if (processando) return;
+        if (processando) {
+            return;
+        }
+
         setProcessando(true);
 
         try {
             await acao();
-            onAtualizar();
+            await onAtualizar();
         } catch (error) {
             console.error(error);
-            alert("Erro ao atualizar pedido.");
+
+            alert(
+                error?.response?.data?.message ||
+                "Erro ao atualizar pedido."
+            );
         } finally {
             setProcessando(false);
         }
     }
 
     async function executarConfirmacao() {
+        if (!acaoSelecionada) {
+            return;
+        }
+
         await executar(acaoSelecionada);
+
         setShowDialog(false);
         setAcaoSelecionada(null);
     }
 
+    if (itensDoSetor.length === 0) {
+        return null;
+    }
+
     return (
-        <div className="d-grid gap-2 mt-3">
-            {statusOperacao === "APROVADO" && (
-                <>
-                    <button
-                        className="btn btn-primary btn-lg"
-                        disabled={processando}
-                        onClick={() => confirmar(() => iniciarProducao(pedido.id, setor))}
-                    >
-                        Produzir
-                    </button>
+        <div className="mt-3">
 
-                    <button className="btn btn-warning" disabled={processando} onClick={abrirEspera}>
-                        Espera
-                    </button>
+            {itensDoSetor.map((item) => (
+                <div
+                    key={item.id}
+                    className="border rounded p-3 mb-3"
+                >
+                    <div className="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <div className="fw-bold">
+                                {item.quantidade}x {item.produto}
+                            </div>
 
-                    <button className="btn btn-danger" onClick={() => setMostrarCancelamento(true)}>
-                        ❌ Cancelar
-                    </button>
-                </>
-            )}
+                            {item.categoria && (
+                                <small className="text-muted">
+                                    {item.categoria}
+                                </small>
+                            )}
+                        </div>
 
-            {statusOperacao === "PENDENTE" && (
-                <>
-                    <button
-                        className="btn btn-primary btn-lg"
-                        disabled={processando}
-                        onClick={() => confirmar(() => iniciarProducao(pedido.id, setor))}
-                    >
-                        Retomar
-                    </button>
+                        <span className="badge bg-secondary">
+                            {item.statusOperacao?.replaceAll("_", " ")}
+                        </span>
+                    </div>
 
-                    <button className="btn btn-danger" disabled={processando} onClick={() => setShowCancelamento(true)}>
-                        Cancelar
-                    </button>
-                </>
-            )}
+                    {item.statusOperacao === "APROVADO" && (
+                        <div className="d-grid gap-2">
+                            <button
+                                className="btn btn-primary"
+                                disabled={processando}
+                                onClick={() =>
+                                    confirmar(() =>
+                                        iniciarProducao(
+                                            pedido.id,
+                                            setor
+                                        )
+                                    )
+                                }
+                            >
+                                Produzir
+                            </button>
 
-            {statusOperacao === "EM_PRODUCAO" && (
-                <>
-                    <button
-                        className="btn btn-success"
-                        disabled={processando}
-                        onClick={() => confirmar(() => finalizarPedido(pedido.id, setor))}
-                    >
-                        Finalizar
-                    </button>
+                            <button
+                                className="btn btn-warning"
+                                disabled={processando}
+                                onClick={abrirEspera}
+                            >
+                                Espera
+                            </button>
 
-                    <button className="btn btn-warning" disabled={processando} onClick={abrirEspera}>
-                        Espera
-                    </button>
-                </>
-            )}
+                            <button
+                                className="btn btn-danger"
+                                disabled={processando}
+                                onClick={() =>
+                                    setMostrarCancelamento(true)
+                                }
+                            >
+                                Cancelar
+                            </button>
+                        </div>
+                    )}
+
+                    {item.statusOperacao === "PENDENTE" && (
+                        <div className="d-grid gap-2">
+                            <button
+                                className="btn btn-primary"
+                                disabled={processando}
+                                onClick={() =>
+                                    confirmar(() =>
+                                        iniciarProducao(
+                                            pedido.id,
+                                            setor
+                                        )
+                                    )
+                                }
+                            >
+                                Retomar
+                            </button>
+
+                            <button
+                                className="btn btn-danger"
+                                disabled={processando}
+                                onClick={() =>
+                                    setMostrarCancelamento(true)
+                                }
+                            >
+                                Cancelar
+                            </button>
+                        </div>
+                    )}
+
+                    {item.statusOperacao === "EM_PRODUCAO" && (
+                        <div className="d-grid gap-2">
+                            <button
+                                className="btn btn-success"
+                                disabled={processando}
+                                onClick={() =>
+                                    confirmar(() =>
+                                        finalizarPedido(
+                                            pedido.id,
+                                            setor
+                                        )
+                                    )
+                                }
+                            >
+                                Finalizar
+                            </button>
+
+                            <button
+                                className="btn btn-warning"
+                                disabled={processando}
+                                onClick={abrirEspera}
+                            >
+                                Espera
+                            </button>
+
+                            <button
+                                className="btn btn-danger"
+                                disabled={processando}
+                                onClick={() =>
+                                    setMostrarCancelamento(true)
+                                }
+                            >
+                                Cancelar
+                            </button>
+                        </div>
+                    )}
+                </div>
+            ))}
+
             <ConfirmDialog
                 show={showDialog}
                 titulo="Confirmar ação"
                 mensagem="Deseja realmente executar esta ação?"
                 onConfirm={executarConfirmacao}
-                onCancel={() => setShowDialog(false)}
+                onCancel={() => {
+                    setShowDialog(false);
+                    setAcaoSelecionada(null);
+                }}
             />
+
             <InputDialog
                 show={showInput}
                 onDigitando={onDigitando}
@@ -117,28 +219,24 @@ function PedidoActions({ pedido, setor, onAtualizar, onDigitando }) {
                 onCancel={() => setShowInput(false)}
                 onConfirm={async (motivo) => {
                     setShowInput(false);
-                    await executar(() => colocarPendente(pedido.id, setor, motivo));
-                }}
-            />
-            <InputDialog
-                show={showCancelamento}
-                titulo="Cancelar item"
-                mensagem="Informe o motivo do cancelamento."
-                placeholder="Ex.: Sem ingrediente"
-                onCancel={() => setShowCancelamento(false)}
-                onConfirm={async (motivo) => {
-                    setShowCancelamento(false);
 
-                    await executar(async () => {
-                        await cancelarPedido(pedido.id, setor, motivo);
-                    });
+                    await executar(() =>
+                        colocarPendente(
+                            pedido.id,
+                            setor,
+                            motivo
+                        )
+                    );
                 }}
             />
+
             <CancelarItensModal
                 pedido={pedido}
                 setor={setor}
                 mostrar={mostrarCancelamento}
-                onFechar={() => setMostrarCancelamento(false)}
+                onFechar={() =>
+                    setMostrarCancelamento(false)
+                }
                 onAtualizar={onAtualizar}
             />
         </div>

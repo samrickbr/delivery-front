@@ -1,10 +1,15 @@
 import HistoricoPedido from "./HistoricoPedido";
 
 function PedidoCard({ pedido, children, mostrarValor = true }) {
-    console.log("PEDIDO CARD:", pedido);
     function badgeStatus(status) {
         switch (status) {
+            case "RECEBIDO":
+                return "bg-primary";
+
             case "APROVADO":
+                return "bg-warning text-dark";
+
+            case "AGUARDANDO_PRODUCAO":
                 return "bg-warning text-dark";
 
             case "EM_PRODUCAO":
@@ -16,11 +21,20 @@ function PedidoCard({ pedido, children, mostrarValor = true }) {
             case "FINALIZADO":
                 return "bg-success";
 
-            case "ENTREGUE":
-                return "bg-success";
+            case "AGUARDANDO_SEPARACAO":
+                return "bg-info text-dark";
+
+            case "SEPARADO":
+                return "bg-info text-dark";
 
             case "SAIU_ENTREGA":
                 return "bg-info text-dark";
+
+            case "ENTREGUE":
+                return "bg-success";
+
+            case "FATURADO":
+                return "bg-success";
 
             case "CANCELADO":
                 return "bg-dark";
@@ -30,18 +44,32 @@ function PedidoCard({ pedido, children, mostrarValor = true }) {
         }
     }
 
-    console.log("Valor:", pedido.valorTotal);
+    function formatarStatus(status) {
+        if (!status) {
+            return "-";
+        }
+
+        return status.replaceAll("_", " ");
+    }
 
     return (
         <div className="card shadow-sm border-0 mb-4">
             <div className="card-header bg-dark text-white d-flex justify-content-between align-items-center">
                 <div>
-                    <h5 className="mb-0 fw-bold">Pedido #{String(pedido.id).padStart(4, "0")}</h5>
+                    <h5 className="mb-0 fw-bold">
+                        Pedido #{String(pedido.id).padStart(4, "0")}
+                    </h5>
 
-                    <small className="text-light opacity-75">{pedido.clienteNome}</small>
+                    {pedido.clienteNome && (
+                        <small className="text-light opacity-75">
+                            {pedido.clienteNome}
+                        </small>
+                    )}
                 </div>
 
-                <span className={`badge fs-6 ${badgeStatus(pedido.status)}`}>{pedido.status.replaceAll("_", " ")}</span>
+                <span className={`badge fs-6 ${badgeStatus(pedido.status)}`}>
+                    {formatarStatus(pedido.status)}
+                </span>
             </div>
 
             <div className="card-body">
@@ -49,7 +77,9 @@ function PedidoCard({ pedido, children, mostrarValor = true }) {
                     <div>
                         <div className="text-muted small">Cliente</div>
 
-                        <div className="fs-4 fw-bold">{pedido.clienteNome}</div>
+                        <div className="fs-4 fw-bold">
+                            {pedido.clienteNome || "-"}
+                        </div>
                     </div>
 
                     {mostrarValor && (
@@ -57,7 +87,7 @@ function PedidoCard({ pedido, children, mostrarValor = true }) {
                             <div className="text-muted small">Total</div>
 
                             <div className="fs-4 fw-bold text-success">
-                                R{"$"}
+                                R$
                                 {pedido.valorTotal?.toLocaleString("pt-BR", {
                                     minimumFractionDigits: 2
                                 })}
@@ -71,23 +101,40 @@ function PedidoCard({ pedido, children, mostrarValor = true }) {
                 <h6 className="fw-bold mb-3">Itens</h6>
 
                 <ul className="list-group mb-3">
-                    {pedido.itens?.map((item, index) => (
-                        <li key={index} className="list-group-item">
+                    {pedido.itens?.map((item) => (
+                        <li
+                            key={item.id}
+                            className="list-group-item"
+                        >
                             <div className="d-flex justify-content-between align-items-center">
                                 <div>
                                     <div className="fw-semibold fs-5">
                                         {item.quantidade}x {item.produto}
                                     </div>
 
-                                    <small className="text-muted">{item.categoria}</small>
+                                    {item.categoria && (
+                                        <small className="text-muted">
+                                            {item.categoria}
+                                        </small>
+                                    )}
                                 </div>
 
-                                <div className="mt-1">
-                                    <span className="badge bg-secondary me-1">{item.setor}</span>
+                                <div className="mt-1 text-end">
+                                    {item.setor && (
+                                        <span className="badge bg-secondary me-1">
+                                            {item.setor}
+                                        </span>
+                                    )}
 
-                                    <span className={`badge ${badgeStatus(item.statusOperacao)}`}>
-                                        {item.statusOperacao.replaceAll("_", " ")}
-                                    </span>
+                                    {item.statusOperacao && (
+                                        <span
+                                            className={`badge ${badgeStatus(
+                                                item.statusOperacao
+                                            )}`}
+                                        >
+                                            {formatarStatus(item.statusOperacao)}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                         </li>
@@ -96,8 +143,9 @@ function PedidoCard({ pedido, children, mostrarValor = true }) {
 
                 {pedido.aguardaConferencia && (
                     <div className="alert alert-warning">
-                        <strong>Atenção:</strong>
-                        Todos os setores finalizaram a produção. Verifique os itens antes de continuar o pedido.
+                        <strong>Atenção:</strong>{" "}
+                        Todos os setores finalizaram a produção. Verifique os
+                        itens antes de continuar o pedido.
                     </div>
                 )}
 

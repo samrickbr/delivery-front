@@ -1,16 +1,26 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import PedidoCard from "../../components/pedido/PedidoCard";
-
-import { listarEntrega, sairEntrega, entregarPedido } from "../../services/pedidoService";
+import {
+    listarEntregaOperacao,
+    sairEntrega,
+    entregarPedido
+} from "../../services/pedidoService";
 
 function Entrega() {
     const [pedidos, setPedidos] = useState([]);
     const [aba, setAba] = useState("separacao");
+    const [carregando, setCarregando] = useState(false);
 
-    async function carregarPedidos() {
-        const response = await listarEntrega();
-        setPedidos(response.data);
-    }
+    const carregarPedidos = useCallback(async () => {
+        setCarregando(true);
+
+        try {
+            const response = await listarEntregaOperacao();
+            setPedidos(response.data);
+        } finally {
+            setCarregando(false);
+        }
+    }, []);
 
     async function sairParaEntrega(id) {
         await sairEntrega(id);
@@ -22,34 +32,34 @@ function Entrega() {
         await carregarPedidos();
     }
 
-    useEffect(() => {
-        let ativo = true;
+useEffect(() => {
+    const inicializar = async () => {
+        await carregarPedidos();
+    };
 
-        async function inicializar() {
-            if (ativo) {
-                await carregarPedidos();
-            }
+    inicializar();
+
+    const intervalo = setInterval(() => {
+        if (!document.hidden) {
+            carregarPedidos();
         }
+    }, 10000);
 
-        inicializar();
+    return () => clearInterval(intervalo);
+}, [carregarPedidos]);
 
-        const intervalo = setInterval(() => {
-            if (!document.hidden) {
-                carregarPedidos();
-            }
-        }, 10000);
+    const pedidosSeparacao = pedidos.filter(
+        (pedido) => pedido.status === "SEPARADO"
+    );
 
-        return () => {
-            ativo = false;
-            clearInterval(intervalo);
-        };
-    }, []);
+    const pedidosEmEntrega = pedidos.filter(
+        (pedido) => pedido.status === "SAIU_ENTREGA"
+    );
 
-    const pedidosSeparacao = pedidos.filter((pedido) => pedido.status === "SEPARADO");
-
-    const pedidosEmEntrega = pedidos.filter((pedido) => pedido.status === "SAIU_ENTREGA");
-
-    const pedidosExibidos = aba === "separacao" ? pedidosSeparacao : pedidosEmEntrega;
+    const pedidosExibidos =
+        aba === "separacao"
+            ? pedidosSeparacao
+            : pedidosEmEntrega;
 
     return (
         <div className="container mt-4">
@@ -57,45 +67,78 @@ function Entrega() {
 
             <div className="mb-4">
                 <button
-                    className={`btn me-2 ${aba === "separacao" ? "btn-primary" : "btn-outline-primary"}`}
+                    className={`btn me-2 ${
+                        aba === "separacao"
+                            ? "btn-primary"
+                            : "btn-outline-primary"
+                    }`}
                     onClick={() => setAba("separacao")}
                 >
                     📦 Separação ({pedidosSeparacao.length})
                 </button>
 
                 <button
-                    className={`btn ${aba === "entrega" ? "btn-success" : "btn-outline-success"}`}
+                    className={`btn ${
+                        aba === "entrega"
+                            ? "btn-success"
+                            : "btn-outline-success"
+                    }`}
                     onClick={() => setAba("entrega")}
                 >
                     🚚 Em entrega ({pedidosEmEntrega.length})
                 </button>
             </div>
 
-            <div className="row">
-                {pedidosExibidos.map((pedido) => (
-                    <div className="col-md-6" key={pedido.id}>
-                        <PedidoCard pedido={pedido} mostrarValor={true}>
-                            {pedido.status === "SEPARADO" && (
-                                <button className="btn btn-primary w-100" onClick={() => sairParaEntrega(pedido.id)}>
-                                    🚚 Sair para entrega
-                                </button>
-                            )}
-
-                            {pedido.status === "SAIU_ENTREGA" && (
-                                <button className="btn btn-success w-100" onClick={() => confirmarEntrega(pedido.id)}>
-                                    ✅ Confirmar entrega
-                                </button>
-                            )}
-                        </PedidoCard>
-                    </div>
-                ))}
-            </div>
-
-            {pedidosExibidos.length === 0 && (
-                <div className="text-center mt-5">
-                    <h4>Nenhum pedido nesta etapa.</h4>
+            {carregando && (
+                <div className="text-center my-5">
+                    <div className="spinner-border" />
                 </div>
             )}
+
+            {!carregando && (
+                <div className="row">
+                    {pedidosExibidos.map((pedido) => (
+                        <div
+                            className="col-12 col-md-6"
+                            key={pedido.id}
+                        >
+                            <PedidoCard
+                                pedido={pedido}
+                                mostrarValor={true}
+                            >
+                                {pedido.status === "SEPARADO" && (
+                                    <button
+                                        className="btn btn-primary w-100"
+                                        onClick={() =>
+                                            sairParaEntrega(pedido.id)
+                                        }
+                                    >
+                                        🚚 Sair para entrega
+                                    </button>
+                                )}
+
+                                {pedido.status === "SAIU_ENTREGA" && (
+                                    <button
+                                        className="btn btn-success w-100"
+                                        onClick={() =>
+                                            confirmarEntrega(pedido.id)
+                                        }
+                                    >
+                                        ✅ Confirmar entrega
+                                    </button>
+                                )}
+                            </PedidoCard>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {!carregando &&
+                pedidosExibidos.length === 0 && (
+                    <div className="text-center mt-5">
+                        <h4>Nenhum pedido nesta etapa.</h4>
+                    </div>
+                )}
         </div>
     );
 }

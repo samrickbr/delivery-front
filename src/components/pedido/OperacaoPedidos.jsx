@@ -24,8 +24,17 @@ function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
 
     const carregarFinalizados = useCallback(async () => {
         const response = await listarFinalizados();
-        setPedidos(response.data);
-    }, []);
+
+        const pedidosDoSetor = response.data.filter((pedido) =>
+            pedido.itens?.some(
+                (item) =>
+                    item.setor === setor &&
+                    item.statusOperacao !== "CANCELADO"
+            )
+        );
+
+        setPedidos(pedidosDoSetor);
+    }, [setor]);
 
     const atualizar = useCallback(async () => {
         setCarregando(true);
@@ -71,12 +80,27 @@ function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
             ? pedidos
             : filtro === "TODOS"
               ? pedidos
-              : pedidos.filter((pedido) => pedido.itens?.some((item) => item.categoria === filtro));
+              : pedidos.filter((pedido) =>
+                    pedido.itens?.some(
+                        (item) =>
+                            item.setor === setor &&
+                            item.categoria === filtro
+                    )
+                );
 
-    const categoriasComQuantidade = categorias.map((categoria) => ({
-        ...categoria,
-        quantidade: pedidos.filter((pedido) => pedido.itens?.some((item) => item.categoria === categoria.nome)).length
-    }));
+    const categoriasComQuantidade = categorias
+        .map((categoria) => ({
+            ...categoria,
+            quantidade: pedidos.filter((pedido) =>
+                pedido.itens?.some(
+                    (item) =>
+                        item.setor === setor &&
+                        item.statusOperacao !== "CANCELADO" &&
+                        item.categoria === categoria.nome
+                )
+            ).length
+        }))
+        .filter((categoria) => categoria.quantidade > 0);
 
     return (
         <div className="container mt-4">
@@ -84,18 +108,28 @@ function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
 
             <div className="mb-4">
                 <button
-                    className={`btn ${aba === "producao" ? "btn-primary" : "btn-outline-primary"} me-2`}
+                    className={`btn ${
+                        aba === "producao"
+                            ? "btn-primary"
+                            : "btn-outline-primary"
+                    } me-2`}
                     onClick={() => {
                         setAba("producao");
+                        setFiltro("TODOS");
                     }}
                 >
                     Produção
                 </button>
 
                 <button
-                    className={`btn ${aba === "finalizados" ? "btn-primary" : "btn-outline-primary"}`}
+                    className={`btn ${
+                        aba === "finalizados"
+                            ? "btn-primary"
+                            : "btn-outline-primary"
+                    }`}
                     onClick={() => {
                         setAba("finalizados");
+                        setFiltro("TODOS");
                     }}
                 >
                     Finalizados
@@ -105,7 +139,11 @@ function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
             {aba === "producao" && (
                 <div className="mb-3">
                     <button
-                        className={`btn me-2 ${filtro === "TODOS" ? "btn-dark" : "btn-outline-dark"}`}
+                        className={`btn me-2 ${
+                            filtro === "TODOS"
+                                ? "btn-dark"
+                                : "btn-outline-dark"
+                        }`}
                         onClick={() => setFiltro("TODOS")}
                     >
                         Todos ({pedidos.length})
@@ -114,7 +152,11 @@ function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
                     {categoriasComQuantidade.map((categoria) => (
                         <button
                             key={categoria.id}
-                            className={`btn me-2 ${filtro === categoria.nome ? "btn-dark" : "btn-outline-dark"}`}
+                            className={`btn me-2 ${
+                                filtro === categoria.nome
+                                    ? "btn-dark"
+                                    : "btn-outline-dark"
+                            }`}
                             onClick={() => setFiltro(categoria.nome)}
                         >
                             {categoria.nome} ({categoria.quantidade})
@@ -132,8 +174,14 @@ function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
             {!carregando && (
                 <div className="row">
                     {pedidosFiltrados.map((pedido) => (
-                        <div className="col-12 col-md-6 col-xl-4" key={pedido.id}>
-                            <PedidoCard pedido={pedido} mostrarValor={mostrarValor}>
+                        <div
+                            className="col-12 col-md-6 col-xl-4"
+                            key={pedido.id}
+                        >
+                            <PedidoCard
+                                pedido={pedido}
+                                mostrarValor={mostrarValor}
+                            >
                                 {aba === "producao" && (
                                     <PedidoActions
                                         pedido={pedido}

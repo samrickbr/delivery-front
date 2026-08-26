@@ -78,7 +78,7 @@ function Balcao() {
     // =====================================
 
     const retiradasFiltradas = retiradas.filter(
-        (pedido) => pedido.status === "SEPARADO" && pedido.tipoRecebimento === "RETIRADA"
+        (pedido) => pedido.status === "SEPARADO"
     );
 
     // =====================================
