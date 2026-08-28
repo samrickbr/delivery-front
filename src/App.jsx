@@ -5,10 +5,9 @@ import ClienteLayout from "./components/layout/ClienteLayout";
 
 import Historico from "./pages/entrega/Historico";
 import Cozinha from "./pages/cozinha/Cozinha";
-import Lanchonete from "./pages/lanchonete/Lanchonete";
+import Pizzaria from "./pages/pizzaria/Pizzaria";
 import Entrega from "./pages/entrega/Entrega";
 import Balcao from "./pages/balcao/Balcao";
-import PedidoTeste from "./pages/pedido/PedidoTeste";
 
 import Cardapio from "./pages/cardapio/Cardapio";
 import Carrinho from "./pages/cliente/Carrinho";
@@ -39,7 +38,6 @@ function App() {
             <Route path="/acesso-negado" element={<AcessoNegado />} />
 
             <Route element={<Layout />}>
-                <Route path="/pedidoteste" element={<PedidoTeste />} />
 
                 <Route path="/" element={<Navigate to="/login-operacional" replace />} />
 
@@ -65,7 +63,7 @@ function App() {
                     path="/pizzaria"
                     element={
                         <RotaOperacional perfil="DELIVERY_PIZZARIA">
-                            <Lanchonete />
+                            <Pizzaria />
                         </RotaOperacional>
                     }
                 />

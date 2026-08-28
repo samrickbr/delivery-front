@@ -1,33 +1,40 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { buscarOperacionalAutenticado, loginOperacional } from "../../services/operacionalService";
 
 function obterRotaInicial(perfis = []) {
-    if (perfis.includes("DELIVERY_BALCAO")) {
+    const nomesPerfis = perfis.map((perfil) => perfil?.nome).filter(Boolean);
+
+    if (nomesPerfis.includes("DELIVERY_BALCAO")) {
         return "/balcao";
     }
 
-    if (perfis.includes("DELIVERY_MINIPDV")) {
+    if (nomesPerfis.includes("DELIVERY_MINIPDV")) {
         return "/minipdv";
     }
 
-    if (perfis.includes("DELIVERY_COZINHA")) {
+    if (nomesPerfis.includes("DELIVERY_COZINHA")) {
         return "/cozinha";
     }
 
-    if (perfis.includes("DELIVERY_PIZZARIA")) {
+    if (nomesPerfis.includes("DELIVERY_PIZZARIA")) {
         return "/pizzaria";
     }
 
-    return "/acesso-negado";
+    if (nomesPerfis.includes("DELIVERY_ENTREGA")) {
+        return "/entrega";
+    }
+
+    return null;
 }
 
 function LoginOperacional() {
     const navigate = useNavigate();
+    const location = useLocation();
 
     const [login, setLogin] = useState("");
     const [senha, setSenha] = useState("");
-    const [erro, setErro] = useState("");
+    const [erro, setErro] = useState(location.state?.acessoNegado ? "Acesso negado." : "");
     const [carregando, setCarregando] = useState(false);
 
     async function handleSubmit(event) {
@@ -46,9 +53,16 @@ function LoginOperacional() {
 
             const usuario = await buscarOperacionalAutenticado();
 
-            const perfis = usuario?.perfis ?? [];
+            const rotaInicial = obterRotaInicial(usuario?.perfis ?? []);
 
-            navigate(obterRotaInicial(perfis), {
+            if (!rotaInicial) {
+                sessionStorage.removeItem("operacionalToken");
+
+                setErro("Acesso negado.");
+                return;
+            }
+
+            navigate(rotaInicial, {
                 replace: true
             });
         } catch (error) {
@@ -102,7 +116,7 @@ function LoginOperacional() {
                             />
                         </div>
 
-                        {erro && <div className="text-danger mt-2">{erro}</div>}
+                        {erro && <div className="alert alert-danger py-2">{erro}</div>}
 
                         <button
                             type="submit"

@@ -1,7 +1,7 @@
 import OperacaoPedidos from "../../components/pedido/OperacaoPedidos";
 
-function Lanchonete() {
+function Pizzaria() {
     return <OperacaoPedidos setor="PIZZARIA" titulo="Pizzaria" mostrarValor={false} />;
 }
 
-export default Lanchonete;
+export default Pizzaria;

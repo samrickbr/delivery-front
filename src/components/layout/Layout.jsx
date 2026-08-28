@@ -9,16 +9,16 @@ function Layout() {
                     <Navbar.Brand>SIGIN Delivery</Navbar.Brand>
 
                     <Nav className="me-auto">
-                        <Nav.Link as={NavLink} to="/pedidoteste">
-                            Pedido Teste
+                        <Nav.Link as={NavLink} to="/minipdv">
+                            Mini PDV
                         </Nav.Link>
 
                         <Nav.Link as={NavLink} to="/balcao">
                             Balcão
                         </Nav.Link>
 
-                        <Nav.Link as={NavLink} to="/lanchonete">
-                            Lanchonete
+                        <Nav.Link as={NavLink} to="/pizzaria">
+                            Pizzaria
                         </Nav.Link>
 
                         <Nav.Link as={NavLink} to="/cozinha">

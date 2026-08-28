@@ -4,8 +4,18 @@ import api from "./api";
    AUTENTICAÇÃO
 ========================================================== */
 
-function configAutenticado() {
+function configCliente() {
     const token = sessionStorage.getItem("clienteToken");
+
+    return {
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    };
+}
+
+function configOperacional() {
+    const token = sessionStorage.getItem("operacionalToken");
 
     return {
         headers: {
@@ -19,15 +29,15 @@ function configAutenticado() {
 ========================================================== */
 
 export async function criarPedido(data) {
-    return api.post("/pedidos", data, configAutenticado());
+    return api.post("/pedidos", data, configCliente());
 }
 
 export async function buscarPedido(id) {
-    return api.get(`/pedidos/${id}`, configAutenticado());
+    return api.get(`/pedidos/${id}`, configCliente());
 }
 
 export async function listarMeusPedidos() {
-    return api.get("/pedidos/meus", configAutenticado());
+    return api.get("/pedidos/meus", configCliente());
 }
 
 /* ==========================================================
@@ -35,23 +45,23 @@ export async function listarMeusPedidos() {
 ========================================================== */
 
 export async function listarBalcao() {
-    return api.get("/pedidos/balcao", configAutenticado());
+    return api.get("/pedidos/balcao", configOperacional());
 }
 
 export async function aprovarPedido(id) {
-    return api.put(`/pedidos/${id}/aprovar`, null, configAutenticado());
+    return api.put(`/pedidos/${id}/aprovar`, null, configOperacional());
 }
 
 export async function cancelarPedido(id, setor, justificativa) {
-    return api.put(`/pedidos/${id}/cancelar/${setor}`, { justificativa }, configAutenticado());
+    return api.put(`/pedidos/${id}/cancelar/${setor}`, { justificativa }, configOperacional());
 }
 
 export async function enviarCozinha(id, setor) {
-    return api.put(`/pedidos/${id}/iniciar-producao/${setor}`, null, configAutenticado());
+    return api.put(`/pedidos/${id}/iniciar-producao/${setor}`, null, configOperacional());
 }
 
 export async function separarPedido(id) {
-    return api.put(`/pedidos/${id}/separar`, null, configAutenticado());
+    return api.put(`/pedidos/${id}/separar`, null, configOperacional());
 }
 
 export async function cancelarItens(id, setor, itens, justificativa) {
@@ -61,12 +71,12 @@ export async function cancelarItens(id, setor, itens, justificativa) {
             itens,
             justificativa
         },
-        configAutenticado()
+        configOperacional()
     );
 }
 
 export async function cancelarPedidoCompleto(id, justificativa) {
-    return api.put(`/pedidos/${id}/cancelar-completo`, { justificativa }, configAutenticado());
+    return api.put(`/pedidos/${id}/cancelar-completo`, { justificativa }, configOperacional());
 }
 
 /* ==========================================================
@@ -74,11 +84,11 @@ export async function cancelarPedidoCompleto(id, justificativa) {
 ========================================================== */
 
 export async function conferirPedido(id) {
-    return api.put(`/pedidos/${id}/conferir`, null, configAutenticado());
+    return api.put(`/pedidos/${id}/conferir`, null, configOperacional());
 }
 
 export async function liberarEntrega(id, itens) {
-    return api.put(`/pedidos/${id}/liberar-entrega`, { itens }, configAutenticado());
+    return api.put(`/pedidos/${id}/liberar-entrega`, { itens }, configOperacional());
 }
 
 /* ==========================================================
@@ -86,47 +96,47 @@ export async function liberarEntrega(id, itens) {
 ========================================================== */
 
 export async function listarCozinha(setor) {
-    return api.get(`/pedidos/cozinha?setor=${setor}`, configAutenticado());
+    return api.get(`/pedidos/cozinha?setor=${setor}`, configOperacional());
 }
 
 export async function colocarPendente(id, setor, motivo) {
-    return api.put(`/pedidos/${id}/pendente/${setor}`, { motivo }, configAutenticado());
+    return api.put(`/pedidos/${id}/pendente/${setor}`, { motivo }, configOperacional());
 }
 
 export async function iniciarProducao(id, setor) {
-    return api.put(`/pedidos/${id}/iniciar-producao/${setor}`, null, configAutenticado());
+    return api.put(`/pedidos/${id}/iniciar-producao/${setor}`, null, configOperacional());
 }
 
 export async function finalizarPedido(id, setor) {
-    return api.put(`/pedidos/${id}/finalizar/${setor}`, null, configAutenticado());
+    return api.put(`/pedidos/${id}/finalizar/${setor}`, null, configOperacional());
 }
 
 export async function listarFinalizados() {
-    return api.get("/pedidos/finalizados", configAutenticado());
+    return api.get("/pedidos/finalizados", configOperacional());
 }
 
 /* ==========================================================
    ENTREGA
 ========================================================== */
+
 export async function listarEntrega() {
-    return api.get("/pedidos/entrega", configAutenticado());
+    return api.get("/pedidos/entrega", configOperacional());
 }
 
 export async function listarEntregaOperacao() {
-    return api.get("/pedidos/operacao/entrega", configAutenticado());
+    return api.get("/pedidos/operacao/entrega", configOperacional());
 }
 
-
 export async function sairEntrega(id) {
-    return api.put(`/pedidos/${id}/sair-entrega`, null, configAutenticado());
+    return api.put(`/pedidos/${id}/sair-entrega`, null, configOperacional());
 }
 
 export async function entregarPedido(id) {
-    return api.put(`/pedidos/${id}/entregar`, null, configAutenticado());
+    return api.put(`/pedidos/${id}/entregar`, null, configOperacional());
 }
 
 export async function listarEntregues() {
-    return api.get("/pedidos/entregues", configAutenticado());
+    return api.get("/pedidos/entregues", configOperacional());
 }
 
 /* ==========================================================
@@ -134,7 +144,7 @@ export async function listarEntregues() {
 ========================================================== */
 
 export async function listarRetirada() {
-    return api.get("/pedidos/retirada", configAutenticado());
+    return api.get("/pedidos/retirada", configOperacional());
 }
 
 /* ==========================================================
@@ -142,11 +152,11 @@ export async function listarRetirada() {
 ========================================================== */
 
 export async function listarPedidos() {
-    return api.get("/pedidos", configAutenticado());
+    return api.get("/pedidos", configOperacional());
 }
 
 export async function listarPorStatus(status) {
-    return api.get(`/pedidos/status/${status}`, configAutenticado());
+    return api.get(`/pedidos/status/${status}`, configOperacional());
 }
 
 /* ==========================================================
@@ -154,5 +164,5 @@ export async function listarPorStatus(status) {
 ========================================================== */
 
 export async function listarSeparacao() {
-    return api.get("/pedidos/separacao", configAutenticado());
+    return api.get("/pedidos/separacao", configOperacional());
 }

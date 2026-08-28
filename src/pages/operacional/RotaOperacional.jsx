@@ -13,10 +13,12 @@ function RotaOperacional({ perfil, children }) {
 
                 const perfis = Array.isArray(usuario?.perfis) ? usuario.perfis : [];
 
-                if (perfil && !perfis.includes(perfil)) {
-                    return <Navigate to="/acesso-negado" replace />;
-                }
+                const possuiPerfil = !perfil || perfis.some((item) => item?.nome === perfil);
 
+              if (!possuiPerfil) {
+                  return <Navigate to="/login-operacional" state={{ acessoNegado: true }} replace />;
+              }
+                
                 return children;
             }}
         </OperacionalAuth>
