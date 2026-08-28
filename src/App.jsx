@@ -70,9 +70,23 @@ function App() {
                     }
                 />
 
-                <Route path="/entrega" element={<Entrega />} />
+                <Route
+                    path="/entrega"
+                    element={
+                        <RotaOperacional perfil="DELIVERY_ENTREGA">
+                            <Entrega />
+                        </RotaOperacional>
+                    }
+                />
 
-                <Route path="/entrega/historico" element={<Historico />} />
+                <Route
+                    path="/entrega/historico"
+                    element={
+                        <RotaOperacional perfil="DELIVERY_ENTREGA">
+                            <Historico />
+                        </RotaOperacional>
+                    }
+                />
 
                 <Route
                     path="/minipdv"
