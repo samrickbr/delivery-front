@@ -15,7 +15,6 @@ function MiniPdvEndereco({
     const listaRef = useRef(null);
 
     useEffect(() => {
-        setIndiceSelecionado(0);
     }, [enderecos]);
 
     useEffect(() => {

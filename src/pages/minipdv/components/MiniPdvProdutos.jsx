@@ -4,8 +4,7 @@ import { formatarValor } from "../../cardapio/cardapioUtils";
 
 function MiniPdvProdutos({
     carrinho = [],
-    onAdicionarProduto,
-    onDiminuirProduto
+    onAdicionarProduto
 }) {
     const [produtos, setProdutos] = useState([]);
     const [busca, setBusca] = useState("");
@@ -44,15 +43,6 @@ function MiniPdvProdutos({
 
         carregarProdutos();
     }, []);
-
-    useEffect(() => {
-        if (!busca.trim()) {
-            setIndiceSelecionado(0);
-            return;
-        }
-
-        setIndiceSelecionado(0);
-    }, [busca]);
 
     useEffect(() => {
         campoBuscaRef.current?.focus();
