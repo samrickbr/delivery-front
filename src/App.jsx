@@ -18,6 +18,8 @@ import Identificacao from "./pages/cliente/Identificacao";
 import MinhaConta from "./pages/cliente/MinhaConta";
 import AcompanharPedido from "./pages/cliente/AcompanharPedido";
 
+import MiniPdv from "./pages/minipdv/pages/MiniPdv";
+
 function App() {
     return (
         <Routes>
@@ -29,6 +31,7 @@ function App() {
                 <Route path="/cozinha" element={<Cozinha />} />
                 <Route path="/entrega" element={<Entrega />} />
                 <Route path="/entrega/historico" element={<Historico />} />
+                <Route path="/minipdv" element={<MiniPdv />} />
             </Route>
 
             <Route element={<ClienteLayout />}>
