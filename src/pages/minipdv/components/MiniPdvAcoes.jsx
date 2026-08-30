@@ -11,24 +11,16 @@ function MiniPdvAcoes({
                 type="button"
                 className="btn btn-primary btn-lg w-100"
                 onClick={onFinalizar}
-                disabled={
-                    carregando ||
-                    !podeFinalizar
-                }
+                disabled={carregando || !podeFinalizar}
             >
-                {carregando
-                    ? "Processando..."
-                    : "Finalizar venda"}
+                {carregando ? "Processando..." : "Finalizar venda"}
             </button>
 
             <button
                 type="button"
                 className="btn btn-outline-primary w-100"
                 onClick={onEnviarBalcao}
-                disabled={
-                    carregando ||
-                    !podeFinalizar
-                }
+                disabled={carregando || !podeFinalizar}
             >
                 Enviar para balcão
             </button>
@@ -39,7 +31,7 @@ function MiniPdvAcoes({
                 onClick={onLimpar}
                 disabled={carregando}
             >
-                Nova venda
+                Limpar venda
             </button>
         </div>
     );
