@@ -48,6 +48,31 @@ export async function listarBalcao() {
     return api.get("/pedidos/balcao", configOperacional());
 }
 
+export async function adicionarItemPedido(pedidoId, produtoId, quantidade) {
+    return api.post(
+        `/pedidos/${pedidoId}/itens`,
+        {
+            produtoId,
+            quantidade
+        },
+        configOperacional()
+    );
+}
+
+export async function alterarQuantidadeItemPedido(pedidoId, itemId, quantidade) {
+    return api.put(
+        `/pedidos/${pedidoId}/itens/${itemId}/quantidade`,
+        {
+            quantidade
+        },
+        configOperacional()
+    );
+}
+
+export async function removerItemPedido(pedidoId, itemId) {
+    return api.delete(`/pedidos/${pedidoId}/itens/${itemId}`, configOperacional());
+}
+
 export async function aprovarPedido(id) {
     return api.put(`/pedidos/${id}/aprovar`, null, configOperacional());
 }
