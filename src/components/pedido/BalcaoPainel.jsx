@@ -1,341 +1,58 @@
-import { useEffect, useState } from "react";
 import PedidoCard from "./PedidoCard";
 import ChecklistSeparacao from "./ChecklistSeparacao";
 import MiniPdvProdutos from "../../pages/minipdv/components/MiniPdvProdutos";
-
-import {
-    listarBalcao,
-    listarRetirada,
-    aprovarPedido,
-    cancelarItens,
-    cancelarPedidoCompleto,
-    conferirPedido,
-    entregarPedido,
-    adicionarItemPedido,
-    alterarQuantidadeItemPedido,
-    removerItemPedido
-} from "../../services/pedidoService";
+import CancelarItensModal from "./CancelarItensModal";
+import BalcaoTabs from "./BalcaoTabs";
+import useBalcaoPainel from "./useBalcaoPainel";
 
 import { ABAS } from "./balcaoAbas";
 
+// ============================================================
+// Refatoração do painel de balcão.
+//
+// O componente agora se concentra apenas na renderização e na
+// composição visual. A regra de negócio foi isolada em um hook
+// próprio para evitar que o JSX fique carregado de estado,
+// filtros e ações assíncronas.
+// ============================================================
 function BalcaoPainel({ aba: abaControlada, onAbaChange, exibirAbas = true }) {
-    const [pedidos, setPedidos] = useState([]);
-    const [retiradas, setRetiradas] = useState([]);
-    const [abaInterna, setAbaInterna] = useState(ABAS.PEDIDOS);
-    const aba = abaControlada ?? abaInterna;
+    // =====================================
+    // 1) Estado e ações centralizadas em hook
+    // =====================================
+    const {
+        aba,
+        pedidosFiltrados,
+        retiradasFiltradas,
+        pedidoSelecionado,
+        mostrarModalEdicao,
+        mostrarModalCancelamento,
+        erroEdicao,
+        setAba,
+        pedidoPodeSerEditado,
+        abrirEdicao,
+        fecharEdicao,
+        adicionarItem,
+        alterarQuantidade,
+        removerItem,
+        abrirCancelamento,
+        fecharCancelamento,
+        aceitarPedido,
+        conferir,
+        concluirRetirada,
+        carregarDados
+    } = useBalcaoPainel({ aba: abaControlada, onAbaChange });
 
     // =====================================
-    // EDIÇÃO COMERCIAL
+    // 2) Renderização dos blocos do painel
     // =====================================
-
-    const [pedidoSelecionado, setPedidoSelecionado] = useState(null);
-    const [mostrarModalEdicao, setMostrarModalEdicao] = useState(false);
-    const [erroEdicao, setErroEdicao] = useState("");
-
-    function pedidoPodeSerEditado(pedido) {
-        return !["FATURADO", "ENTREGUE", "CANCELADO"].includes(pedido?.status);
-    }
-
-    function abrirEdicao(pedido) {
-        if (!pedidoPodeSerEditado(pedido)) {
-            return;
-        }
-
-        setPedidoSelecionado(pedido);
-        setErroEdicao("");
-        setMostrarModalEdicao(true);
-    }
-
-    function fecharEdicao() {
-        setMostrarModalEdicao(false);
-        setPedidoSelecionado(null);
-        setErroEdicao("");
-    }
-
-    async function recarregarPedido(pedidoId) {
-        const response = await listarBalcao();
-        const pedidosAtualizados = response.data || [];
-
-        setPedidos(pedidosAtualizados);
-
-        const pedidoAtualizado = pedidosAtualizados.find((pedido) => pedido.id === pedidoId);
-
-        if (!pedidoAtualizado) {
-            fecharEdicao();
-            return null;
-        }
-
-        setPedidoSelecionado(pedidoAtualizado);
-
-        return pedidoAtualizado;
-    }
-
-    async function adicionarItem(pedidoId, produtoId, quantidade = 1) {
-        try {
-            setErroEdicao("");
-
-            await adicionarItemPedido(pedidoId, produtoId, quantidade);
-
-            await recarregarPedido(pedidoId);
-        } catch (error) {
-            console.error("Erro ao adicionar item ao pedido.", error);
-
-            setErroEdicao("Não foi possível adicionar o item ao pedido.");
-        }
-    }
-
-    async function alterarQuantidade(pedidoId, itemId, quantidade) {
-        try {
-            setErroEdicao("");
-
-            const novaQuantidade = Number(quantidade);
-
-            if (!Number.isFinite(novaQuantidade)) {
-                return;
-            }
-
-            if (novaQuantidade < 1) {
-                await removerItemPedido(pedidoId, itemId);
-            } else {
-                await alterarQuantidadeItemPedido(pedidoId, itemId, novaQuantidade);
-            }
-
-            await recarregarPedido(pedidoId);
-        } catch (error) {
-            console.error("Erro ao alterar quantidade do item.", error);
-
-            setErroEdicao("Não foi possível alterar a quantidade do item.");
-        }
-    }
-
-    async function removerItem(pedidoId, itemId) {
-        try {
-            setErroEdicao("");
-
-            await removerItemPedido(pedidoId, itemId);
-
-            await recarregarPedido(pedidoId);
-        } catch (error) {
-            console.error("Erro ao remover item do pedido.", error);
-
-            setErroEdicao("Não foi possível remover o item do pedido.");
-        }
-    }
-
-    // =====================================
-    // ABAS
-    // =====================================
-
-    function setAba(novaAba) {
-        if (abaControlada === undefined) {
-            setAbaInterna(novaAba);
-        }
-
-        onAbaChange?.(novaAba);
-    }
-
-    // =====================================
-    // CANCELAMENTO
-    // =====================================
-
-    const [mostrarModalCancelamento, setMostrarModalCancelamento] = useState(false);
-
-    const [tipoCancelamento, setTipoCancelamento] = useState("ITEM");
-
-    const [itensCancelados, setItensCancelados] = useState([]);
-
-    const [motivoCancelamento, setMotivoCancelamento] = useState("");
-
-    // =====================================
-    // CARREGA DADOS DO BALCÃO
-    // =====================================
-
-    async function carregarPedidos() {
-        const response = await listarBalcao();
-        setPedidos(response.data);
-    }
-
-    async function carregarRetiradas() {
-        const response = await listarRetirada();
-        setRetiradas(response.data);
-    }
-
-    async function carregarDados() {
-        await Promise.all([carregarPedidos(), carregarRetiradas()]);
-    }
-
-    // =====================================
-    // FILTROS DO BALCÃO
-    // =====================================
-
-    function possuiItemBalcaoDisponivel(pedido) {
-        return pedido.itens?.some((item) => item.setor === "BALCAO" && item.statusOperacao !== "CANCELADO");
-    }
-
-    const pedidosFiltrados = pedidos.filter((pedido) => {
-        if (!possuiItemBalcaoDisponivel(pedido)) {
-            return false;
-        }
-
-        switch (aba) {
-            case ABAS.PEDIDOS:
-                return pedido.status === "RECEBIDO";
-
-            case ABAS.CONFERENCIA:
-                return pedido.status === "FINALIZADO";
-
-            case ABAS.SEPARACAO:
-                return pedido.status === "AGUARDANDO_SEPARACAO";
-
-            default:
-                return false;
-        }
-    });
-
-    // =====================================
-    // RETIRADAS
-    // =====================================
-
-    const retiradasFiltradas = retiradas.filter((pedido) => pedido.status === "SEPARADO");
-
-    // =====================================
-    // RECEBIDO -> APROVADO
-    // =====================================
-
-    async function aceitarPedido(id) {
-        await aprovarPedido(id);
-        await carregarDados();
-    }
-
-    // =====================================
-    // CONFERÊNCIA
-    // =====================================
-
-    async function conferir(id) {
-        await conferirPedido(id);
-        await carregarDados();
-    }
-
-    // =====================================
-    // CONCLUSÃO DA RETIRADA
-    // =====================================
-
-    async function concluirRetirada(id) {
-        await entregarPedido(id);
-        await carregarDados();
-    }
-
-    // =====================================
-    // CANCELAMENTO
-    // =====================================
-
-    function abrirCancelamento(pedido) {
-        setPedidoSelecionado(pedido);
-        setTipoCancelamento("ITEM");
-        setItensCancelados([]);
-        setMotivoCancelamento("");
-        setMostrarModalCancelamento(true);
-    }
-
-    function selecionarItem(itemId) {
-        setItensCancelados((lista) => {
-            if (lista.includes(itemId)) {
-                return lista.filter((id) => id !== itemId);
-            }
-
-            return [...lista, itemId];
-        });
-    }
-
-    async function confirmarCancelamento() {
-        if (!motivoCancelamento) {
-            return;
-        }
-
-        if (tipoCancelamento === "COMPLETO") {
-            await cancelarPedidoCompleto(pedidoSelecionado.id, motivoCancelamento);
-        } else {
-            await cancelarItens(pedidoSelecionado.id, "BALCAO", itensCancelados, motivoCancelamento);
-        }
-
-        setMostrarModalCancelamento(false);
-        setPedidoSelecionado(null);
-        await carregarDados();
-    }
-
-    // =====================================
-    // AUTO REFRESH
-    // =====================================
-
-    useEffect(() => {
-        let ativo = true;
-
-        async function carregar() {
-            const [balcaoResponse, retiradaResponse] = await Promise.all([listarBalcao(), listarRetirada()]);
-
-            if (!ativo) {
-                return;
-            }
-
-            setPedidos(balcaoResponse.data);
-            setRetiradas(retiradaResponse.data);
-        }
-
-        carregar();
-
-        const intervalo = setInterval(() => {
-            if (!document.hidden) {
-                carregar();
-            }
-        }, 10000);
-
-        return () => {
-            ativo = false;
-            clearInterval(intervalo);
-        };
-    }, []);
-
     return (
         <>
-            {/* =====================================
-                ABAS
-            ===================================== */}
-
-            {exibirAbas && (
-                <div className="mb-4">
-                    <button
-                        className={`btn me-2 ${aba === ABAS.PEDIDOS ? "btn-primary" : "btn-outline-primary"}`}
-                        onClick={() => setAba(ABAS.PEDIDOS)}
-                    >
-                        📥 Pedidos
-                    </button>
-
-                    <button
-                        className={`btn me-2 ${aba === ABAS.CONFERENCIA ? "btn-info" : "btn-outline-info"}`}
-                        onClick={() => setAba(ABAS.CONFERENCIA)}
-                    >
-                        ✔ Conferência
-                    </button>
-
-                    <button
-                        className={`btn me-2 ${aba === ABAS.SEPARACAO ? "btn-success" : "btn-outline-success"}`}
-                        onClick={() => setAba(ABAS.SEPARACAO)}
-                    >
-                        📦 Separação
-                    </button>
-
-                    <button
-                        className={`btn ${aba === ABAS.RETIRADA ? "btn-warning" : "btn-outline-warning"}`}
-                        onClick={() => setAba(ABAS.RETIRADA)}
-                    >
-                        🛍️ Retirada ({retiradasFiltradas.length})
-                    </button>
-                </div>
-            )}
-
-            {/* =====================================
-                PEDIDOS DO BALCÃO
-            ===================================== */}
+            <BalcaoTabs
+                aba={aba}
+                exibirAbas={exibirAbas}
+                onChange={setAba}
+                totalRetiradas={retiradasFiltradas.length}
+            />
 
             {aba !== ABAS.RETIRADA && (
                 <div className="row">
@@ -381,10 +98,6 @@ function BalcaoPainel({ aba: abaControlada, onAbaChange, exibirAbas = true }) {
                 </div>
             )}
 
-            {/* =====================================
-                RETIRADAS
-            ===================================== */}
-
             {aba === ABAS.RETIRADA && (
                 <div className="row">
                     {retiradasFiltradas.map((pedido) => (
@@ -399,10 +112,6 @@ function BalcaoPainel({ aba: abaControlada, onAbaChange, exibirAbas = true }) {
                 </div>
             )}
 
-            {/* =====================================
-                VAZIO
-            ===================================== */}
-
             {(aba === ABAS.RETIRADA ? retiradasFiltradas.length === 0 : pedidosFiltrados.length === 0) && (
                 <div className="text-center mt-5">
                     <h4>Nenhum pedido nesta etapa.</h4>
@@ -410,9 +119,13 @@ function BalcaoPainel({ aba: abaControlada, onAbaChange, exibirAbas = true }) {
             )}
 
             {/* =====================================
-                MODAL DE EDIÇÃO COMERCIAL
-            ===================================== */}
+                3) Modal de edição comercial
 
+                Esse bloco permanece no componente porque ele é
+                estritamente visual e depende do pedido selecionado
+                para renderizar a lista de itens e o formulário de
+                adição/alteração.
+            ===================================== */}
             {mostrarModalEdicao && pedidoSelecionado && (
                 <div
                     className="modal show d-block"
@@ -564,94 +277,21 @@ function BalcaoPainel({ aba: abaControlada, onAbaChange, exibirAbas = true }) {
             )}
 
             {/* =====================================
-                MODAL DE CANCELAMENTO
+                4) Modal de cancelamento reutilizado
+
+                Importamos o componente genérico já existente no
+                projeto para evitar duplicação do mesmo fluxo de
+                cancelamento em vários lugares.
             ===================================== */}
-
             {mostrarModalCancelamento && pedidoSelecionado && (
-                <div className="modal show d-block" tabIndex="-1">
-                    <div className="modal-dialog">
-                        <div className="modal-content">
-                            <div className="modal-header">
-                                <h5 className="modal-title">Cancelar Pedido #{pedidoSelecionado.id}</h5>
-                            </div>
-
-                            <div className="modal-body">
-                                <div className="mb-3">
-                                    <button
-                                        className={`btn me-2 ${
-                                            tipoCancelamento === "ITEM" ? "btn-primary" : "btn-outline-primary"
-                                        }`}
-                                        onClick={() => setTipoCancelamento("ITEM")}
-                                    >
-                                        Cancelar itens
-                                    </button>
-
-                                    <button
-                                        className={`btn ${
-                                            tipoCancelamento === "COMPLETO" ? "btn-danger" : "btn-outline-danger"
-                                        }`}
-                                        onClick={() => setTipoCancelamento("COMPLETO")}
-                                    >
-                                        Cancelar pedido
-                                    </button>
-                                </div>
-
-                                {tipoCancelamento === "ITEM" && (
-                                    <div>
-                                        <h6>Selecione os itens:</h6>
-
-                                        {pedidoSelecionado.itens.map((item) => (
-                                            <div key={item.id} className="form-check">
-                                                <input
-                                                    className="form-check-input"
-                                                    type="checkbox"
-                                                    checked={itensCancelados.includes(item.id)}
-                                                    onChange={() => selecionarItem(item.id)}
-                                                />
-
-                                                <label className="form-check-label">
-                                                    {item.quantidade}x {item.produto} ({item.setor})
-                                                </label>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-
-                                <textarea
-                                    className="form-control mt-3"
-                                    placeholder="Motivo do cancelamento"
-                                    value={motivoCancelamento}
-                                    onChange={(e) => setMotivoCancelamento(e.target.value)}
-                                />
-                            </div>
-
-                            <div className="modal-footer">
-                                <button
-                                    className="btn btn-secondary"
-                                    onClick={() => {
-                                        setMostrarModalCancelamento(false);
-                                        setPedidoSelecionado(null);
-                                        setMotivoCancelamento("");
-                                        setItensCancelados([]);
-                                    }}
-                                >
-                                    Voltar
-                                </button>
-
-                                <button
-                                    className="btn btn-danger"
-                                    disabled={
-                                        !motivoCancelamento ||
-                                        (tipoCancelamento === "ITEM" && itensCancelados.length === 0)
-                                    }
-                                    onClick={confirmarCancelamento}
-                                >
-                                    Confirmar
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <CancelarItensModal
+                    pedido={pedidoSelecionado}
+                    setor="BALCAO"
+                    mostrar={mostrarModalCancelamento}
+                    onFechar={fecharCancelamento}
+                    onAtualizar={carregarDados}
+                    permitirCompleto={true}
+                />
             )}
         </>
     );

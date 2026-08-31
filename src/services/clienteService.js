@@ -4,6 +4,16 @@ function obterToken() {
     return sessionStorage.getItem("clienteToken");
 }
 
+function configOperacional() {
+    const token = sessionStorage.getItem("operacionalToken");
+
+    return {
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    };
+}
+
 function configAutenticado() {
     const token = obterToken();
 
@@ -50,6 +60,33 @@ export async function excluirEnderecoCliente(enderecoId) {
 
 export async function definirEnderecoPrincipalCliente(enderecoId) {
     const response = await api.put(`/cliente/me/enderecos/${enderecoId}/principal`, null, configAutenticado());
+
+    return response.data;
+}
+
+export async function buscarClientesOperacional(busca = "") {
+    const response = await api.get("/cliente", {
+        ...configOperacional(),
+        params: { busca }
+    });
+
+    return response.data;
+}
+
+export async function buscarEnderecosOperacional(clienteId) {
+    const response = await api.get(`/cliente/${clienteId}/enderecos`, configOperacional());
+
+    return response.data;
+}
+
+export async function cadastrarClienteOperacional(dados) {
+    const response = await api.post("/cliente/operacional", dados, configOperacional());
+
+    return response.data;
+}
+
+export async function cadastrarEnderecoOperacional(clienteId, dados) {
+    const response = await api.post(`/cliente/${clienteId}/enderecos`, dados, configOperacional());
 
     return response.data;
 }

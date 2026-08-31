@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { buscarEnderecosCliente } from "../../../services/clienteService";
+import { buscarEnderecosOperacional } from "../../../services/clienteService";
 
 function useMiniPdv() {
     const [cliente, setCliente] = useState(null);
@@ -19,13 +19,13 @@ function useMiniPdv() {
     const [erroEnderecos, setErroEnderecos] =
         useState("");
 
-    async function carregarEnderecosCliente() {
+    async function carregarEnderecosCliente(clienteId) {
         try {
             setCarregandoEnderecos(true);
             setErroEnderecos("");
 
             const dados =
-                await buscarEnderecosCliente();
+                await buscarEnderecosOperacional(clienteId);
 
             setEnderecos(
                 Array.isArray(dados)
@@ -61,7 +61,13 @@ function useMiniPdv() {
     async function definirEntrega() {
         setTipoRecebimento("ENTREGA");
 
-        await carregarEnderecosCliente();
+        if (!cliente?.id) {
+            setEnderecos([]);
+            setEndereco(null);
+            return;
+        }
+
+        await carregarEnderecosCliente(cliente.id);
     }
 
     function definirRetirada() {

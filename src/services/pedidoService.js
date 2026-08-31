@@ -32,6 +32,10 @@ export async function criarPedido(data) {
     return api.post("/pedidos", data, configCliente());
 }
 
+export async function criarPedidoOperacional(data) {
+    return api.post("/pedidos", data, configOperacional());
+}
+
 export async function buscarPedido(id) {
     return api.get(`/pedidos/${id}`, configCliente());
 }
