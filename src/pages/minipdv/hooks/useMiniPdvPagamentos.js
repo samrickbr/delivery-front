@@ -8,6 +8,10 @@ function normalizarDescricao(descricao) {
         .toUpperCase();
 }
 
+/**
+ * Resolve atalho a partir da descrição real retornada pelo Core.
+ * Não hardcoda IDs — apenas mapeia descrição → tecla.
+ */
 function obterAtalho(descricao) {
     const normalizada = normalizarDescricao(descricao);
 
@@ -31,11 +35,13 @@ function obterAtalho(descricao) {
 }
 
 function normalizarFormaPagamento(forma) {
+    const atalho = obterAtalho(forma.descricao || forma.nome);
+
     return {
         ...forma,
         id: Number(forma.id),
-        atalho: obterAtalho(forma.descricao),
-        disponivel: obterAtalho(forma.descricao) !== "K"
+        atalho,
+        disponivel: atalho !== null && atalho !== "K"
     };
 }
 
@@ -65,7 +71,7 @@ function useMiniPdvPagamentos(valorVenda = 0, formasPagamento = []) {
         const id = Number(formaPagamentoId);
         const valorNumerico = Number(valor);
 
-        if (!id || valorNumerico <= 0) {
+        if (!id || !Number.isFinite(valorNumerico) || valorNumerico <= 0) {
             return false;
         }
 
@@ -80,14 +86,23 @@ function useMiniPdvPagamentos(valorVenda = 0, formasPagamento = []) {
             {
                 formaPagamentoId: id,
                 valor: valorNumerico,
-                atalho: forma.atalho
+                atalho: forma.atalho,
+                descricao: forma.descricao || forma.nome || ""
             }
         ]);
 
         return true;
     }
 
-    function adicionarPagamentoPorAtalho(atalho) {
+    /**
+     * Adiciona pagamento pelo atalho D/P/C.
+     *
+     * Permite múltiplos pagamentos.
+     *
+     * O excedente só é permitido quando o pagamento
+     * excedente for em DINHEIRO, pois representa troco.
+     */
+    function adicionarPagamentoPorAtalho(atalho, valorOpcional) {
         const codigo = String(atalho || "")
             .trim()
             .toUpperCase();
@@ -95,29 +110,76 @@ function useMiniPdvPagamentos(valorVenda = 0, formasPagamento = []) {
         const forma = formas.find((item) => item.atalho === codigo && item.disponivel);
 
         if (!forma) {
-            return false;
+            return {
+                sucesso: false,
+                mensagem: "Forma de pagamento não disponível."
+            };
         }
 
-        const valor = Number(valorRecebimento);
+        let valor = Number(valorOpcional);
 
-        if (valor <= 0) {
-            return false;
+        if (!Number.isFinite(valor) || valor <= 0) {
+            valor = Number(valorRecebimento);
         }
 
-        const sucesso = adicionarPagamento(forma.id, valor);
-
-        if (sucesso) {
-            setValorRecebimento("");
+        if (!Number.isFinite(valor) || valor <= 0) {
+            valor = restante > 0 ? restante : totalVenda;
         }
 
-        return sucesso;
+        if (!Number.isFinite(valor) || valor <= 0) {
+            return {
+                sucesso: false,
+                mensagem: "Informe um valor válido para o pagamento."
+            };
+        }
+
+        const eDinheiro = forma.atalho === "D";
+
+        /*
+         * PIX e CARTÃO não podem gerar excedente.
+         *
+         * DINHEIRO pode exceder o restante porque
+         * o excedente será tratado como troco.
+         */
+        if (!eDinheiro && valor > restante) {
+            return {
+                sucesso: false,
+                mensagem: "O valor informado excede o valor restante da venda."
+            };
+        }
+
+        const novo = {
+            formaPagamentoId: Number(forma.id),
+            valor,
+            atalho: forma.atalho,
+            descricao: forma.descricao || forma.nome || ""
+        };
+
+        const proximos = [...pagamentos, novo];
+
+        const totalProximos = proximos.reduce((total, pagamento) => total + (Number(pagamento.valor) || 0), 0);
+
+        setPagamentos(proximos);
+        setValorRecebimento("");
+
+        const possuiDinheiroProximo = proximos.some((pagamento) => pagamento.atalho === "D");
+
+        const trocoCalc = possuiDinheiroProximo && totalProximos > totalVenda ? totalProximos - totalVenda : 0;
+
+        return {
+            sucesso: true,
+            pagamentos: proximos,
+            totalPagamentos: totalProximos,
+            pagamentoCompleto: totalProximos >= totalVenda && totalVenda > 0,
+            troco: trocoCalc
+        };
     }
 
     function alterarPagamento(indice, formaPagamentoId, valor) {
         const id = Number(formaPagamentoId);
         const valorNumerico = Number(valor);
 
-        if (!id || valorNumerico <= 0) {
+        if (!id || !Number.isFinite(valorNumerico) || valorNumerico <= 0) {
             return;
         }
 
@@ -134,7 +196,8 @@ function useMiniPdvPagamentos(valorVenda = 0, formasPagamento = []) {
                           ...pagamento,
                           formaPagamentoId: id,
                           valor: valorNumerico,
-                          atalho: forma.atalho
+                          atalho: forma.atalho,
+                          descricao: forma.descricao || forma.nome || ""
                       }
                     : pagamento
             )
@@ -154,20 +217,43 @@ function useMiniPdvPagamentos(valorVenda = 0, formasPagamento = []) {
         setValorRecebimento(valor);
     }
 
+    /**
+     * Monta os pagamentos para envio ao Core.
+     *
+     * O total enviado deve ser exatamente o valor da venda.
+     *
+     * Se houver excedente:
+     * - pagamentos não monetários permanecem integrais;
+     * - o excedente é abatido exclusivamente do DINHEIRO;
+     * - o valor abatido representa o troco;
+     * - o troco nunca é enviado ao Core.
+     */
     function obterPagamentosParaEnvio() {
-        let restanteParaEnviar = totalVenda;
+        const excedente = Math.max(totalPagamentos - totalVenda, 0);
+
+        let excedenteRestante = excedente;
 
         return pagamentos
             .map((pagamento) => {
                 const valor = Number(pagamento.valor) || 0;
 
-                if (restanteParaEnviar <= 0) {
+                if (valor <= 0) {
                     return null;
                 }
 
-                const valorParaEnviar = Math.min(valor, restanteParaEnviar);
+                let valorParaEnviar = valor;
 
-                restanteParaEnviar -= valorParaEnviar;
+                if (pagamento.atalho === "D" && excedenteRestante > 0) {
+                    const abatimento = Math.min(valor, excedenteRestante);
+
+                    valorParaEnviar = valor - abatimento;
+
+                    excedenteRestante -= abatimento;
+                }
+
+                if (valorParaEnviar <= 0) {
+                    return null;
+                }
 
                 return {
                     formaPagamentoId: Number(pagamento.formaPagamentoId),

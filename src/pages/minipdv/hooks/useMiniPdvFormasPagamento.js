@@ -7,6 +7,8 @@ function useMiniPdvFormasPagamento() {
     const [erro, setErro] = useState("");
 
     useEffect(() => {
+        let ativo = true;
+
         async function carregarFormasPagamento() {
             try {
                 setCarregando(true);
@@ -14,32 +16,44 @@ function useMiniPdvFormasPagamento() {
 
                 const resposta = await listarFormasPagamento();
 
+                if (!ativo) {
+                    return;
+                }
+
                 const dados = resposta?.data ?? resposta ?? [];
+                const lista = Array.isArray(dados) ? dados : [];
 
-                setFormasPagamento(
-                    Array.isArray(dados) ? dados : []
-                );
+                // Mesmo critério do checkout: apenas formas ativas do Core
+                const formasAtivas = lista.filter((forma) => forma.ativo === true);
+
+                setFormasPagamento(formasAtivas);
             } catch (error) {
-                console.error(
-                    "Erro ao carregar formas de pagamento.",
-                    error
-                );
+                if (!ativo) {
+                    return;
+                }
 
-                setErro(
-                    "Não foi possível carregar as formas de pagamento."
-                );
+                console.error("Erro ao carregar formas de pagamento.", error);
+
+                setFormasPagamento([]);
+                setErro("Não foi possível carregar as formas de pagamento.");
             } finally {
-                setCarregando(false);
+                if (ativo) {
+                    setCarregando(false);
+                }
             }
         }
 
         carregarFormasPagamento();
+
+        return () => {
+            ativo = false;
+        };
     }, []);
 
     return {
         formasPagamento,
         carregando,
-        erro,
+        erro
     };
 }
 
