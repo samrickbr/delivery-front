@@ -4,7 +4,7 @@ import MiniPdvProdutos from "../components/MiniPdvProdutos";
 import MiniPdvCarrinho from "../components/MiniPdvCarrinho";
 import MiniPdvCliente from "../components/MiniPdvCliente";
 import MiniPdvEndereco from "../components/MiniPdvEndereco";
-import MiniPdvPagamentos from "../components/MiniPdvPagamentos";
+import MiniPdvPagamentoEtapa from "../components/MiniPdvPagamentoEtapa";
 import MiniPdvAcoes from "../components/MiniPdvAcoes";
 
 import useMiniPdv from "../hooks/useMiniPdv";
@@ -18,9 +18,13 @@ import BalcaoPainel from "../../../components/pedido/BalcaoPainel";
 import { ABAS } from "../../../components/pedido/balcaoAbas";
 
 const ABA_PDV = "pdv";
+const ETAPA_VENDA = "venda";
+const ETAPA_PAGAMENTO = "pagamento";
 
 function MiniPdv() {
     const [aba, setAba] = useState(ABA_PDV);
+    const [etapa, setEtapa] = useState(ETAPA_VENDA);
+    const [trocoFinal, setTrocoFinal] = useState(0);
 
     const {
         cliente,
@@ -63,16 +67,36 @@ function MiniPdv() {
     const {
         pagamentos,
         totalPagamentos,
-        adicionarPagamento,
-        alterarPagamento,
+        restante,
+        troco,
+        valorRecebimento,
+        adicionarPagamentoPorAtalho,
         removerPagamento,
-        limparPagamentos
-    } = useMiniPdvPagamentos();
+        limparPagamentos,
+        definirValorRecebimento
+    } = useMiniPdvPagamentos(
+        formasPagamento,
+        valorProdutos
+    );
 
     function limparNovaVenda() {
         limparVenda();
         limparCarrinho();
         limparPagamentos();
+        setEtapa(ETAPA_VENDA);
+        setTrocoFinal(0);
+    }
+
+    function finalizarVenda() {
+        if (!carrinho.length) {
+            return;
+        }
+
+        if (!podeFinalizar) {
+            return;
+        }
+
+        setEtapa(ETAPA_PAGAMENTO);
     }
 
     function validarPagamento() {
@@ -90,26 +114,14 @@ function MiniPdv() {
             return "Informe a forma e o valor de todos os pagamentos.";
         }
 
-        if (Math.abs(totalPagamentos - valorProdutos) > 0.01) {
-            return "O total dos pagamentos precisa corresponder ao total da venda.";
+        if (totalPagamentos < valorProdutos) {
+            return "O total dos recebimentos precisa ser igual ou maior que o total da venda.";
         }
 
         return "";
     }
 
-    async function finalizarVenda() {
-        if (!cliente?.id && !cliente?.nome) {
-            return;
-        }
-
-        if (!carrinho.length) {
-            return;
-        }
-
-        if (!podeFinalizar) {
-            return;
-        }
-
+    async function confirmarPagamento() {
         const erroPagamento = validarPagamento();
 
         if (erroPagamento) {
@@ -117,25 +129,61 @@ function MiniPdv() {
             return;
         }
 
+        const valorVenda = Number(valorProdutos);
+
+        let valorRestantePedido = valorVenda;
+
+        const pagamentosPedido = pagamentos
+            .map((pagamento) => {
+                const valorRecebido = Number(
+                    pagamento.valor
+                );
+
+                const valorEnviado = Math.min(
+                    valorRecebido,
+                    Math.max(
+                        valorRestantePedido,
+                        0
+                    )
+                );
+
+                valorRestantePedido -= valorEnviado;
+
+                return {
+                    formaPagamentoId:
+                        Number(
+                            pagamento.formaPagamentoId
+                        ),
+                    valor: valorEnviado
+                };
+            })
+            .filter(
+                (pagamento) =>
+                    pagamento.valor > 0
+            );
+
         const pedido = {
+            vendaRapida: !cliente?.id,
+
+            ...(cliente?.id
+                ? {
+                      clienteId: cliente.id
+                  }
+                : {}),
+
             clienteNome:
-                cliente.nome?.trim() ||
-                cliente.nomeCompleto?.trim() ||
+                cliente?.nome?.trim() ||
+                cliente?.nomeCompleto?.trim() ||
                 "",
 
             clienteWhatsapp:
-                cliente.telefone ||
-                cliente.whatsapp ||
+                cliente?.telefone ||
+                cliente?.whatsapp ||
                 "",
 
             observacao: "",
 
-            pagamentos: pagamentos.map((pagamento) => ({
-                formaPagamentoId: Number(
-                    pagamento.formaPagamentoId
-                ),
-                valor: Number(pagamento.valor)
-            })),
+            pagamentos: pagamentosPedido,
 
             tipoRecebimento,
 
@@ -144,25 +192,51 @@ function MiniPdv() {
                     ? Number(endereco?.id)
                     : null,
 
-            itens: carrinho.map((item) => ({
-                produtoId: item.id,
-                quantidade: Number(item.quantidade)
-            }))
+            itens: carrinho.map(
+                (item) => ({
+                    produtoId: item.id,
+                    quantidade:
+                        Number(
+                            item.quantidade
+                        )
+                })
+            )
         };
 
         try {
-            // O estado carregando do useMiniPdv é mantido
-            // para não alterar a estrutura do hook nesta etapa.
-            const response = await criarPedidoOperacional(pedido);
+            const response =
+                await criarPedidoOperacional(
+                    pedido
+                );
 
             console.log(
                 "Venda operacional criada.",
                 response.data
             );
 
-            window.alert("Venda finalizada com sucesso.");
+            setTrocoFinal(
+                Number(troco) > 0
+                    ? Number(troco)
+                    : 0
+            );
 
-            limparNovaVenda();
+            limparVenda();
+            limparCarrinho();
+            limparPagamentos();
+
+            setEtapa(ETAPA_VENDA);
+
+            if (Number(troco) > 0) {
+                window.alert(
+                    `Venda finalizada.\n\nTroco: R$ ${Number(
+                        troco
+                    ).toFixed(2)}`
+                );
+            } else {
+                window.alert(
+                    "Venda finalizada com sucesso."
+                );
+            }
         } catch (error) {
             console.error(
                 "Erro ao finalizar venda operacional.",
@@ -177,15 +251,12 @@ function MiniPdv() {
         }
     }
 
+    function voltarParaVenda() {
+        setEtapa(ETAPA_VENDA);
+    }
+
     function enviarParaBalcao() {
         if (!carrinho.length) {
-            return;
-        }
-
-        const erroPagamento = validarPagamento();
-
-        if (erroPagamento) {
-            window.alert(erroPagamento);
             return;
         }
 
@@ -198,9 +269,43 @@ function MiniPdv() {
 
     const podeFinalizarVenda =
         podeFinalizar &&
-        carrinho.length > 0 &&
-        pagamentos.length > 0 &&
-        Math.abs(totalPagamentos - valorProdutos) <= 0.01;
+        carrinho.length > 0;
+
+    if (
+        novaVenda &&
+        etapa === ETAPA_PAGAMENTO
+    ) {
+        return (
+            <MiniPdvPagamentoEtapa
+                valorVenda={valorProdutos}
+                pagamentos={pagamentos}
+                totalPagamentos={
+                    totalPagamentos
+                }
+                restante={restante}
+                troco={troco}
+                valorRecebimento={
+                    valorRecebimento
+                }
+                definirValorRecebimento={
+                    definirValorRecebimento
+                }
+                adicionarPagamentoPorAtalho={
+                    adicionarPagamentoPorAtalho
+                }
+                removerPagamento={
+                    removerPagamento
+                }
+                onConfirmar={
+                    confirmarPagamento
+                }
+                onVoltar={
+                    voltarParaVenda
+                }
+                carregando={carregando}
+            />
+        );
+    }
 
     return (
         <div className="container-fluid py-3">
@@ -230,7 +335,12 @@ function MiniPdv() {
                             ? "btn-dark"
                             : "btn-outline-dark"
                     }`}
-                    onClick={() => setAba(ABA_PDV)}
+                    onClick={() => {
+                        setAba(ABA_PDV);
+                        setEtapa(
+                            ETAPA_VENDA
+                        );
+                    }}
                 >
                     PDV
                 </button>
@@ -242,7 +352,11 @@ function MiniPdv() {
                             ? "btn-primary"
                             : "btn-outline-primary"
                     }`}
-                    onClick={() => setAba(ABAS.PEDIDOS)}
+                    onClick={() =>
+                        setAba(
+                            ABAS.PEDIDOS
+                        )
+                    }
                 >
                     📥 Pedidos
                 </button>
@@ -250,12 +364,15 @@ function MiniPdv() {
                 <button
                     type="button"
                     className={`btn me-2 ${
-                        aba === ABAS.CONFERENCIA
+                        aba ===
+                        ABAS.CONFERENCIA
                             ? "btn-info"
                             : "btn-outline-info"
                     }`}
                     onClick={() =>
-                        setAba(ABAS.CONFERENCIA)
+                        setAba(
+                            ABAS.CONFERENCIA
+                        )
                     }
                 >
                     ✔ Conferência
@@ -264,12 +381,15 @@ function MiniPdv() {
                 <button
                     type="button"
                     className={`btn me-2 ${
-                        aba === ABAS.SEPARACAO
+                        aba ===
+                        ABAS.SEPARACAO
                             ? "btn-success"
                             : "btn-outline-success"
                     }`}
                     onClick={() =>
-                        setAba(ABAS.SEPARACAO)
+                        setAba(
+                            ABAS.SEPARACAO
+                        )
                     }
                 >
                     📦 Separação
@@ -283,7 +403,9 @@ function MiniPdv() {
                             : "btn-outline-warning"
                     }`}
                     onClick={() =>
-                        setAba(ABAS.RETIRADA)
+                        setAba(
+                            ABAS.RETIRADA
+                        )
                     }
                 >
                     🛍️ Retirada
@@ -301,7 +423,9 @@ function MiniPdv() {
                     <div className="col-12 col-lg-5 col-xl-4">
                         <div className="d-flex flex-column gap-3">
                             <MiniPdvProdutos
-                                carrinho={carrinho}
+                                carrinho={
+                                    carrinho
+                                }
                                 onAdicionarProduto={
                                     adicionarProduto
                                 }
@@ -311,7 +435,9 @@ function MiniPdv() {
                             />
 
                             <MiniPdvCliente
-                                cliente={cliente}
+                                cliente={
+                                    cliente
+                                }
                                 onClienteSelecionado={
                                     selecionarCliente
                                 }
@@ -326,35 +452,27 @@ function MiniPdv() {
                             {tipoRecebimento ===
                                 "ENTREGA" && (
                                 <MiniPdvEndereco
-                                    cliente={cliente}
-                                    enderecos={enderecos}
-                                    endereco={endereco}
+                                    cliente={
+                                        cliente
+                                    }
+                                    enderecos={
+                                        enderecos
+                                    }
+                                    endereco={
+                                        endereco
+                                    }
                                     carregando={
                                         carregandoEnderecos
                                     }
-                                    erro={erroEnderecos}
+                                    erro={
+                                        erroEnderecos
+                                    }
                                     onEnderecoSelecionado={
                                         selecionarEndereco
                                     }
                                     onCadastrarEndereco={() => {}}
                                 />
                             )}
-
-                            <MiniPdvPagamentos
-                                formasPagamento={
-                                    formasPagamento
-                                }
-                                pagamentos={pagamentos}
-                                onAdicionarPagamento={
-                                    adicionarPagamento
-                                }
-                                onAlterarPagamento={
-                                    alterarPagamento
-                                }
-                                onRemoverPagamento={
-                                    removerPagamento
-                                }
-                            />
 
                             {erroFormasPagamento && (
                                 <div className="alert alert-danger py-2 mb-0">
@@ -374,7 +492,9 @@ function MiniPdv() {
                                 podeFinalizar={
                                     podeFinalizarVenda
                                 }
-                                carregando={carregando}
+                                carregando={
+                                    carregando
+                                }
                                 onFinalizar={
                                     finalizarVenda
                                 }
@@ -405,11 +525,14 @@ function MiniPdv() {
                                     className="flex-grow-1"
                                     style={{
                                         minHeight: 0,
-                                        overflowY: "auto"
+                                        overflowY:
+                                            "auto"
                                     }}
                                 >
                                     <MiniPdvCarrinho
-                                        carrinho={carrinho}
+                                        carrinho={
+                                            carrinho
+                                        }
                                         valorProdutos={
                                             valorProdutos
                                         }
@@ -438,30 +561,10 @@ function MiniPdv() {
                                             R${" "}
                                             {Number(
                                                 valorProdutos
-                                            ).toFixed(2)}
+                                            ).toFixed(
+                                                2
+                                            )}
                                         </strong>
-                                    </div>
-
-                                    <div className="d-flex align-items-center justify-content-between mt-2">
-                                        <span className="text-muted">
-                                            Pagamentos
-                                        </span>
-
-                                        <span
-                                            className={
-                                                Math.abs(
-                                                    totalPagamentos -
-                                                        valorProdutos
-                                                ) <= 0.01
-                                                    ? "text-success fw-semibold"
-                                                    : "text-danger fw-semibold"
-                                            }
-                                        >
-                                            R${" "}
-                                            {Number(
-                                                totalPagamentos
-                                            ).toFixed(2)}
-                                        </span>
                                     </div>
 
                                     {cliente && (
@@ -493,9 +596,63 @@ function MiniPdv() {
             ) : (
                 <BalcaoPainel
                     aba={aba}
-                    onAbaChange={setAba}
+                    onAbaChange={
+                        setAba
+                    }
                     exibirAbas={false}
                 />
+            )}
+
+            {trocoFinal > 0 && (
+                <div
+                    className="modal fade show d-block"
+                    tabIndex="-1"
+                    role="dialog"
+                    aria-modal="true"
+                    style={{
+                        backgroundColor:
+                            "rgba(0, 0, 0, 0.5)"
+                    }}
+                >
+                    <div className="modal-dialog modal-dialog-centered">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title">
+                                    Troco
+                                </h5>
+                            </div>
+
+                            <div className="modal-body text-center py-4">
+                                <div className="text-muted mb-2">
+                                    Troco a entregar
+                                </div>
+
+                                <strong className="display-4">
+                                    R${" "}
+                                    {Number(
+                                        trocoFinal
+                                    ).toFixed(
+                                        2
+                                    )}
+                                </strong>
+                            </div>
+
+                            <div className="modal-footer">
+                                <button
+                                    type="button"
+                                    className="btn btn-success"
+                                    onClick={() =>
+                                        setTrocoFinal(
+                                            0
+                                        )
+                                    }
+                                >
+                                    OK
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

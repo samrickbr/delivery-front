@@ -3,133 +3,127 @@ function MiniPdvPagamentos({
     pagamentos = [],
     onAdicionarPagamento,
     onAlterarPagamento,
-    onRemoverPagamento,
+    onRemoverPagamento
 }) {
+    function obterForma(formaPagamentoId) {
+        return formasPagamento.find(
+            (forma) =>
+                Number(forma.id) === Number(formaPagamentoId)
+        );
+    }
+
+    function adicionarForma(forma) {
+        if (!forma?.id || !forma.disponivel) {
+            return;
+        }
+
+        onAdicionarPagamento(forma.id, 0);
+    }
+
+    function alterarValor(indice, valor) {
+        const pagamento = pagamentos[indice];
+
+        if (!pagamento?.formaPagamentoId) {
+            return;
+        }
+
+        onAlterarPagamento(
+            indice,
+            pagamento.formaPagamentoId,
+            valor
+        );
+    }
+
     return (
         <div className="card border-0 shadow-sm">
             <div className="card-body">
                 <div className="d-flex align-items-center justify-content-between mb-3">
-                    <h2 className="h5 mb-0">
-                        Pagamento
-                    </h2>
+                    <div>
+                        <h2 className="h6 mb-1">
+                            Pagamentos
+                        </h2>
 
-                    <button
-                        type="button"
-                        className="btn btn-sm btn-outline-primary"
-                        onClick={onAdicionarPagamento}
-                    >
-                        Adicionar
-                    </button>
+                        <small className="text-muted">
+                            Selecione a forma de pagamento
+                        </small>
+                    </div>
                 </div>
 
-                {pagamentos.length === 0 ? (
-                    <div className="text-muted text-center py-3">
-                        Nenhum pagamento informado.
-                    </div>
-                ) : (
-                    <div className="d-flex flex-column gap-3">
+                <div className="d-flex flex-wrap gap-2 mb-3">
+                    {formasPagamento.map((forma) => (
+                        <button
+                            key={forma.id}
+                            type="button"
+                            className="btn btn-outline-primary"
+                            disabled={!forma.disponivel}
+                            onClick={() =>
+                                adicionarForma(forma)
+                            }
+                        >
+                            {forma.atalho && (
+                                <strong className="me-1">
+                                    ({forma.atalho})
+                                </strong>
+                            )}
+
+                            {forma.descricao}
+
+                            {!forma.disponivel && (
+                                <span className="ms-1">
+                                    — indisponível
+                                </span>
+                            )}
+                        </button>
+                    ))}
+                </div>
+
+                {pagamentos.length > 0 && (
+                    <div className="d-flex flex-column gap-2">
                         {pagamentos.map(
-                            (pagamento, index) => (
-                                <div
-                                    key={index}
-                                    className="border rounded p-3"
-                                >
-                                    <div className="row g-2 align-items-end">
-                                        <div className="col-12 col-md-6">
-                                            <label className="form-label">
-                                                Forma de pagamento
-                                            </label>
+                            (pagamento, indice) => {
+                                const forma =
+                                    obterForma(
+                                        pagamento.formaPagamentoId
+                                    );
 
-                                            <select
-                                                className="form-select"
-                                                value={
-                                                    pagamento.formaPagamentoId ??
-                                                    ""
-                                                }
-                                                onChange={(
-                                                    event
-                                                ) =>
-                                                    onAlterarPagamento(
-                                                        index,
-                                                        {
-                                                            ...pagamento,
-                                                            formaPagamentoId:
-                                                                event
-                                                                    .target
-                                                                    .value
-                                                                    ? Number(
-                                                                          event
-                                                                              .target
-                                                                              .value
-                                                                      )
-                                                                    : null,
-                                                        }
-                                                    )
-                                                }
-                                            >
-                                                <option value="">
-                                                    Selecione
-                                                </option>
-
-                                                {formasPagamento.map(
-                                                    (
-                                                        forma
-                                                    ) => (
-                                                        <option
-                                                            key={
-                                                                forma.id
-                                                            }
-                                                            value={
-                                                                forma.id
-                                                            }
-                                                        >
-                                                            {forma.nome ||
-                                                                forma.descricao ||
-                                                                forma.codigo}
-                                                        </option>
-                                                    )
-                                                )}
-                                            </select>
+                                return (
+                                    <div
+                                        key={`${pagamento.formaPagamentoId}-${indice}`}
+                                        className="row g-2 align-items-center"
+                                    >
+                                        <div className="col">
+                                            <div className="form-control bg-light">
+                                                {forma?.descricao ||
+                                                    "Forma de pagamento"}
+                                            </div>
                                         </div>
 
-                                        <div className="col-12 col-md-4">
-                                            <label className="form-label">
-                                                Valor
-                                            </label>
-
+                                        <div className="col-auto">
                                             <input
                                                 type="number"
                                                 min="0"
                                                 step="0.01"
                                                 className="form-control"
                                                 value={
-                                                    pagamento.valor ??
-                                                    ""
+                                                    pagamento.valor
                                                 }
-                                                onChange={(
-                                                    event
-                                                ) =>
-                                                    onAlterarPagamento(
-                                                        index,
-                                                        {
-                                                            ...pagamento,
-                                                            valor:
-                                                                event
-                                                                    .target
-                                                                    .value,
-                                                        }
+                                                onChange={(event) =>
+                                                    alterarValor(
+                                                        indice,
+                                                        event.target
+                                                            .value
                                                     )
                                                 }
                                             />
                                         </div>
 
-                                        <div className="col-12 col-md-2">
+                                        <div className="col-auto">
                                             <button
                                                 type="button"
-                                                className="btn btn-outline-danger w-100"
+                                                className="btn btn-outline-danger"
                                                 onClick={() =>
                                                     onRemoverPagamento(
-                                                        index
+                                                        indice
                                                     )
                                                 }
                                             >
@@ -137,9 +131,15 @@ function MiniPdvPagamentos({
                                             </button>
                                         </div>
                                     </div>
-                                </div>
-                            )
+                                );
+                            }
                         )}
+                    </div>
+                )}
+
+                {!formasPagamento.length && (
+                    <div className="text-muted small">
+                        Nenhuma forma de pagamento disponível.
                     </div>
                 )}
             </div>
