@@ -2,6 +2,36 @@ export const ABA_PDV = "pdv";
 export const ETAPA_VENDA = "venda";
 export const ETAPA_PAGAMENTO = "pagamento";
 
+export function normalizarListaFormasPagamento(resposta) {
+    if (Array.isArray(resposta)) {
+        return resposta;
+    }
+
+    if (!resposta || typeof resposta !== "object") {
+        return [];
+    }
+
+    const chavesParaExplorar = ["data", "content", "items", "result", "formasPagamento", "formas", "itens"];
+
+    for (const chave of chavesParaExplorar) {
+        const valor = resposta[chave];
+
+        if (Array.isArray(valor)) {
+            return valor;
+        }
+
+        if (valor && typeof valor === "object") {
+            const lista = normalizarListaFormasPagamento(valor);
+
+            if (lista.length > 0) {
+                return lista;
+            }
+        }
+    }
+
+    return [];
+}
+
 function possuiPagamentoDinheiro(pagamentos = []) {
     return pagamentos.some((pagamento) => pagamento.atalho === "D");
 }
@@ -19,7 +49,24 @@ function validarPagamentosEstrutura(pagamentos = []) {
     });
 }
 
-export function validarPagamento({ pagamentos = [], valorProdutos = 0, totalPagamentos = 0 }) {
+export function calcularValorVenda({ valorProdutos = 0, tipoRecebimento = "RETIRADA", taxaEntrega = 0 }) {
+    const subtotal = Number(valorProdutos) || 0;
+    const taxa = Number(taxaEntrega) || 0;
+
+    if (tipoRecebimento === "ENTREGA") {
+        return subtotal + taxa;
+    }
+
+    return subtotal;
+}
+
+export function validarPagamento({
+    pagamentos = [],
+    valorProdutos = 0,
+    totalPagamentos = 0,
+    tipoRecebimento = "RETIRADA",
+    taxaEntrega = 0
+}) {
     if (!pagamentos.length) {
         return "Informe pelo menos uma forma de pagamento.";
     }
@@ -28,15 +75,15 @@ export function validarPagamento({ pagamentos = [], valorProdutos = 0, totalPaga
         return "Informe a forma e o valor de todos os pagamentos.";
     }
 
-    const valorVenda = Number(valorProdutos) || 0;
+    const valorVenda = calcularValorVenda({
+        valorProdutos,
+        tipoRecebimento,
+        taxaEntrega
+    });
     const totalRecebido = Number(totalPagamentos) || 0;
 
     if (totalRecebido < valorVenda) {
         return "O total dos pagamentos precisa corresponder ao total da venda.";
-    }
-
-    if (totalRecebido > valorVenda && !possuiPagamentoDinheiro(pagamentos)) {
-        return "Não é permitido troco sem pagamento em dinheiro.";
     }
 
     if (totalRecebido > valorVenda) {
@@ -45,6 +92,10 @@ export function validarPagamento({ pagamentos = [], valorProdutos = 0, totalPaga
             .reduce((total, pagamento) => total + (Number(pagamento.valor) || 0), 0);
 
         const troco = totalRecebido - valorVenda;
+
+        if (!possuiPagamentoDinheiro(pagamentos)) {
+            return "Não é permitido troco sem pagamento em dinheiro.";
+        }
 
         if (valorDinheiro < troco) {
             return "O valor em dinheiro não cobre o troco calculado.";
@@ -100,9 +151,14 @@ export function montarPagamentosParaEnvio(pagamentos = [], valorVenda) {
 
     const troco = totalRecebido - valorVendaNumero;
     let trocoRestante = troco;
-    const pagamentosParaEnviar = [];
+    const pagamentosParaEnviar = pagamentosAtuais.map((pagamento) => ({
+        ...pagamento,
+        valor: Number(pagamento.valor) || 0,
+        formaPagamentoId: Number(pagamento.formaPagamentoId)
+    }));
 
-    for (const pagamento of pagamentosAtuais) {
+    for (let indice = pagamentosParaEnviar.length - 1; indice >= 0; indice -= 1) {
+        const pagamento = pagamentosParaEnviar[indice];
         const valorPagamento = Number(pagamento.valor) || 0;
         const formaPagamentoId = Number(pagamento.formaPagamentoId);
 
@@ -113,21 +169,19 @@ export function montarPagamentosParaEnvio(pagamentos = [], valorVenda) {
             };
         }
 
-        let valorParaEnviar = valorPagamento;
-
-        if (trocoRestante > 0 && possuiPagamentoDinheiro([pagamento])) {
+        if (trocoRestante > 0 && pagamento.atalho === "D") {
             const valorAbatido = Math.min(valorPagamento, trocoRestante);
-            valorParaEnviar = valorPagamento - valorAbatido;
+            pagamento.valor = valorPagamento - valorAbatido;
             trocoRestante = Math.max(trocoRestante - valorAbatido, 0);
         }
-
-        if (valorParaEnviar > 0) {
-            pagamentosParaEnviar.push({
-                formaPagamentoId,
-                valor: valorParaEnviar
-            });
-        }
     }
+
+    const pagamentosFiltrados = pagamentosParaEnviar
+        .filter((pagamento) => Number(pagamento.valor) > 0)
+        .map((pagamento) => ({
+            formaPagamentoId: Number(pagamento.formaPagamentoId),
+            valor: Number(pagamento.valor)
+        }));
 
     if (trocoRestante > 0) {
         return {
@@ -136,7 +190,7 @@ export function montarPagamentosParaEnvio(pagamentos = [], valorVenda) {
         };
     }
 
-    const totalEnviado = pagamentosParaEnviar.reduce((total, pagamento) => total + (Number(pagamento.valor) || 0), 0);
+    const totalEnviado = pagamentosFiltrados.reduce((total, pagamento) => total + (Number(pagamento.valor) || 0), 0);
 
     if (Math.abs(totalEnviado - valorVendaNumero) > 0.0001) {
         return {
@@ -147,7 +201,7 @@ export function montarPagamentosParaEnvio(pagamentos = [], valorVenda) {
 
     return {
         ok: true,
-        pagamentos: pagamentosParaEnviar
+        pagamentos: pagamentosFiltrados
     };
 }
 

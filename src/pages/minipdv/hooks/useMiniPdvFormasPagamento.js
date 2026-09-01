@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { listarFormasPagamento } from "../../../services/formaPagamentoService";
+import { normalizarListaFormasPagamento } from "../utils/miniPdvUtils";
 
 function useMiniPdvFormasPagamento() {
     const [formasPagamento, setFormasPagamento] = useState([]);
@@ -20,11 +21,8 @@ function useMiniPdvFormasPagamento() {
                     return;
                 }
 
-                const dados = resposta?.data ?? resposta ?? [];
-                const lista = Array.isArray(dados) ? dados : [];
-
-                // Mesmo critério do checkout: apenas formas ativas do Core
-                const formasAtivas = lista.filter((forma) => forma.ativo === true);
+                const lista = normalizarListaFormasPagamento(resposta);
+                const formasAtivas = lista.filter((forma) => forma?.ativo === true || forma?.ativo === "true");
 
                 setFormasPagamento(formasAtivas);
             } catch (error) {

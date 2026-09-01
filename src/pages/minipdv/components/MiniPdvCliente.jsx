@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { buscarClientesOperacional } from "../../../services/clienteService";
 
-function MiniPdvCliente({ cliente = null, onClienteSelecionado, onDefinirEntrega, onDefinirRetirada }) {
+function MiniPdvCliente({ cliente = null, onClienteSelecionado, onClienteLimpo, onDefinirEntrega, onDefinirRetirada }) {
     const [clienteSelecionado, setClienteSelecionado] = useState(cliente);
     const [busca, setBusca] = useState("");
     const [clientes, setClientes] = useState([]);
@@ -55,6 +55,13 @@ function MiniPdvCliente({ cliente = null, onClienteSelecionado, onDefinirEntrega
     function selecionarCliente(clienteEscolhido) {
         setClienteSelecionado(clienteEscolhido);
         onClienteSelecionado?.(clienteEscolhido);
+        setBusca("");
+        setClientes([]);
+    }
+
+    function limparCliente() {
+        setClienteSelecionado(null);
+        onClienteLimpo?.();
         setBusca("");
         setClientes([]);
     }
@@ -143,6 +150,24 @@ function MiniPdvCliente({ cliente = null, onClienteSelecionado, onDefinirEntrega
                                     onClick={onDefinirEntrega}
                                 >
                                     Entrega
+                                </button>
+                            </div>
+
+                            <div className="d-flex gap-2 mt-2">
+                                <button
+                                    type="button"
+                                    className="btn btn-link btn-sm px-0 text-decoration-none"
+                                    onClick={limparCliente}
+                                >
+                                    Trocar cliente
+                                </button>
+
+                                <button
+                                    type="button"
+                                    className="btn btn-link btn-sm px-0 text-decoration-none"
+                                    onClick={limparCliente}
+                                >
+                                    Sem cliente
                                 </button>
                             </div>
                         </div>

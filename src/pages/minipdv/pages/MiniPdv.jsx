@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import MiniPdvProdutos from "../components/MiniPdvProdutos";
 import MiniPdvCarrinho from "../components/MiniPdvCarrinho";
@@ -19,16 +19,15 @@ import KeyboardAlert from "../../../components/KeyboardAlert";
 
 import BalcaoPainel from "../../../components/pedido/BalcaoPainel";
 import { ABAS } from "../../../components/pedido/balcaoAbas";
+import { buscarTaxaEntrega } from "../../../services/configuracaoService";
 
-import {
-    ABA_PDV,
-    ETAPA_PAGAMENTO,
-    ETAPA_VENDA,
-    validarPagamento
-} from "../utils/miniPdvUtils";
+import { ABA_PDV, ETAPA_PAGAMENTO, ETAPA_VENDA, calcularValorVenda, validarPagamento } from "../utils/miniPdvUtils";
 
 function MiniPdv() {
     const [aba, setAba] = useState(ABA_PDV);
+    const [taxaEntregaConfigurada, setTaxaEntregaConfigurada] = useState(null);
+    const [carregandoTaxaEntrega, setCarregandoTaxaEntrega] = useState(false);
+    const [erroTaxaEntrega, setErroTaxaEntrega] = useState("");
 
     const {
         cliente,
@@ -53,20 +52,64 @@ function MiniPdv() {
         limparVenda
     } = useMiniPdv();
 
-    const {
-        carrinho,
-        valorProdutos,
-        adicionarProduto,
-        diminuirProduto,
-        removerProduto,
-        limparCarrinho
-    } = useMiniPdvCarrinho();
+    useEffect(() => {
+        if (tipoRecebimento !== "ENTREGA") {
+            setTaxaEntregaConfigurada(null);
+            setErroTaxaEntrega("");
+            return undefined;
+        }
+
+        let ativo = true;
+
+        async function carregarTaxaEntrega() {
+            setCarregandoTaxaEntrega(true);
+            setErroTaxaEntrega("");
+
+            try {
+                const response = await buscarTaxaEntrega();
+
+                if (!ativo) {
+                    return;
+                }
+
+                setTaxaEntregaConfigurada(Number(response?.data ?? 0));
+            } catch (error) {
+                if (!ativo) {
+                    return;
+                }
+
+                console.error("Erro ao consultar taxa de entrega do MiniPDV.", error);
+                setTaxaEntregaConfigurada(null);
+                setErroTaxaEntrega("Não foi possível consultar a taxa de entrega.");
+            } finally {
+                if (ativo) {
+                    setCarregandoTaxaEntrega(false);
+                }
+            }
+        }
+
+        carregarTaxaEntrega();
+
+        return () => {
+            ativo = false;
+        };
+    }, [tipoRecebimento]);
+
+    const { carrinho, valorProdutos, adicionarProduto, diminuirProduto, removerProduto, limparCarrinho } =
+        useMiniPdvCarrinho();
 
     const {
         formasPagamento,
         carregando: carregandoFormasPagamento,
         erro: erroFormasPagamento
     } = useMiniPdvFormasPagamento();
+
+    const taxaEntrega = tipoRecebimento === "ENTREGA" ? (taxaEntregaConfigurada ?? null) : 0;
+    const valorVenda = calcularValorVenda({
+        valorProdutos,
+        tipoRecebimento,
+        taxaEntrega: taxaEntrega ?? 0
+    });
 
     const {
         pagamentos,
@@ -75,19 +118,13 @@ function MiniPdv() {
         troco,
         valorRecebimento,
         adicionarPagamentoPorAtalho,
+        alterarPagamento,
         removerPagamento,
         limparPagamentos,
         definirValorRecebimento
-    } = useMiniPdvPagamentos(
-        valorProdutos,
-        formasPagamento
-    );
+    } = useMiniPdvPagamentos(valorVenda, formasPagamento);
 
-    const {
-        alertState,
-        showAlert,
-        closeAlert
-    } = useKeyboardAlert();
+    const { alertState, showAlert, closeAlert } = useKeyboardAlert();
 
     const {
         etapa,
@@ -102,8 +139,10 @@ function MiniPdv() {
         cliente,
         endereco,
         tipoRecebimento,
+        taxaEntrega,
         carrinho,
         valorProdutos,
+        valorVenda,
         pagamentos,
         totalPagamentos,
         limparVenda,
@@ -119,19 +158,14 @@ function MiniPdv() {
             return;
         }
 
-        const confirmar = window.confirm(
-            "Deseja realmente cancelar e limpar a venda atual?"
-        );
+        const confirmar = window.confirm("Deseja realmente cancelar e limpar a venda atual?");
 
         if (!confirmar) {
             return;
         }
 
         limparNovaVenda();
-    }, [
-        carrinho.length,
-        limparNovaVenda
-    ]);
+    }, [carrinho.length, limparNovaVenda]);
 
     function enviarParaBalcao() {
         if (!carrinho.length) {
@@ -141,7 +175,9 @@ function MiniPdv() {
         const erroPagamento = validarPagamento({
             pagamentos,
             valorProdutos,
-            totalPagamentos
+            totalPagamentos,
+            tipoRecebimento,
+            taxaEntrega
         });
 
         if (erroPagamento) {
@@ -149,9 +185,7 @@ function MiniPdv() {
             return;
         }
 
-        showAlert(
-            "O envio para balcão será integrado ao fluxo operacional."
-        );
+        showAlert("O envio para balcão será integrado ao fluxo operacional.");
     }
 
     useMiniPdvAtalhos({
@@ -163,55 +197,39 @@ function MiniPdv() {
         onLimparNovaVenda: solicitarLimpezaVenda,
         onVoltarParaVenda: voltarParaVenda,
         onFecharAlerta: closeAlert,
-        onFecharTrocoModal: () =>
-            setTrocoFinal(0)
+        onFecharTrocoModal: () => setTrocoFinal(0)
     });
 
     const novaVenda = aba === ABA_PDV;
 
     const podeFinalizarVenda =
         podeFinalizar &&
-        carrinho.length > 0;
+        carrinho.length > 0 &&
+        !(tipoRecebimento === "ENTREGA" && (taxaEntrega === null || carregandoTaxaEntrega));
 
-    if (
-        novaVenda &&
-        etapa === ETAPA_PAGAMENTO
-    ) {
+    if (novaVenda && etapa === ETAPA_PAGAMENTO) {
         return (
             <>
                 <MiniPdvPagamentoEtapa
-                    valorVenda={valorProdutos}
+                    valorProdutos={valorProdutos}
+                    taxaEntrega={taxaEntrega}
+                    tipoRecebimento={tipoRecebimento}
+                    valorVenda={valorVenda}
                     pagamentos={pagamentos}
                     totalPagamentos={totalPagamentos}
                     restante={restante}
                     troco={troco}
                     valorRecebimento={valorRecebimento}
-                    definirValorRecebimento={
-                        definirValorRecebimento
-                    }
-                    adicionarPagamentoPorAtalho={
-                        adicionarPagamentoPorAtalho
-                    }
-                    removerPagamento={
-                        removerPagamento
-                    }
-                    onConfirmar={
-                        confirmarPagamento
-                    }
-                    onVoltar={
-                        voltarParaVenda
-                    }
-                    carregando={
-                        carregando ||
-                        carregandoFormasPagamento
-                    }
+                    definirValorRecebimento={definirValorRecebimento}
+                    adicionarPagamentoPorAtalho={adicionarPagamentoPorAtalho}
+                    alterarPagamento={alterarPagamento}
+                    removerPagamento={removerPagamento}
+                    onConfirmar={confirmarPagamento}
+                    onVoltar={voltarParaVenda}
+                    carregando={carregando || carregandoFormasPagamento}
                 />
 
-                <KeyboardAlert
-                    open={alertState.open}
-                    message={alertState.message}
-                    onClose={closeAlert}
-                />
+                <KeyboardAlert open={alertState.open} message={alertState.message} onClose={closeAlert} />
             </>
         );
     }
@@ -221,30 +239,18 @@ function MiniPdv() {
             <div className="container-fluid py-3">
                 <div className="d-flex align-items-center justify-content-between mb-3">
                     <div>
-                        <h1 className="h4 mb-0">
-                            SIGIN — Mini PDV
-                        </h1>
+                        <h1 className="h4 mb-0">SIGIN — Mini PDV</h1>
 
-                        <small className="text-muted">
-                            Centro Operacional
-                        </small>
+                        <small className="text-muted">Centro Operacional</small>
                     </div>
 
-                    {novaVenda && (
-                        <span className="badge text-bg-secondary">
-                            Venda em atendimento
-                        </span>
-                    )}
+                    {novaVenda && <span className="badge text-bg-secondary">Venda em atendimento</span>}
                 </div>
 
                 <div className="mb-4">
                     <button
                         type="button"
-                        className={`btn me-2 ${
-                            novaVenda
-                                ? "btn-dark"
-                                : "btn-outline-dark"
-                        }`}
+                        className={`btn me-2 ${novaVenda ? "btn-dark" : "btn-outline-dark"}`}
                         onClick={() => {
                             setAba(ABA_PDV);
                             setEtapa(ETAPA_VENDA);
@@ -255,66 +261,38 @@ function MiniPdv() {
 
                     <button
                         type="button"
-                        className={`btn me-2 ${
-                            aba === ABAS.PEDIDOS
-                                ? "btn-primary"
-                                : "btn-outline-primary"
-                        }`}
-                        onClick={() =>
-                            setAba(ABAS.PEDIDOS)
-                        }
+                        className={`btn me-2 ${aba === ABAS.PEDIDOS ? "btn-primary" : "btn-outline-primary"}`}
+                        onClick={() => setAba(ABAS.PEDIDOS)}
                     >
                         📥 Pedidos
                     </button>
 
                     <button
                         type="button"
-                        className={`btn me-2 ${
-                            aba === ABAS.CONFERENCIA
-                                ? "btn-info"
-                                : "btn-outline-info"
-                        }`}
-                        onClick={() =>
-                            setAba(ABAS.CONFERENCIA)
-                        }
+                        className={`btn me-2 ${aba === ABAS.CONFERENCIA ? "btn-info" : "btn-outline-info"}`}
+                        onClick={() => setAba(ABAS.CONFERENCIA)}
                     >
                         ✔ Conferência
                     </button>
 
                     <button
                         type="button"
-                        className={`btn me-2 ${
-                            aba === ABAS.SEPARACAO
-                                ? "btn-success"
-                                : "btn-outline-success"
-                        }`}
-                        onClick={() =>
-                            setAba(ABAS.SEPARACAO)
-                        }
+                        className={`btn me-2 ${aba === ABAS.SEPARACAO ? "btn-success" : "btn-outline-success"}`}
+                        onClick={() => setAba(ABAS.SEPARACAO)}
                     >
                         📦 Separação
                     </button>
 
                     <button
                         type="button"
-                        className={`btn ${
-                            aba === ABAS.RETIRADA
-                                ? "btn-warning"
-                                : "btn-outline-warning"
-                        }`}
-                        onClick={() =>
-                            setAba(ABAS.RETIRADA)
-                        }
+                        className={`btn ${aba === ABAS.RETIRADA ? "btn-warning" : "btn-outline-warning"}`}
+                        onClick={() => setAba(ABAS.RETIRADA)}
                     >
                         🛍️ Retirada
                     </button>
                 </div>
 
-                {erro && novaVenda && (
-                    <div className="alert alert-danger py-2">
-                        {erro}
-                    </div>
-                )}
+                {erro && novaVenda && <div className="alert alert-danger py-2">{erro}</div>}
 
                 {novaVenda ? (
                     <div className="row g-3">
@@ -322,80 +300,48 @@ function MiniPdv() {
                             <div className="d-flex flex-column gap-3">
                                 <MiniPdvProdutos
                                     carrinho={carrinho}
-                                    onAdicionarProduto={
-                                        adicionarProduto
-                                    }
-                                    onDiminuirProduto={
-                                        diminuirProduto
-                                    }
+                                    onAdicionarProduto={adicionarProduto}
+                                    onDiminuirProduto={diminuirProduto}
                                 />
 
                                 <MiniPdvCliente
                                     cliente={cliente}
-                                    onClienteSelecionado={
-                                        selecionarCliente
-                                    }
-                                    onDefinirEntrega={
-                                        definirEntrega
-                                    }
-                                    onDefinirRetirada={
-                                        definirRetirada
-                                    }
+                                    onClienteSelecionado={selecionarCliente}
+                                    onClienteLimpo={() => selecionarCliente(null)}
+                                    onDefinirEntrega={definirEntrega}
+                                    onDefinirRetirada={definirRetirada}
                                 />
 
-                                {tipoRecebimento ===
-                                    "ENTREGA" && (
+                                {tipoRecebimento === "ENTREGA" && (
                                     <MiniPdvEndereco
                                         cliente={cliente}
-                                        enderecos={
-                                            enderecos
-                                        }
+                                        enderecos={enderecos}
                                         endereco={endereco}
-                                        carregando={
-                                            carregandoEnderecos
-                                        }
-                                        erro={
-                                            erroEnderecos
-                                        }
-                                        onEnderecoSelecionado={
-                                            selecionarEndereco
-                                        }
-                                        onCadastrarEndereco={
-                                            () => {}
-                                        }
+                                        carregando={carregandoEnderecos}
+                                        erro={erroEnderecos}
+                                        onEnderecoSelecionado={selecionarEndereco}
+                                        onCadastrarEndereco={() => {}}
                                     />
                                 )}
 
+                                {tipoRecebimento === "ENTREGA" && erroTaxaEntrega && (
+                                    <div className="alert alert-warning py-2 mb-0">{erroTaxaEntrega}</div>
+                                )}
+
                                 {erroFormasPagamento && (
-                                    <div className="alert alert-danger py-2 mb-0">
-                                        {
-                                            erroFormasPagamento
-                                        }
-                                    </div>
+                                    <div className="alert alert-danger py-2 mb-0">{erroFormasPagamento}</div>
                                 )}
 
                                 {carregandoFormasPagamento && (
-                                    <div className="text-muted small">
-                                        Carregando formas de pagamento...
-                                    </div>
+                                    <div className="text-muted small">Carregando formas de pagamento...</div>
                                 )}
 
                                 <MiniPdvAcoes
-                                    podeFinalizar={
-                                        podeFinalizarVenda
-                                    }
-                                    carregando={
-                                        carregando
-                                    }
-                                    onFinalizar={
-                                        finalizarVenda
-                                    }
-                                    onEnviarBalcao={
-                                        enviarParaBalcao
-                                    }
-                                    onLimpar={
-                                        solicitarLimpezaVenda
-                                    }
+                                    podeFinalizar={podeFinalizarVenda}
+                                    carregando={carregando}
+                                    onFinalizar={finalizarVenda}
+                                    onEnviarBalcao={enviarParaBalcao}
+                                    onLimpar={solicitarLimpezaVenda}
                                 />
                             </div>
                         </div>
@@ -404,93 +350,70 @@ function MiniPdv() {
                             <div className="card border-0 shadow-sm h-100">
                                 <div className="card-body d-flex flex-column p-0">
                                     <div className="p-3 border-bottom">
-                                        <h2 className="h5 mb-0">
-                                            Venda
-                                        </h2>
+                                        <h2 className="h5 mb-0">Venda</h2>
 
-                                        <small className="text-muted">
-                                            Itens da venda atual
-                                        </small>
+                                        <small className="text-muted">Itens da venda atual</small>
                                     </div>
 
                                     <div
                                         className="flex-grow-1"
                                         style={{
                                             minHeight: 0,
-                                            overflowY:
-                                                "auto"
+                                            overflowY: "auto"
                                         }}
                                     >
                                         <MiniPdvCarrinho
-                                            carrinho={
-                                                carrinho
-                                            }
-                                            valorProdutos={
-                                                valorProdutos
-                                            }
-                                            onAdicionarProduto={
-                                                adicionarProduto
-                                            }
-                                            onDiminuirProduto={
-                                                diminuirProduto
-                                            }
-                                            onRemoverProduto={
-                                                removerProduto
-                                            }
-                                            onLimparCarrinho={
-                                                limparCarrinho
-                                            }
+                                            carrinho={carrinho}
+                                            valorProdutos={valorProdutos}
+                                            onAdicionarProduto={adicionarProduto}
+                                            onDiminuirProduto={diminuirProduto}
+                                            onRemoverProduto={removerProduto}
+                                            onLimparCarrinho={limparCarrinho}
                                         />
                                     </div>
 
                                     <div className="border-top p-4">
-                                        <div className="d-flex align-items-center justify-content-between">
-                                            <span className="fs-5 fw-semibold">
-                                                Total
-                                            </span>
+                                        <div className="d-flex justify-content-between mb-2">
+                                            <span>Produtos</span>
+                                            <strong>R$ {Number(valorProdutos).toFixed(2)}</strong>
+                                        </div>
 
-                                            <strong className="fs-2">
-                                                R${" "}
-                                                {Number(
-                                                    valorProdutos
-                                                ).toFixed(
-                                                    2
-                                                )}
-                                            </strong>
+                                        {tipoRecebimento === "ENTREGA" && (
+                                            <div className="d-flex justify-content-between mb-2">
+                                                <span>Taxa de entrega</span>
+                                                <strong>
+                                                    {taxaEntrega === null
+                                                        ? "Calculando..."
+                                                        : `R$ ${Number(taxaEntrega).toFixed(2)}`}
+                                                </strong>
+                                            </div>
+                                        )}
+
+                                        <div className="d-flex align-items-center justify-content-between border-top pt-3">
+                                            <span className="fs-5 fw-semibold">Total</span>
+
+                                            <strong className="fs-2">R$ {Number(valorVenda).toFixed(2)}</strong>
                                         </div>
 
                                         {cliente && (
                                             <div className="text-muted small mt-2">
-                                                Cliente:{" "}
-                                                {cliente.nome ||
-                                                    cliente.nomeCompleto ||
-                                                    "Cliente"}
+                                                Cliente: {cliente.nome || cliente.nomeCompleto || "Cliente"}
                                             </div>
                                         )}
 
-                                        {tipoRecebimento ===
-                                            "ENTREGA" &&
-                                            endereco && (
-                                                <div className="text-muted small mt-1">
-                                                    Entrega para{" "}
-                                                    {endereco.logradouro ||
-                                                        endereco.rua}
-                                                    {endereco.numero
-                                                        ? `, ${endereco.numero}`
-                                                        : ""}
-                                                </div>
-                                            )}
+                                        {tipoRecebimento === "ENTREGA" && endereco && (
+                                            <div className="text-muted small mt-1">
+                                                Entrega para {endereco.logradouro || endereco.rua}
+                                                {endereco.numero ? `, ${endereco.numero}` : ""}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 ) : (
-                    <BalcaoPainel
-                        aba={aba}
-                        onAbaChange={setAba}
-                        exibirAbas={false}
-                    />
+                    <BalcaoPainel aba={aba} onAbaChange={setAba} exibirAbas={false} />
                 )}
             </div>
 
@@ -498,8 +421,7 @@ function MiniPdv() {
                 <div
                     className="modal fade show d-block"
                     style={{
-                        backgroundColor:
-                            "rgba(0, 0, 0, 0.5)"
+                        backgroundColor: "rgba(0, 0, 0, 0.5)"
                     }}
                     role="dialog"
                     aria-modal="true"
@@ -507,27 +429,18 @@ function MiniPdv() {
                     <div className="modal-dialog modal-dialog-centered">
                         <div className="modal-content">
                             <div className="modal-header">
-                                <h5 className="modal-title">
-                                    Venda finalizada
-                                </h5>
+                                <h5 className="modal-title">Venda finalizada</h5>
                             </div>
 
                             <div className="modal-body text-center py-4">
-                                <div className="text-muted mb-2">
-                                    Troco
-                                </div>
+                                <div className="text-muted mb-2">Troco</div>
 
                                 <strong className="display-5">
                                     R${" "}
-                                    {Number(
-                                        trocoFinal
-                                    ).toLocaleString(
-                                        "pt-BR",
-                                        {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2
-                                        }
-                                    )}
+                                    {Number(trocoFinal).toLocaleString("pt-BR", {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2
+                                    })}
                                 </strong>
                             </div>
 
@@ -536,9 +449,7 @@ function MiniPdv() {
                                     type="button"
                                     className="btn btn-primary"
                                     autoFocus
-                                    onClick={() =>
-                                        setTrocoFinal(0)
-                                    }
+                                    onClick={() => setTrocoFinal(0)}
                                 >
                                     OK (Enter)
                                 </button>
@@ -548,11 +459,7 @@ function MiniPdv() {
                 </div>
             )}
 
-            <KeyboardAlert
-                open={alertState.open}
-                message={alertState.message}
-                onClose={closeAlert}
-            />
+            <KeyboardAlert open={alertState.open} message={alertState.message} onClose={closeAlert} />
         </>
     );
 }
