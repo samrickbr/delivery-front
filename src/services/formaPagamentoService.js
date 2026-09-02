@@ -11,6 +11,12 @@ function configOperacional() {
 }
 
 export async function listarFormasPagamento() {
+    const response = await api.get("/formas-pagamento");
+
+    return response.data;
+}
+
+export async function listarFormasPagamentoOperacional() {
     const response = await api.get("/formas-pagamento", configOperacional());
 
     return response.data;

@@ -1,5 +1,6 @@
 export function montarPedido({ cliente, observacao, pagamentos, tipoRecebimento, enderecoSelecionado, carrinho }) {
     return {
+        clienteId: Number(cliente.clienteId),
         clienteNome: cliente.nome?.trim() || "",
         clienteWhatsapp: cliente.telefone || cliente.whatsapp || "",
         observacao: observacao.trim(),

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { listarFormasPagamento } from "../../../services/formaPagamentoService";
+import { listarFormasPagamentoOperacional } from "../../../services/formaPagamentoService";
 import { normalizarListaFormasPagamento } from "../utils/miniPdvUtils";
 
 function useMiniPdvFormasPagamento() {
@@ -15,7 +15,7 @@ function useMiniPdvFormasPagamento() {
                 setCarregando(true);
                 setErro("");
 
-                const resposta = await listarFormasPagamento();
+                const resposta = await listarFormasPagamentoOperacional();
 
                 if (!ativo) {
                     return;
