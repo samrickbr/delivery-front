@@ -6,42 +6,39 @@ function MiniPdvAcoes({
     onRecuperar,
     onLimpar
 }) {
+    const atalhos = {
+        finalizar: "F2",
+        recuperar: "F3",
+        limpar: "F4",
+        enviar: "F5"
+    };
+
     return (
-        <div className="d-flex flex-column gap-2">
+        <div className="row g-2">
             <button
                 type="button"
-                className="btn btn-primary btn-lg w-100"
+                className="btn btn-primary btn-lg col-6"
                 onClick={onFinalizar}
                 disabled={carregando || !podeFinalizar}
             >
-                {carregando ? "Processando..." : "Finalizar venda"}
+                {carregando ? "Processando..." : "Finalizar venda"} <kbd>{atalhos.finalizar}</kbd>
             </button>
 
             <button
                 type="button"
-                className="btn btn-outline-primary w-100"
+                className="btn btn-outline-primary col-6"
                 onClick={onEnviarBalcao}
                 disabled={carregando || !podeFinalizar}
             >
-                Enviar para balcão
+                Enviar para produção <kbd>{atalhos.enviar}</kbd>
             </button>
 
-            <button
-                type="button"
-                className="btn btn-outline-info w-100"
-                onClick={onRecuperar}
-                disabled={carregando}
-            >
-                Recuperar pedido
+            <button type="button" className="btn btn-outline-info col-6" onClick={onRecuperar} disabled={carregando}>
+                Recuperar pedido <kbd>{atalhos.recuperar}</kbd>
             </button>
 
-            <button
-                type="button"
-                className="btn btn-outline-secondary w-100"
-                onClick={onLimpar}
-                disabled={carregando}
-            >
-                Limpar venda
+            <button type="button" className="btn btn-outline-secondary col-6" onClick={onLimpar} disabled={carregando}>
+                Limpar venda <kbd>{atalhos.limpar}</kbd>
             </button>
         </div>
     );

@@ -25,11 +25,20 @@ import {
     adicionarItemPedido,
     alterarQuantidadeItemPedido,
     removerItemPedido,
+    aprovarPedido,
+    criarPedidoOperacional,
     listarPedidosAbertos
 } from "../../../services/pedidoService";
 import { buscarClientesOperacional } from "../../../services/clienteService";
 
-import { ABA_PDV, ETAPA_PAGAMENTO, ETAPA_VENDA, calcularValorVenda, validarPagamento } from "../utils/miniPdvUtils";
+import {
+    ABA_PDV,
+    ETAPA_PAGAMENTO,
+    ETAPA_VENDA,
+    calcularValorVenda,
+    filtrarItensEditaveis,
+    montarPedidoOperacional
+} from "../utils/miniPdvUtils";
 
 function MiniPdv() {
     const [aba, setAba] = useState(ABA_PDV);
@@ -47,6 +56,8 @@ function MiniPdv() {
     const [pedidoSelecionadoRecuperacao, setPedidoSelecionadoRecuperacao] = useState(0);
 
     const [clientesRecuperacao, setClientesRecuperacao] = useState([]);
+    const [focoProdutoSolicitado, setFocoProdutoSolicitado] = useState(0);
+    const [enviandoParaProducao, setEnviandoParaProducao] = useState(false);
 
     const {
         pedidoId,
@@ -283,19 +294,18 @@ function MiniPdv() {
                 return;
             }
 
-            const itensNormalizados = Array.isArray(pedido.itens)
-                ? pedido.itens
-                      .map((item) => ({
-                          ...item,
-                          id: item.produtoId,
-                          itemPedidoId: item.id,
-                          produtoId: item.produtoId,
-                          nome: item.produto || `Produto #${item.produtoId}`,
-                          preco: Number(item.valorUnitario || 0),
-                          quantidade: Number(item.quantidade || 0)
-                      }))
-                      .filter((item) => item.id && item.quantidade > 0)
-                : [];
+            const itensNormalizados = filtrarItensEditaveis(pedido.itens)
+                .map((item) => ({
+                    ...item,
+                    id: item.id,
+                    itemPedidoId: item.id,
+                    coreItemId: item.coreItemId,
+                    produtoId: item.produtoId,
+                    nome: item.produto || `Produto #${item.produtoId}`,
+                    preco: Number(item.valorUnitario || 0),
+                    quantidade: Number(item.quantidade || 0)
+                }))
+                .filter((item) => item.id && item.quantidade > 0);
 
             const clienteRecuperado =
                 clientesRecuperacao.find((item) => Number(item.id) === Number(pedido.clienteId)) || null;
@@ -304,6 +314,7 @@ function MiniPdv() {
 
             carregarCarrinho(itensNormalizados);
             carregarPagamentos(pedido.pagamentos || []);
+            setFocoProdutoSolicitado((atual) => atual + 1);
 
             setEtapa(ETAPA_VENDA);
             setAba(ABA_PDV);
@@ -409,25 +420,48 @@ function MiniPdv() {
         fecharRecuperacao
     ]);
 
-    function enviarParaBalcao() {
+    async function enviarParaBalcao() {
         if (!carrinho.length) {
             return;
         }
 
-        const erroPagamento = validarPagamento({
-            pagamentos,
-            valorProdutos,
-            totalPagamentos,
-            tipoRecebimento,
-            taxaEntrega
-        });
-
-        if (erroPagamento) {
-            showAlert(erroPagamento);
+        if (enviandoParaProducao) {
             return;
         }
 
-        showAlert("O envio para balcão será integrado ao fluxo operacional.");
+        setEnviandoParaProducao(true);
+
+        try {
+            if (pedidoId) {
+                await aprovarPedido(pedidoId);
+            } else {
+                const pedido = montarPedidoOperacional({
+                    cliente,
+                    endereco,
+                    tipoRecebimento,
+                    carrinho,
+                    pagamentos: [],
+                    valorVenda
+                });
+                const response = await criarPedidoOperacional(pedido);
+                const novoPedidoId = response.data?.id;
+
+                if (!novoPedidoId) {
+                    throw new Error("O pedido criado não retornou um identificador.");
+                }
+
+                await aprovarPedido(novoPedidoId);
+            }
+
+            limparNovaVenda();
+            showAlert("Pedido enviado para produção.");
+        } catch (error) {
+            console.error("Erro ao enviar pedido para produção.", error);
+
+            showAlert(error?.response?.data?.message || "Não foi possível enviar o pedido para produção.");
+        } finally {
+            setEnviandoParaProducao(false);
+        }
     }
 
     useMiniPdvAtalhos({
@@ -436,6 +470,7 @@ function MiniPdv() {
         alertOpen: alertState.open,
         trocoFinal,
         onFinalizarVenda: finalizarVenda,
+        onEnviarBalcao: enviarParaBalcao,
         onRecuperarVenda: abrirRecuperacao,
         onLimparNovaVenda: solicitarLimpezaVenda,
         onVoltarParaVenda: voltarParaVenda,
@@ -484,7 +519,7 @@ function MiniPdv() {
         }
 
         try {
-            const itemExistente = carrinho.find((item) => item.id === produto.id);
+            const itemExistente = carrinho.find((item) => Number(item.produtoId) === Number(produto.id));
 
             let response;
 
@@ -502,10 +537,11 @@ function MiniPdv() {
 
             if (pedidoAtualizado?.itens) {
                 carregarCarrinho(
-                    pedidoAtualizado.itens.map((item) => ({
+                    filtrarItensEditaveis(pedidoAtualizado.itens).map((item) => ({
                         ...item,
-                        id: item.produtoId,
+                        id: item.id,
                         itemPedidoId: item.id,
+                        coreItemId: item.coreItemId,
                         produtoId: item.produtoId,
                         nome: item.produto || `Produto #${item.produtoId}`,
                         preco: Number(item.valorUnitario || 0),
@@ -540,10 +576,11 @@ function MiniPdv() {
 
             if (pedidoAtualizado?.itens) {
                 carregarCarrinho(
-                    pedidoAtualizado.itens.map((item) => ({
+                    filtrarItensEditaveis(pedidoAtualizado.itens).map((item) => ({
                         ...item,
-                        id: item.produtoId,
+                        id: item.id,
                         itemPedidoId: item.id,
+                        coreItemId: item.coreItemId,
                         produtoId: item.produtoId,
                         nome: item.produto || `Produto #${item.produtoId}`,
                         preco: Number(item.valorUnitario || 0),
@@ -586,7 +623,14 @@ function MiniPdv() {
 
     return (
         <>
-            <div className="container-fluid py-3">
+            <div
+                className="container-fluid py-3 d-flex flex-column"
+                style={{
+                    height: "calc(100vh - 88px)",
+                    minHeight: 0,
+                    overflow: "hidden"
+                }}
+            >
                 <div className="d-flex align-items-center justify-content-between mb-3">
                     <div>
                         <h1 className="h4 mb-0">SIGIN — Mini PDV</h1>
@@ -600,6 +644,24 @@ function MiniPdv() {
                         </span>
                     )}
                 </div>
+
+                {novaVenda && (
+                    <div className="d-flex flex-wrap align-items-center gap-2 small text-muted mb-3">
+                        <span className="fw-semibold">Atalhos:</span>
+                        <span>
+                            <kbd>F2</kbd> Finalizar
+                        </span>
+                        <span>
+                            <kbd>F3</kbd> Recuperar
+                        </span>
+                        <span>
+                            <kbd>F4</kbd> Limpar
+                        </span>
+                        <span>
+                            <kbd>F5</kbd> Enviar para produção
+                        </span>
+                    </div>
+                )}
 
                 <div className="mb-4">
                     <button
@@ -649,14 +711,15 @@ function MiniPdv() {
                 {erro && novaVenda && <div className="alert alert-danger py-2">{erro}</div>}
 
                 {novaVenda ? (
-                    <div className="row g-3">
-                        <div className="col-12 col-lg-5 col-xl-4">
-                            <div className="d-flex flex-column gap-3">
+                    <div className="row g-3 flex-grow-1" style={{ minHeight: 0, overflow: "hidden" }}>
+                        <div className="col-12 col-lg-5 col-xl-4 h-100" style={{ minHeight: 0 }}>
+                            <div className="d-flex flex-column gap-3 h-100">
                                 <MiniPdvProdutos
                                     carrinho={carrinho}
                                     onAdicionarProduto={adicionarProdutoPdv}
                                     onDiminuirProduto={diminuirProduto}
                                     onRemoverProduto={removerProdutoPdv}
+                                    focoSolicitado={focoProdutoSolicitado}
                                 />
 
                                 <MiniPdvCliente
@@ -693,7 +756,7 @@ function MiniPdv() {
 
                                 <MiniPdvAcoes
                                     podeFinalizar={podeFinalizarVenda}
-                                    carregando={carregando || carregandoRecuperacao}
+                                    carregando={carregando || carregandoRecuperacao || enviandoParaProducao}
                                     onFinalizar={finalizarVenda}
                                     onEnviarBalcao={enviarParaBalcao}
                                     onRecuperar={abrirRecuperacao}

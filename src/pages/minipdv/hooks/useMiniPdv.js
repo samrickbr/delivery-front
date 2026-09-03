@@ -66,19 +66,35 @@ function useMiniPdv() {
         setEndereco(novoEndereco);
     }
 
-   function carregarPedido(pedido, clienteRecuperado = null) {
-       if (!pedido) {
-           setPedidoId(null);
-           return;
-       }
+    async function carregarPedido(pedido, clienteRecuperado = null) {
+        if (!pedido) {
+            setPedidoId(null);
+            return;
+        }
 
-       setPedidoId(pedido.id ?? null);
-       setCliente(clienteRecuperado);
-       setEndereco(pedido.endereco ?? null);
-       setTipoRecebimento(pedido.tipoRecebimento || "RETIRADA");
-       setErro("");
-       setErroEnderecos("");
-   }
+        const clienteDoPedido =
+            clienteRecuperado ||
+            (pedido.clienteId
+                ? {
+                      id: pedido.clienteId,
+                      nome: pedido.clienteNome || pedido.cliente || "Cliente",
+                      telefone: pedido.clienteWhatsapp || pedido.telefone || ""
+                  }
+                : null);
+        const tipoPedido = pedido.tipoRecebimento || "RETIRADA";
+
+        setPedidoId(pedido.id ?? null);
+        setCliente(clienteDoPedido);
+        setEndereco(pedido.endereco ?? null);
+        setEnderecos([]);
+        setTipoRecebimento(tipoPedido);
+        setErro("");
+        setErroEnderecos("");
+
+        if (tipoPedido === "ENTREGA" && clienteDoPedido?.id) {
+            await carregarEnderecosCliente(clienteDoPedido.id);
+        }
+    }
 
     function limparVenda() {
         setPedidoId(null);

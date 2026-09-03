@@ -1,12 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { buscarClientesOperacional } from "../../../services/clienteService";
 
 function MiniPdvCliente({ cliente = null, onClienteSelecionado, onClienteLimpo, onDefinirEntrega, onDefinirRetirada }) {
     const [clienteSelecionado, setClienteSelecionado] = useState(cliente);
     const [busca, setBusca] = useState("");
     const [clientes, setClientes] = useState([]);
+    const [indiceSelecionado, setIndiceSelecionado] = useState(0);
     const [carregando, setCarregando] = useState(false);
     const [erro, setErro] = useState("");
+    const resultadosRef = useRef(null);
 
     const clienteAtivo = cliente ?? clienteSelecionado;
 
@@ -31,6 +33,7 @@ function MiniPdvCliente({ cliente = null, onClienteSelecionado, onClienteLimpo, 
 
                 const lista = Array.isArray(resultado) ? resultado : resultado?.content || [];
                 setClientes(lista);
+                setIndiceSelecionado(0);
             } catch (error) {
                 if (!ativo) {
                     return;
@@ -52,6 +55,12 @@ function MiniPdvCliente({ cliente = null, onClienteSelecionado, onClienteLimpo, 
         };
     }, [busca]);
 
+    useEffect(() => {
+        const resultadoSelecionado = resultadosRef.current?.querySelector(`[data-indice="${indiceSelecionado}"]`);
+
+        resultadoSelecionado?.scrollIntoView({ block: "nearest" });
+    }, [indiceSelecionado]);
+
     function selecionarCliente(clienteEscolhido) {
         setClienteSelecionado(clienteEscolhido);
         onClienteSelecionado?.(clienteEscolhido);
@@ -64,6 +73,47 @@ function MiniPdvCliente({ cliente = null, onClienteSelecionado, onClienteLimpo, 
         onClienteLimpo?.();
         setBusca("");
         setClientes([]);
+    }
+
+    function confirmarAlteracaoCliente() {
+        if (window.confirm("Tem certeza que deseja alterar o cliente?")) {
+            limparCliente();
+        }
+    }
+
+    function selecionarClienteSelecionado() {
+        const clienteEscolhido = clientes[indiceSelecionado];
+
+        if (clienteEscolhido) {
+            selecionarCliente(clienteEscolhido);
+        }
+    }
+
+    function handleBuscaKeyDown(event) {
+        if (event.key === "ArrowDown") {
+            event.preventDefault();
+
+            if (clientes.length) {
+                setIndiceSelecionado((atual) => (atual + 1) % clientes.length);
+            }
+
+            return;
+        }
+
+        if (event.key === "ArrowUp") {
+            event.preventDefault();
+
+            if (clientes.length) {
+                setIndiceSelecionado((atual) => (atual - 1 + clientes.length) % clientes.length);
+            }
+
+            return;
+        }
+
+        if (event.key === "Enter") {
+            event.preventDefault();
+            selecionarClienteSelecionado();
+        }
     }
 
     return (
@@ -95,6 +145,7 @@ function MiniPdvCliente({ cliente = null, onClienteSelecionado, onClienteLimpo, 
                                     setErro("");
                                 }
                             }}
+                            onKeyDown={handleBuscaKeyDown}
                         />
 
                         {carregando && <div className="text-muted small mt-2">Buscando clientes...</div>}
@@ -102,12 +153,16 @@ function MiniPdvCliente({ cliente = null, onClienteSelecionado, onClienteLimpo, 
                         {erro && <div className="alert alert-danger py-2 mt-2 mb-0">{erro}</div>}
 
                         {!carregando && !erro && clientes.length > 0 && (
-                            <div className="list-group mt-2">
-                                {clientes.map((item) => (
+                            <div ref={resultadosRef} className="list-group mt-2">
+                                {clientes.map((item, indice) => (
                                     <button
                                         key={item.id}
                                         type="button"
-                                        className="list-group-item list-group-item-action text-start"
+                                        data-indice={indice}
+                                        className={`list-group-item list-group-item-action text-start ${
+                                            indice === indiceSelecionado ? "active" : ""
+                                        }`}
+                                        onMouseEnter={() => setIndiceSelecionado(indice)}
                                         onClick={() => selecionarCliente(item)}
                                     >
                                         <div className="fw-semibold">{item.nome || item.nomeCompleto || "Cliente"}</div>
@@ -157,7 +212,7 @@ function MiniPdvCliente({ cliente = null, onClienteSelecionado, onClienteLimpo, 
                                 <button
                                     type="button"
                                     className="btn btn-link btn-sm px-0 text-decoration-none"
-                                    onClick={limparCliente}
+                                    onClick={confirmarAlteracaoCliente}
                                 >
                                     Trocar cliente
                                 </button>
@@ -165,7 +220,7 @@ function MiniPdvCliente({ cliente = null, onClienteSelecionado, onClienteLimpo, 
                                 <button
                                     type="button"
                                     className="btn btn-link btn-sm px-0 text-decoration-none"
-                                    onClick={limparCliente}
+                                    onClick={confirmarAlteracaoCliente}
                                 >
                                     Sem cliente
                                 </button>

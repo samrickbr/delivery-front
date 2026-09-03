@@ -24,6 +24,7 @@ function useMiniPdvAtalhos({
     alertOpen,
     trocoFinal,
     onFinalizarVenda,
+    onEnviarBalcao,
     onRecuperarVenda,
     onLimparNovaVenda,
     onVoltarParaVenda,
@@ -46,7 +47,7 @@ function useMiniPdvAtalhos({
 
             const tecla = event.key;
 
-            if (tecla !== "F2" && tecla !== "F3" && tecla !== "F4") {
+            if (tecla !== "F2" && tecla !== "F3" && tecla !== "F4" && tecla !== "F5") {
                 return;
             }
 
@@ -65,6 +66,11 @@ function useMiniPdvAtalhos({
 
             if (tecla === "F4") {
                 onLimparNovaVenda?.();
+                return;
+            }
+
+            if (tecla === "F5") {
+                onEnviarBalcao?.();
             }
         }
 
@@ -73,15 +79,7 @@ function useMiniPdvAtalhos({
         return () => {
             window.removeEventListener("keydown", tratarTecla);
         };
-    }, [
-        aba,
-        etapa,
-        alertOpen,
-        trocoFinal,
-        onFinalizarVenda,
-        onRecuperarVenda,
-        onLimparNovaVenda
-    ]);
+    }, [aba, etapa, alertOpen, trocoFinal, onFinalizarVenda, onEnviarBalcao, onRecuperarVenda, onLimparNovaVenda]);
 
     useEffect(() => {
         if (!alertOpen && trocoFinal <= 0) {
@@ -94,10 +92,7 @@ function useMiniPdvAtalhos({
             }
 
             const tecla = event.key;
-            const ehEspaco =
-                event.code === "Space" ||
-                tecla === " " ||
-                tecla === "Spacebar";
+            const ehEspaco = event.code === "Space" || tecla === " " || tecla === "Spacebar";
 
             if (tecla !== "Enter" && !ehEspaco && tecla !== "Escape") {
                 return;
@@ -127,12 +122,7 @@ function useMiniPdvAtalhos({
         }
 
         function tratarTecla(event) {
-            if (
-                event.ctrlKey ||
-                event.altKey ||
-                event.metaKey ||
-                deveIgnorarTecla(event)
-            ) {
+            if (event.ctrlKey || event.altKey || event.metaKey || deveIgnorarTecla(event)) {
                 return;
             }
 

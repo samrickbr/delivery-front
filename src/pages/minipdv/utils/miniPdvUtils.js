@@ -32,6 +32,14 @@ export function normalizarListaFormasPagamento(resposta) {
     return [];
 }
 
+export function filtrarItensEditaveis(itens = []) {
+    if (!Array.isArray(itens)) {
+        return [];
+    }
+
+    return itens.filter((item) => item?.ativo !== false && !["CANCELADO", "FINALIZADO"].includes(item?.statusOperacao));
+}
+
 function possuiPagamentoDinheiro(pagamentos = []) {
     return pagamentos.some((pagamento) => pagamento.atalho === "D");
 }

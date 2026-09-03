@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
     calcularTroco,
     calcularValorVenda,
+    filtrarItensEditaveis,
     montarPagamentosParaEnvio,
     normalizarListaFormasPagamento,
     validarPagamento
@@ -20,6 +21,18 @@ test("normaliza formas de pagamento mesmo quando a resposta chega aninhada", () 
     };
 
     assert.deepEqual(normalizarListaFormasPagamento(payload), payload.data.content);
+});
+
+test("mantém somente itens ativos e ainda editáveis do pedido", () => {
+    const itens = [
+        { id: 1, statusOperacao: "FINALIZADO" },
+        { id: 2, statusOperacao: "CANCELADO" },
+        { id: 3, ativo: false, statusOperacao: "PENDENTE" },
+        { id: 4, statusOperacao: "PENDENTE" },
+        { id: 5 }
+    ];
+
+    assert.deepEqual(filtrarItensEditaveis(itens), [itens[3], itens[4]]);
 });
 
 test("calcula troco corretamente com múltiplos pagamentos em dinheiro", () => {
