@@ -45,30 +45,53 @@ function useMiniPdvPagamentos(valorVenda = 0, formasPagamento = []) {
     const [pagamentos, setPagamentos] = useState([]);
     const [valorRecebimento, setValorRecebimento] = useState("");
 
-    const formas = Array.isArray(formasPagamento) ? formasPagamento.map(normalizarFormaPagamento) : [];
+    const formas = Array.isArray(formasPagamento)
+        ? formasPagamento.map(normalizarFormaPagamento)
+        : [];
 
     const totalVenda = Number(valorVenda) || 0;
 
-    const totalPagamentos = pagamentos.reduce((total, pagamento) => total + (Number(pagamento.valor) || 0), 0);
+    const totalPagamentos = pagamentos.reduce(
+        (total, pagamento) =>
+            total + (Number(pagamento.valor) || 0),
+        0
+    );
 
-    const restante = Math.max(totalVenda - totalPagamentos, 0);
+    const restante = Math.max(
+        totalVenda - totalPagamentos,
+        0
+    );
 
-    const possuiDinheiro = pagamentos.some((pagamento) => pagamento.atalho === "D");
+    const possuiDinheiro = pagamentos.some(
+        (pagamento) => pagamento.atalho === "D"
+    );
 
-    const troco = possuiDinheiro && totalPagamentos > totalVenda ? totalPagamentos - totalVenda : 0;
+    const troco =
+        possuiDinheiro && totalPagamentos > totalVenda
+            ? totalPagamentos - totalVenda
+            : 0;
 
     function encontrarForma(formaPagamentoId) {
         const id = Number(formaPagamentoId);
 
-        return formas.find((forma) => Number(forma.id) === id);
+        return formas.find(
+            (forma) => Number(forma.id) === id
+        );
     }
 
-    function adicionarPagamentoPorAtalho(atalho, valorOpcional) {
+    function adicionarPagamentoPorAtalho(
+        atalho,
+        valorOpcional
+    ) {
         const codigo = String(atalho || "")
             .trim()
             .toUpperCase();
 
-        const forma = formas.find((item) => item.atalho === codigo && item.disponivel);
+        const forma = formas.find(
+            (item) =>
+                item.atalho === codigo &&
+                item.disponivel
+        );
 
         if (!forma) {
             return {
@@ -99,7 +122,8 @@ function useMiniPdvPagamentos(valorVenda = 0, formasPagamento = []) {
         if (!eDinheiro && valor > restante) {
             return {
                 sucesso: false,
-                mensagem: "O valor informado excede o valor restante da venda."
+                mensagem:
+                    "O valor informado excede o valor restante da venda."
             };
         }
 
@@ -107,18 +131,39 @@ function useMiniPdvPagamentos(valorVenda = 0, formasPagamento = []) {
             formaPagamentoId: Number(forma.id),
             valor,
             atalho: forma.atalho,
-            descricao: forma.descricao || forma.nome || ""
+            descricao:
+                forma.descricao ||
+                forma.nome ||
+                "",
+            existente: false
         };
 
-        const proximos = [...pagamentos, novoPagamento];
+        const proximos = [
+            ...pagamentos,
+            novoPagamento
+        ];
 
-        const totalProximos = proximos.reduce((total, pagamento) => total + (Number(pagamento.valor) || 0), 0);
+        const totalProximos = proximos.reduce(
+            (total, pagamento) =>
+                total + (Number(pagamento.valor) || 0),
+            0
+        );
 
-        const possuiDinheiroProximo = proximos.some((pagamento) => pagamento.atalho === "D");
+        const possuiDinheiroProximo =
+            proximos.some(
+                (pagamento) =>
+                    pagamento.atalho === "D"
+            );
 
-        const trocoCalculado = possuiDinheiroProximo && totalProximos > totalVenda ? totalProximos - totalVenda : 0;
+        const trocoCalculado =
+            possuiDinheiroProximo &&
+            totalProximos > totalVenda
+                ? totalProximos - totalVenda
+                : 0;
 
-        const pagamentoCompleto = totalProximos >= totalVenda && totalVenda > 0;
+        const pagamentoCompleto =
+            totalProximos >= totalVenda &&
+            totalVenda > 0;
 
         setPagamentos(proximos);
         setValorRecebimento("");
@@ -132,12 +177,19 @@ function useMiniPdvPagamentos(valorVenda = 0, formasPagamento = []) {
         };
     }
 
-    function alterarPagamento(indice, formaPagamentoId, valor) {
+    function alterarPagamento(
+        indice,
+        formaPagamentoId,
+        valor
+    ) {
         const id = Number(formaPagamentoId);
-
         const valorNumerico = Number(valor);
 
-        if (!id || !Number.isFinite(valorNumerico) || valorNumerico <= 0) {
+        if (
+            !id ||
+            !Number.isFinite(valorNumerico) ||
+            valorNumerico <= 0
+        ) {
             return;
         }
 
@@ -155,7 +207,10 @@ function useMiniPdvPagamentos(valorVenda = 0, formasPagamento = []) {
                           formaPagamentoId: id,
                           valor: valorNumerico,
                           atalho: forma.atalho,
-                          descricao: forma.descricao || forma.nome || ""
+                          descricao:
+                              forma.descricao ||
+                              forma.nome ||
+                              ""
                       }
                     : pagamento
             )
@@ -163,7 +218,11 @@ function useMiniPdvPagamentos(valorVenda = 0, formasPagamento = []) {
     }
 
     function removerPagamento(indice) {
-        setPagamentos((atuais) => atuais.filter((_, index) => index !== indice));
+        setPagamentos((atuais) =>
+            atuais.filter(
+                (_, index) => index !== indice
+            )
+        );
     }
 
     function limparPagamentos() {
@@ -175,6 +234,50 @@ function useMiniPdvPagamentos(valorVenda = 0, formasPagamento = []) {
         setValorRecebimento(valor);
     }
 
+    function carregarPagamentos(
+        pagamentosExistentes = []
+    ) {
+        if (!Array.isArray(pagamentosExistentes)) {
+            setPagamentos([]);
+            setValorRecebimento("");
+            return;
+        }
+
+        const pagamentosNormalizados =
+            pagamentosExistentes
+                .map((pagamento) => {
+                    const forma = encontrarForma(
+                        pagamento.formaPagamentoId ??
+                            pagamento.formaPagamento?.id
+                    );
+
+                    if (!forma) {
+                        return null;
+                    }
+
+                    return {
+                        formaPagamentoId:
+                            Number(forma.id),
+                        valor:
+                            Number(pagamento.valor) || 0,
+                        atalho: forma.atalho,
+                        descricao:
+                            forma.descricao ||
+                            forma.nome ||
+                            "",
+                        existente: true
+                    };
+                })
+                .filter(
+                    (pagamento) =>
+                        pagamento &&
+                        pagamento.valor > 0
+                );
+
+        setPagamentos(pagamentosNormalizados);
+        setValorRecebimento("");
+    }
+
     return {
         formasPagamento: formas,
         pagamentos,
@@ -183,13 +286,16 @@ function useMiniPdvPagamentos(valorVenda = 0, formasPagamento = []) {
         troco,
         valorRecebimento,
 
-        pagamentoCompleto: totalPagamentos >= totalVenda && totalVenda > 0,
+        pagamentoCompleto:
+            totalPagamentos >= totalVenda &&
+            totalVenda > 0,
 
         adicionarPagamentoPorAtalho,
         alterarPagamento,
         removerPagamento,
         limparPagamentos,
-        definirValorRecebimento
+        definirValorRecebimento,
+        carregarPagamentos
     };
 }
 

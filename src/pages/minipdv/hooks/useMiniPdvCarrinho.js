@@ -70,6 +70,30 @@ function useMiniPdvCarrinho() {
         );
     }
 
+    function carregarCarrinho(itens = []) {
+        if (!Array.isArray(itens)) {
+            setCarrinho([]);
+            return;
+        }
+
+        const itensNormalizados = itens
+            .map((item) => {
+                const quantidade = Number(item.quantidade || 0);
+
+                if (quantidade <= 0) {
+                    return null;
+                }
+
+                return {
+                    ...item,
+                    quantidade,
+                };
+            })
+            .filter(Boolean);
+
+        setCarrinho(itensNormalizados);
+    }
+
     function limparCarrinho() {
         setCarrinho([]);
     }
@@ -81,6 +105,7 @@ function useMiniPdvCarrinho() {
         adicionarProduto,
         diminuirProduto,
         removerProduto,
+        carregarCarrinho,
         limparCarrinho,
     };
 }

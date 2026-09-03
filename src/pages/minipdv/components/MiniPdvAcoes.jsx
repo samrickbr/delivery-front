@@ -3,6 +3,7 @@ function MiniPdvAcoes({
     carregando = false,
     onFinalizar,
     onEnviarBalcao,
+    onRecuperar,
     onLimpar
 }) {
     return (
@@ -23,6 +24,15 @@ function MiniPdvAcoes({
                 disabled={carregando || !podeFinalizar}
             >
                 Enviar para balcão
+            </button>
+
+            <button
+                type="button"
+                className="btn btn-outline-info w-100"
+                onClick={onRecuperar}
+                disabled={carregando}
+            >
+                Recuperar pedido
             </button>
 
             <button

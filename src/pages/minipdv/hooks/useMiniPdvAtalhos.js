@@ -24,6 +24,7 @@ function useMiniPdvAtalhos({
     alertOpen,
     trocoFinal,
     onFinalizarVenda,
+    onRecuperarVenda,
     onLimparNovaVenda,
     onVoltarParaVenda,
     onFecharAlerta,
@@ -45,7 +46,7 @@ function useMiniPdvAtalhos({
 
             const tecla = event.key;
 
-            if (tecla !== "F2" && tecla !== "F4") {
+            if (tecla !== "F2" && tecla !== "F3" && tecla !== "F4") {
                 return;
             }
 
@@ -54,6 +55,11 @@ function useMiniPdvAtalhos({
 
             if (tecla === "F2") {
                 onFinalizarVenda?.();
+                return;
+            }
+
+            if (tecla === "F3") {
+                onRecuperarVenda?.();
                 return;
             }
 
@@ -67,7 +73,15 @@ function useMiniPdvAtalhos({
         return () => {
             window.removeEventListener("keydown", tratarTecla);
         };
-    }, [aba, etapa, alertOpen, trocoFinal, onFinalizarVenda, onLimparNovaVenda]);
+    }, [
+        aba,
+        etapa,
+        alertOpen,
+        trocoFinal,
+        onFinalizarVenda,
+        onRecuperarVenda,
+        onLimparNovaVenda
+    ]);
 
     useEffect(() => {
         if (!alertOpen && trocoFinal <= 0) {
@@ -80,7 +94,10 @@ function useMiniPdvAtalhos({
             }
 
             const tecla = event.key;
-            const ehEspaco = event.code === "Space" || tecla === " " || tecla === "Spacebar";
+            const ehEspaco =
+                event.code === "Space" ||
+                tecla === " " ||
+                tecla === "Spacebar";
 
             if (tecla !== "Enter" && !ehEspaco && tecla !== "Escape") {
                 return;
@@ -110,7 +127,12 @@ function useMiniPdvAtalhos({
         }
 
         function tratarTecla(event) {
-            if (event.ctrlKey || event.altKey || event.metaKey || deveIgnorarTecla(event)) {
+            if (
+                event.ctrlKey ||
+                event.altKey ||
+                event.metaKey ||
+                deveIgnorarTecla(event)
+            ) {
                 return;
             }
 

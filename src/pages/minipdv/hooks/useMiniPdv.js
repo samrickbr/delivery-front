@@ -6,43 +6,31 @@ function useMiniPdv() {
     const [endereco, setEndereco] = useState(null);
     const [enderecos, setEnderecos] = useState([]);
 
-    const [tipoRecebimento, setTipoRecebimento] =
-        useState("RETIRADA");
+    const [pedidoId, setPedidoId] = useState(null);
 
-    const [carregando, setCarregando] =
-        useState(false);
+    const [tipoRecebimento, setTipoRecebimento] = useState("RETIRADA");
 
-    const [carregandoEnderecos, setCarregandoEnderecos] =
-        useState(false);
+    const [carregando, setCarregando] = useState(false);
+
+    const [carregandoEnderecos, setCarregandoEnderecos] = useState(false);
 
     const [erro, setErro] = useState("");
-    const [erroEnderecos, setErroEnderecos] =
-        useState("");
+    const [erroEnderecos, setErroEnderecos] = useState("");
 
     async function carregarEnderecosCliente(clienteId) {
         try {
             setCarregandoEnderecos(true);
             setErroEnderecos("");
 
-            const dados =
-                await buscarEnderecosOperacional(clienteId);
+            const dados = await buscarEnderecosOperacional(clienteId);
 
-            setEnderecos(
-                Array.isArray(dados)
-                    ? dados
-                    : dados?.content || []
-            );
+            setEnderecos(Array.isArray(dados) ? dados : dados?.content || []);
         } catch (error) {
-            console.error(
-                "Erro ao carregar endereços do cliente.",
-                error
-            );
+            console.error("Erro ao carregar endereços do cliente.", error);
 
             setEnderecos([]);
 
-            setErroEnderecos(
-                "Não foi possível carregar os endereços do cliente."
-            );
+            setErroEnderecos("Não foi possível carregar os endereços do cliente.");
         } finally {
             setCarregandoEnderecos(false);
         }
@@ -54,7 +42,6 @@ function useMiniPdv() {
         setEnderecos([]);
         setErroEnderecos("");
 
-        // Toda nova seleção começa como retirada.
         setTipoRecebimento("RETIRADA");
     }
 
@@ -79,7 +66,22 @@ function useMiniPdv() {
         setEndereco(novoEndereco);
     }
 
+   function carregarPedido(pedido, clienteRecuperado = null) {
+       if (!pedido) {
+           setPedidoId(null);
+           return;
+       }
+
+       setPedidoId(pedido.id ?? null);
+       setCliente(clienteRecuperado);
+       setEndereco(pedido.endereco ?? null);
+       setTipoRecebimento(pedido.tipoRecebimento || "RETIRADA");
+       setErro("");
+       setErroEnderecos("");
+   }
+
     function limparVenda() {
+        setPedidoId(null);
         setCliente(null);
         setEndereco(null);
         setEnderecos([]);
@@ -94,20 +96,16 @@ function useMiniPdv() {
     }
 
     const podeFinalizar = useMemo(() => {
-        if (
-            tipoRecebimento === "ENTREGA" &&
-            !endereco
-        ) {
+        if (tipoRecebimento === "ENTREGA" && !endereco) {
             return false;
         }
 
         return true;
-    }, [
-        tipoRecebimento,
-        endereco
-    ]);
+    }, [tipoRecebimento, endereco]);
 
     return {
+        pedidoId,
+
         cliente,
         endereco,
         enderecos,
@@ -128,6 +126,7 @@ function useMiniPdv() {
         definirEntrega,
         definirRetirada,
 
+        carregarPedido,
         limparVenda,
 
         setCarregando,

@@ -37,7 +37,7 @@ export async function criarPedidoOperacional(data) {
 }
 
 export async function buscarPedido(id) {
-    return api.get(`/pedidos/${id}`, configCliente());
+    return api.get(`/pedidos/${id}`, configOperacional());
 }
 
 export async function listarMeusPedidos() {
@@ -184,6 +184,10 @@ export async function listarPedidos() {
     return api.get("/pedidos", configOperacional());
 }
 
+export async function listarPedidosAbertos() {
+    return api.get("/pedidos/abertos", configOperacional());
+}
+
 export async function listarPorStatus(status) {
     return api.get(`/pedidos/status/${status}`, configOperacional());
 }
@@ -194,4 +198,16 @@ export async function listarPorStatus(status) {
 
 export async function listarSeparacao() {
     return api.get("/pedidos/separacao", configOperacional());
+}
+
+/* ==========================================================
+   FATURAMENTO
+========================================================== */
+
+export async function adicionarPagamentoPedido(pedidoId, pagamento) {
+    return api.post(`/pedidos/${pedidoId}/pagamentos`, pagamento, configOperacional());
+}
+
+export async function faturarPedido(pedidoId) {
+    return api.post(`/pedidos/${pedidoId}/faturar`, null, configOperacional());
 }
