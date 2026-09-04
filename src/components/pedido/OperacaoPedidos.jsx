@@ -240,7 +240,7 @@ function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
                                 <PedidoActions
                                     pedido={pedido}
                                     setor={setor}
-                                    onAtualizar={carregarPedidos}
+                                    onAtualizar={atualizar}
                                     onDigitando={alterarDigitando}
                                 />
                             )}
