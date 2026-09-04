@@ -25,10 +25,23 @@ function PedidoActions({ pedido, setor, onAtualizar, onDigitando }) {
     function confirmar(acao) {
         setAcaoSelecionada(() => acao);
         setShowDialog(true);
+        onDigitando?.(true);
+    }
+
+    function fecharConfirmacao() {
+        setShowDialog(false);
+        setAcaoSelecionada(null);
+        onDigitando?.(false);
     }
 
     function abrirEspera() {
         setShowInput(true);
+        onDigitando?.(true);
+    }
+
+    function abrirCancelamento() {
+        setMostrarCancelamento(true);
+        onDigitando?.(true);
     }
 
     async function executar(acao) {
@@ -59,9 +72,7 @@ function PedidoActions({ pedido, setor, onAtualizar, onDigitando }) {
         }
 
         await executar(acaoSelecionada);
-
-        setShowDialog(false);
-        setAcaoSelecionada(null);
+        fecharConfirmacao();
     }
 
     if (itensDoSetor.length === 0) {
@@ -122,9 +133,7 @@ function PedidoActions({ pedido, setor, onAtualizar, onDigitando }) {
                             <button
                                 className="btn btn-danger"
                                 disabled={processando}
-                                onClick={() =>
-                                    setMostrarCancelamento(true)
-                                }
+                                onClick={abrirCancelamento}
                             >
                                 Cancelar
                             </button>
@@ -151,9 +160,7 @@ function PedidoActions({ pedido, setor, onAtualizar, onDigitando }) {
                             <button
                                 className="btn btn-danger"
                                 disabled={processando}
-                                onClick={() =>
-                                    setMostrarCancelamento(true)
-                                }
+                                onClick={abrirCancelamento}
                             >
                                 Cancelar
                             </button>
@@ -188,9 +195,7 @@ function PedidoActions({ pedido, setor, onAtualizar, onDigitando }) {
                             <button
                                 className="btn btn-danger"
                                 disabled={processando}
-                                onClick={() =>
-                                    setMostrarCancelamento(true)
-                                }
+                                onClick={abrirCancelamento}
                             >
                                 Cancelar
                             </button>
@@ -204,10 +209,7 @@ function PedidoActions({ pedido, setor, onAtualizar, onDigitando }) {
                 titulo="Confirmar ação"
                 mensagem="Deseja realmente executar esta ação?"
                 onConfirm={executarConfirmacao}
-                onCancel={() => {
-                    setShowDialog(false);
-                    setAcaoSelecionada(null);
-                }}
+                onCancel={fecharConfirmacao}
             />
 
             <InputDialog
@@ -216,7 +218,10 @@ function PedidoActions({ pedido, setor, onAtualizar, onDigitando }) {
                 titulo="Colocar em espera"
                 mensagem="Informe o motivo."
                 placeholder="Ex.: Sem calabresa"
-                onCancel={() => setShowInput(false)}
+                onCancel={() => {
+                    setShowInput(false);
+                    onDigitando?.(false);
+                }}
                 onConfirm={async (motivo) => {
                     setShowInput(false);
 
@@ -227,6 +232,8 @@ function PedidoActions({ pedido, setor, onAtualizar, onDigitando }) {
                             motivo
                         )
                     );
+
+                    onDigitando?.(false);
                 }}
             />
 
@@ -234,10 +241,12 @@ function PedidoActions({ pedido, setor, onAtualizar, onDigitando }) {
                 pedido={pedido}
                 setor={setor}
                 mostrar={mostrarCancelamento}
-                onFechar={() =>
-                    setMostrarCancelamento(false)
-                }
+                onFechar={() => {
+                    setMostrarCancelamento(false);
+                    onDigitando?.(false);
+                }}
                 onAtualizar={onAtualizar}
+                onDigitando={onDigitando}
             />
         </div>
     );

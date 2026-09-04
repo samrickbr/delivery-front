@@ -1,12 +1,28 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { cancelarItens, cancelarPedidoCompleto } from "../../services/pedidoService";
 import { obterNumeroPedido } from "../../utils/pedidoUtils";
 
-function CancelarItensModal({ pedido, setor, mostrar, onFechar, onAtualizar, permitirCompleto = false }) {
+function CancelarItensModal({
+    pedido,
+    setor,
+    mostrar,
+    onFechar,
+    onAtualizar,
+    onDigitando,
+    permitirCompleto = false
+}) {
     const [tipo, setTipo] = useState("ITEM");
     const [itensSelecionados, setItensSelecionados] = useState([]);
     const [motivo, setMotivo] = useState("");
     const [processando, setProcessando] = useState(false);
+
+    useEffect(() => {
+        onDigitando?.(mostrar);
+
+        return () => {
+            onDigitando?.(false);
+        };
+    }, [mostrar, onDigitando]);
 
     if (!mostrar) {
         return null;

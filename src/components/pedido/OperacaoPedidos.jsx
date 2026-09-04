@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import PedidoActions from "../PedidoActions";
 import PedidoCard from "./PedidoCard";
 import { buscarPedido, listarCozinha, listarFinalizados } from "../../services/pedidoService";
 import api from "../../services/api";
+import { conectarEventosProducao } from "../../services/eventoProducaoService";
 
 async function enriquecerNumerosPedidos(pedidos) {
     return Promise.all(
@@ -29,6 +30,15 @@ function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
     const [categorias, setCategorias] = useState([]);
     const [carregando, setCarregando] = useState(false);
     const [digitando, setDigitando] = useState(false);
+    const [novoPedido, setNovoPedido] = useState(false);
+
+    const digitandoRef = useRef(false);
+    const atualizacaoPendenteRef = useRef(false);
+
+    const alterarDigitando = useCallback((valor) => {
+        digitandoRef.current = valor;
+        setDigitando(valor);
+    }, []);
 
     const carregarCategorias = useCallback(async () => {
         const response = await api.get("/categorias");
@@ -51,6 +61,11 @@ function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
     }, [setor]);
 
     const atualizar = useCallback(async () => {
+        if (digitandoRef.current) {
+            atualizacaoPendenteRef.current = true;
+            return;
+        }
+
         setCarregando(true);
 
         try {
@@ -63,6 +78,19 @@ function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
             setCarregando(false);
         }
     }, [aba, carregarPedidos, carregarFinalizados]);
+
+    const atualizarEmSegundoPlano = useCallback(async () => {
+        if (digitandoRef.current) {
+            atualizacaoPendenteRef.current = true;
+            return;
+        }
+
+        if (aba !== "producao") {
+            return;
+        }
+
+        await carregarPedidos();
+    }, [aba, carregarPedidos]);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -77,17 +105,48 @@ function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
             atualizar();
         }, 0);
 
-        const intervalo = setInterval(() => {
-            if (!document.hidden && !digitando) {
-                atualizar();
-            }
-        }, 10000);
+        return () => clearTimeout(timer);
+    }, [atualizar]);
 
-        return () => {
-            clearTimeout(timer);
-            clearInterval(intervalo);
-        };
-    }, [atualizar, digitando]);
+    useEffect(() => {
+        return conectarEventosProducao({
+            onNovoPedido: (evento) => {
+                if (evento?.setor !== setor) {
+                    return;
+                }
+
+                setNovoPedido(true);
+
+                if (digitandoRef.current) {
+                    atualizacaoPendenteRef.current = true;
+                    return;
+                }
+
+                atualizarEmSegundoPlano();
+            }
+        });
+    }, [setor, atualizarEmSegundoPlano]);
+
+    useEffect(() => {
+        if (digitando || !atualizacaoPendenteRef.current) {
+            return;
+        }
+
+        atualizacaoPendenteRef.current = false;
+        atualizarEmSegundoPlano();
+    }, [digitando, atualizarEmSegundoPlano]);
+
+    useEffect(() => {
+        if (!novoPedido) {
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            setNovoPedido(false);
+        }, 5000);
+
+        return () => clearTimeout(timer);
+    }, [novoPedido]);
 
     const pedidosFiltrados =
         aba === "finalizados"
@@ -111,8 +170,18 @@ function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
         .filter((categoria) => categoria.quantidade > 0);
 
     return (
-        <div className="container mt-4">
+        <div className="container mt-4 position-relative">
             <h1 className="mb-4">{titulo}</h1>
+
+            {novoPedido && (
+                <div
+                    className="alert alert-success position-fixed top-0 end-0 m-3 shadow"
+                    style={{ zIndex: 1050, pointerEvents: "none" }}
+                    role="status"
+                >
+                    Novo pedido recebido.
+                </div>
+            )}
 
             <div className="mb-4">
                 <button
@@ -157,30 +226,28 @@ function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
                 </div>
             )}
 
-            {carregando && (
+            {carregando && pedidos.length === 0 && (
                 <div className="text-center my-5">
                     <div className="spinner-border" />
                 </div>
             )}
 
-            {!carregando && (
-                <div className="row">
-                    {pedidosFiltrados.map((pedido) => (
-                        <div className="col-12 col-md-6 col-xl-4" key={pedido.id}>
-                            <PedidoCard pedido={pedido} mostrarValor={mostrarValor}>
-                                {aba === "producao" && (
-                                    <PedidoActions
-                                        pedido={pedido}
-                                        setor={setor}
-                                        onAtualizar={carregarPedidos}
-                                        onDigitando={setDigitando}
-                                    />
-                                )}
-                            </PedidoCard>
-                        </div>
-                    ))}
-                </div>
-            )}
+            <div className="row">
+                {pedidosFiltrados.map((pedido) => (
+                    <div className="col-12 col-md-6 col-xl-4" key={pedido.id}>
+                        <PedidoCard pedido={pedido} mostrarValor={mostrarValor}>
+                            {aba === "producao" && (
+                                <PedidoActions
+                                    pedido={pedido}
+                                    setor={setor}
+                                    onAtualizar={carregarPedidos}
+                                    onDigitando={alterarDigitando}
+                                />
+                            )}
+                        </PedidoCard>
+                    </div>
+                ))}
+            </div>
 
             {!carregando && pedidosFiltrados.length === 0 && (
                 <div className="text-center mt-5">
