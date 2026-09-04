@@ -27,9 +27,11 @@ import {
     removerItemPedido,
     aprovarPedido,
     criarPedidoOperacional,
-    listarPedidosAbertos
+    listarPedidosAbertos,
+    buscarPedido
 } from "../../../services/pedidoService";
 import { buscarClientesOperacional } from "../../../services/clienteService";
+import { obterNumeroPedido } from "../../../utils/pedidoUtils";
 
 import {
     ABA_PDV,
@@ -289,15 +291,27 @@ function MiniPdv() {
     }, [carregandoRecuperacao]);
 
     const recuperarPedido = useCallback(
-        (pedido) => {
+        async (pedido) => {
             if (!pedido) {
                 return;
             }
 
-            const itensNormalizados = filtrarItensEditaveis(pedido.itens)
+            let pedidoParaRecuperar = pedido;
+
+            try {
+                const response = await buscarPedido(pedido.id);
+
+                if (response.data) {
+                    pedidoParaRecuperar = response.data;
+                }
+            } catch (error) {
+                console.error("Erro ao carregar detalhes do pedido para edição.", error);
+            }
+
+            const itensNormalizados = filtrarItensEditaveis(pedidoParaRecuperar.itens)
                 .map((item) => ({
                     ...item,
-                    id: item.id,
+                    id: item.id ?? item.produtoId ?? item.coreItemId,
                     itemPedidoId: item.id,
                     coreItemId: item.coreItemId,
                     produtoId: item.produtoId,
@@ -305,15 +319,15 @@ function MiniPdv() {
                     preco: Number(item.valorUnitario || 0),
                     quantidade: Number(item.quantidade || 0)
                 }))
-                .filter((item) => item.id && item.quantidade > 0);
+                .filter((item) => item.id && item.produtoId && item.quantidade > 0);
 
             const clienteRecuperado =
-                clientesRecuperacao.find((item) => Number(item.id) === Number(pedido.clienteId)) || null;
+                clientesRecuperacao.find((item) => Number(item.id) === Number(pedidoParaRecuperar.clienteId)) || null;
 
-            carregarPedido(pedido, clienteRecuperado);
+            carregarPedido(pedidoParaRecuperar, clienteRecuperado);
 
             carregarCarrinho(itensNormalizados);
-            carregarPagamentos(pedido.pagamentos || []);
+            carregarPagamentos(pedidoParaRecuperar.pagamentos || []);
             setFocoProdutoSolicitado((atual) => atual + 1);
 
             setEtapa(ETAPA_VENDA);
@@ -962,7 +976,7 @@ function MiniPdv() {
                                             >
                                                 <div className="d-flex justify-content-between align-items-center gap-3">
                                                     <div className="text-start">
-                                                        <div className="fw-semibold">{pedido.numero}</div>
+                                                        <div className="fw-semibold">{obterNumeroPedido(pedido)}</div>
 
                                                         <div className="small">
                                                             {pedido.cliente || "Venda sem cliente"}

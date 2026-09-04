@@ -6,6 +6,7 @@ import BalcaoTabs from "./BalcaoTabs";
 import useBalcaoPainel from "./useBalcaoPainel";
 
 import { ABAS } from "./balcaoAbas";
+import { obterNumeroPedido } from "../../utils/pedidoUtils";
 
 // ============================================================
 // Refatoração do painel de balcão.
@@ -139,7 +140,7 @@ function BalcaoPainel({ aba: abaControlada, onAbaChange, exibirAbas = true }) {
                             <div className="modal-header">
                                 <div>
                                     <h5 className="modal-title">
-                                        Editar Pedido #{String(pedidoSelecionado.id).padStart(4, "0")}
+                                        Editar Pedido {obterNumeroPedido(pedidoSelecionado)}
                                     </h5>
 
                                     <small className="text-muted">Adicione, altere ou remova itens.</small>

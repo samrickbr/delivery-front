@@ -40,6 +40,10 @@ export async function buscarPedido(id) {
     return api.get(`/pedidos/${id}`, configOperacional());
 }
 
+export async function buscarPedidoCliente(id) {
+    return api.get(`/pedidos/${id}`, configCliente());
+}
+
 export async function listarMeusPedidos() {
     return api.get("/pedidos/meus", configCliente());
 }

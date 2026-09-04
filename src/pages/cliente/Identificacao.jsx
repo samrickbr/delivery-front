@@ -48,7 +48,6 @@ function Identificacao() {
                 !formulario.nome.trim() ||
                 !cpf ||
                 !formulario.telefone.trim() ||
-                !formulario.email.trim() ||
                 !formulario.senha ||
                 !formulario.confirmarSenha
             ) {
@@ -64,13 +63,27 @@ function Identificacao() {
             try {
                 setEnviando(true);
 
-                const response = await api.post("/cliente/cadastro", {
+                const dadosCadastro = {
                     nome: formulario.nome.trim(),
                     cpf,
                     telefone: formulario.telefone.trim(),
-                    email: formulario.email.trim(),
+                    senha: formulario.senha
+                };
+
+                const email = formulario.email.trim();
+
+                if (email) {
+                    dadosCadastro.email = email;
+                }
+
+                const response = await api.post("/cliente/cadastro", dadosCadastro);
+
+                const loginResponse = await api.post("/cliente/login", {
+                    cpf,
                     senha: formulario.senha
                 });
+
+                sessionStorage.setItem("clienteToken", loginResponse.data.token);
 
                 sessionStorage.setItem(
                     "cliente",
@@ -83,7 +96,7 @@ function Identificacao() {
                     })
                 );
 
-                sessionStorage.setItem("clienteId", String(response.data.id));
+                sessionStorage.setItem("clienteId", String(loginResponse.data.clienteId || response.data.id));
 
                 window.dispatchEvent(new Event("clienteAtualizado"));
 

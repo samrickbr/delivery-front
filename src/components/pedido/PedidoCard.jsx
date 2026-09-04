@@ -1,4 +1,5 @@
 import HistoricoPedido from "./HistoricoPedido";
+import { obterNumeroPedido } from "../../utils/pedidoUtils";
 
 function PedidoCard({ pedido, children, mostrarValor = true }) {
     function badgeStatus(status) {
@@ -56,20 +57,12 @@ function PedidoCard({ pedido, children, mostrarValor = true }) {
         <div className="card shadow-sm border-0 mb-4">
             <div className="card-header bg-dark text-white d-flex justify-content-between align-items-center">
                 <div>
-                    <h5 className="mb-0 fw-bold">
-                        Pedido #{String(pedido.id).padStart(4, "0")}
-                    </h5>
+                    <h5 className="mb-0 fw-bold">Pedido {obterNumeroPedido(pedido)}</h5>
 
-                    {pedido.clienteNome && (
-                        <small className="text-light opacity-75">
-                            {pedido.clienteNome}
-                        </small>
-                    )}
+                    {pedido.clienteNome && <small className="text-light opacity-75">{pedido.clienteNome}</small>}
                 </div>
 
-                <span className={`badge fs-6 ${badgeStatus(pedido.status)}`}>
-                    {formatarStatus(pedido.status)}
-                </span>
+                <span className={`badge fs-6 ${badgeStatus(pedido.status)}`}>{formatarStatus(pedido.status)}</span>
             </div>
 
             <div className="card-body">
@@ -77,9 +70,7 @@ function PedidoCard({ pedido, children, mostrarValor = true }) {
                     <div>
                         <div className="text-muted small">Cliente</div>
 
-                        <div className="fs-4 fw-bold">
-                            {pedido.clienteNome || "-"}
-                        </div>
+                        <div className="fs-4 fw-bold">{pedido.clienteNome || "-"}</div>
                     </div>
 
                     {mostrarValor && (
@@ -102,36 +93,21 @@ function PedidoCard({ pedido, children, mostrarValor = true }) {
 
                 <ul className="list-group mb-3">
                     {pedido.itens?.map((item) => (
-                        <li
-                            key={item.id}
-                            className="list-group-item"
-                        >
+                        <li key={item.id} className="list-group-item">
                             <div className="d-flex justify-content-between align-items-center">
                                 <div>
                                     <div className="fw-semibold fs-5">
                                         {item.quantidade}x {item.produto}
                                     </div>
 
-                                    {item.categoria && (
-                                        <small className="text-muted">
-                                            {item.categoria}
-                                        </small>
-                                    )}
+                                    {item.categoria && <small className="text-muted">{item.categoria}</small>}
                                 </div>
 
                                 <div className="mt-1 text-end">
-                                    {item.setor && (
-                                        <span className="badge bg-secondary me-1">
-                                            {item.setor}
-                                        </span>
-                                    )}
+                                    {item.setor && <span className="badge bg-secondary me-1">{item.setor}</span>}
 
                                     {item.statusOperacao && (
-                                        <span
-                                            className={`badge ${badgeStatus(
-                                                item.statusOperacao
-                                            )}`}
-                                        >
+                                        <span className={`badge ${badgeStatus(item.statusOperacao)}`}>
                                             {formatarStatus(item.statusOperacao)}
                                         </span>
                                     )}
@@ -143,9 +119,8 @@ function PedidoCard({ pedido, children, mostrarValor = true }) {
 
                 {pedido.aguardaConferencia && (
                     <div className="alert alert-warning">
-                        <strong>Atenção:</strong>{" "}
-                        Todos os setores finalizaram a produção. Verifique os
-                        itens antes de continuar o pedido.
+                        <strong>Atenção:</strong> Todos os setores finalizaram a produção. Verifique os itens antes de
+                        continuar o pedido.
                     </div>
                 )}
 

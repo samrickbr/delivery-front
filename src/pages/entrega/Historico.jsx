@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../../services/api";
+import { obterNumeroPedido } from "../../utils/pedidoUtils";
 
 function Historico() {
     const [pedidos, setPedidos] = useState([]);
@@ -44,7 +45,7 @@ function Historico() {
                 <tbody>
                     {pedidos.map((pedido) => (
                         <tr key={pedido.id}>
-                            <td>#{pedido.id}</td>
+                            <td>{obterNumeroPedido(pedido)}</td>
                             <td>{pedido.clienteNome}</td>
                             <td>
                                 <span

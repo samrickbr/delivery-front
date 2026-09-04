@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { cancelarItens, cancelarPedidoCompleto } from "../../services/pedidoService";
+import { obterNumeroPedido } from "../../utils/pedidoUtils";
 
 function CancelarItensModal({ pedido, setor, mostrar, onFechar, onAtualizar, permitirCompleto = false }) {
     const [tipo, setTipo] = useState("ITEM");
@@ -70,7 +71,7 @@ function CancelarItensModal({ pedido, setor, mostrar, onFechar, onAtualizar, per
             <div className="modal-dialog">
                 <div className="modal-content">
                     <div className="modal-header">
-                        <h5 className="modal-title">Cancelar Pedido #{pedido.id}</h5>
+                        <h5 className="modal-title">Cancelar Pedido {obterNumeroPedido(pedido)}</h5>
 
                         <button type="button" className="btn-close" onClick={fechar} disabled={processando} />
                     </div>

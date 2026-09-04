@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { listarMeusPedidos } from "../../services/pedidoService";
+import { listarMeusPedidos, buscarPedidoCliente } from "../../services/pedidoService";
+import { obterNumeroPedido } from "../../utils/pedidoUtils";
 
 function formatarData(data) {
     if (!data) {
@@ -102,53 +103,34 @@ function PedidoResumo({ pedido, mostrarItens = false }) {
                 <div>
                     <div className="fw-semibold">{formatarData(pedido.dataCriacao)}</div>
 
-                    <div className="text-muted small">
-                        Pedido #{pedido.id}
-                    </div>
+                    <div className="text-muted small">Pedido {obterNumeroPedido(pedido)}</div>
                 </div>
 
-                <div className="fw-semibold">
-                    {formatarValor(pedido.valorTotal)}
-                </div>
+                <div className="fw-semibold">{formatarValor(pedido.valorTotal)}</div>
             </div>
 
             <div className="d-flex flex-wrap align-items-center gap-2 mt-3">
-                <span className="badge text-bg-light border">
-                    {formatarTipoRecebimento(pedido.tipoRecebimento)}
-                </span>
+                <span className="badge text-bg-light border">{formatarTipoRecebimento(pedido.tipoRecebimento)}</span>
 
-                <span className={obterClasseStatus(pedido)}>
-                    Status: {obterStatus(pedido)}
-                </span>
+                <span className={obterClasseStatus(pedido)}>Status: {obterStatus(pedido)}</span>
             </div>
 
             {mostrarItens && (
                 <div className="mt-3 pt-3 border-top">
-                    <div className="fw-semibold mb-2">
-                        Itens do pedido
-                    </div>
+                    <div className="fw-semibold mb-2">Itens do pedido</div>
 
                     {Array.isArray(pedido.itens) && pedido.itens.length > 0 ? (
                         <div className="d-flex flex-column gap-1">
                             {pedido.itens.map((item, index) => (
-                                <div
-                                    key={item.id || index}
-                                    className="d-flex align-items-center gap-2"
-                                >
-                                    <span className="fw-semibold">
-                                        {item.quantidade || 0}x
-                                    </span>
+                                <div key={item.id || index} className="d-flex align-items-center gap-2">
+                                    <span className="fw-semibold">{item.quantidade || 0}x</span>
 
-                                    <span>
-                                        {item.produto || "Produto não identificado"}
-                                    </span>
+                                    <span>{item.produto || "Produto não identificado"}</span>
                                 </div>
                             ))}
                         </div>
                     ) : (
-                        <div className="text-muted small">
-                            Nenhum item encontrado.
-                        </div>
+                        <div className="text-muted small">Nenhum item encontrado.</div>
                     )}
                 </div>
             )}
@@ -174,18 +156,28 @@ function AcompanharPedido() {
                 const response = await listarMeusPedidos();
 
                 if (ativo) {
-                    const lista = Array.isArray(response.data)
-                        ? response.data
-                        : [];
+                    const lista = Array.isArray(response.data) ? response.data : [];
+                    const pedidosComNumero = await Promise.all(
+                        lista.map(async (pedido) => {
+                            if (pedido?.numero || pedido?.numeroPedido || pedido?.numeroComercial || !pedido?.id) {
+                                return pedido;
+                            }
 
-                    setPedidos(lista);
+                            try {
+                                const detalhe = await buscarPedidoCliente(pedido.id);
+
+                                return { ...pedido, ...detalhe.data };
+                            } catch {
+                                return pedido;
+                            }
+                        })
+                    );
+
+                    setPedidos(pedidosComNumero);
                 }
             } catch (error) {
                 if (ativo) {
-                    setErro(
-                        error?.response?.data?.message ||
-                            "Não foi possível carregar seus pedidos."
-                    );
+                    setErro(error?.response?.data?.message || "Não foi possível carregar seus pedidos.");
                 }
             } finally {
                 if (ativo) {

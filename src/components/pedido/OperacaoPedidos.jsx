@@ -1,8 +1,26 @@
 import { useCallback, useEffect, useState } from "react";
 import PedidoActions from "../PedidoActions";
 import PedidoCard from "./PedidoCard";
-import { listarCozinha, listarFinalizados } from "../../services/pedidoService";
+import { buscarPedido, listarCozinha, listarFinalizados } from "../../services/pedidoService";
 import api from "../../services/api";
+
+async function enriquecerNumerosPedidos(pedidos) {
+    return Promise.all(
+        pedidos.map(async (pedido) => {
+            if (pedido?.numero || pedido?.numeroPedido || pedido?.numeroComercial || !pedido?.id) {
+                return pedido;
+            }
+
+            try {
+                const response = await buscarPedido(pedido.id);
+
+                return { ...pedido, ...response.data };
+            } catch {
+                return pedido;
+            }
+        })
+    );
+}
 
 function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
     const [pedidos, setPedidos] = useState([]);
@@ -19,21 +37,17 @@ function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
 
     const carregarPedidos = useCallback(async () => {
         const response = await listarCozinha(setor);
-        setPedidos(response.data);
+        setPedidos(await enriquecerNumerosPedidos(response.data || []));
     }, [setor]);
 
     const carregarFinalizados = useCallback(async () => {
         const response = await listarFinalizados();
 
         const pedidosDoSetor = response.data.filter((pedido) =>
-            pedido.itens?.some(
-                (item) =>
-                    item.setor === setor &&
-                    item.statusOperacao !== "CANCELADO"
-            )
+            pedido.itens?.some((item) => item.setor === setor && item.statusOperacao !== "CANCELADO")
         );
 
-        setPedidos(pedidosDoSetor);
+        setPedidos(await enriquecerNumerosPedidos(pedidosDoSetor));
     }, [setor]);
 
     const atualizar = useCallback(async () => {
@@ -81,11 +95,7 @@ function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
             : filtro === "TODOS"
               ? pedidos
               : pedidos.filter((pedido) =>
-                    pedido.itens?.some(
-                        (item) =>
-                            item.setor === setor &&
-                            item.categoria === filtro
-                    )
+                    pedido.itens?.some((item) => item.setor === setor && item.categoria === filtro)
                 );
 
     const categoriasComQuantidade = categorias
@@ -94,9 +104,7 @@ function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
             quantidade: pedidos.filter((pedido) =>
                 pedido.itens?.some(
                     (item) =>
-                        item.setor === setor &&
-                        item.statusOperacao !== "CANCELADO" &&
-                        item.categoria === categoria.nome
+                        item.setor === setor && item.statusOperacao !== "CANCELADO" && item.categoria === categoria.nome
                 )
             ).length
         }))
@@ -108,11 +116,7 @@ function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
 
             <div className="mb-4">
                 <button
-                    className={`btn ${
-                        aba === "producao"
-                            ? "btn-primary"
-                            : "btn-outline-primary"
-                    } me-2`}
+                    className={`btn ${aba === "producao" ? "btn-primary" : "btn-outline-primary"} me-2`}
                     onClick={() => {
                         setAba("producao");
                         setFiltro("TODOS");
@@ -122,11 +126,7 @@ function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
                 </button>
 
                 <button
-                    className={`btn ${
-                        aba === "finalizados"
-                            ? "btn-primary"
-                            : "btn-outline-primary"
-                    }`}
+                    className={`btn ${aba === "finalizados" ? "btn-primary" : "btn-outline-primary"}`}
                     onClick={() => {
                         setAba("finalizados");
                         setFiltro("TODOS");
@@ -139,11 +139,7 @@ function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
             {aba === "producao" && (
                 <div className="mb-3">
                     <button
-                        className={`btn me-2 ${
-                            filtro === "TODOS"
-                                ? "btn-dark"
-                                : "btn-outline-dark"
-                        }`}
+                        className={`btn me-2 ${filtro === "TODOS" ? "btn-dark" : "btn-outline-dark"}`}
                         onClick={() => setFiltro("TODOS")}
                     >
                         Todos ({pedidos.length})
@@ -152,11 +148,7 @@ function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
                     {categoriasComQuantidade.map((categoria) => (
                         <button
                             key={categoria.id}
-                            className={`btn me-2 ${
-                                filtro === categoria.nome
-                                    ? "btn-dark"
-                                    : "btn-outline-dark"
-                            }`}
+                            className={`btn me-2 ${filtro === categoria.nome ? "btn-dark" : "btn-outline-dark"}`}
                             onClick={() => setFiltro(categoria.nome)}
                         >
                             {categoria.nome} ({categoria.quantidade})
@@ -174,14 +166,8 @@ function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
             {!carregando && (
                 <div className="row">
                     {pedidosFiltrados.map((pedido) => (
-                        <div
-                            className="col-12 col-md-6 col-xl-4"
-                            key={pedido.id}
-                        >
-                            <PedidoCard
-                                pedido={pedido}
-                                mostrarValor={mostrarValor}
-                            >
+                        <div className="col-12 col-md-6 col-xl-4" key={pedido.id}>
+                            <PedidoCard pedido={pedido} mostrarValor={mostrarValor}>
                                 {aba === "producao" && (
                                     <PedidoActions
                                         pedido={pedido}

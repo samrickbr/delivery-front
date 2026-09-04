@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { formatarValor } from "../checkoutUtils";
+import { obterNumeroPedido } from "../../../../utils/pedidoUtils";
 
 function PedidoSucesso({ pedido }) {
     const navigate = useNavigate();
@@ -23,7 +24,7 @@ function PedidoSucesso({ pedido }) {
 
                 {pedido?.id != null && (
                     <p className="fs-5 mb-2">
-                        Pedido <strong>#{pedido.id}</strong>
+                        Pedido <strong>{obterNumeroPedido(pedido)}</strong>
                     </p>
                 )}
 
