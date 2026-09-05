@@ -113,17 +113,27 @@ function MiniPdvEndereco({
                             Endereço de entrega
                         </h2>
 
-                        <button
-                            type="button"
-                            className="btn btn-sm btn-outline-secondary"
-                            onClick={() =>
-                                onEnderecoSelecionado(
-                                    null
-                                )
-                            }
-                        >
-                            Alterar
-                        </button>
+                        <div className="d-flex gap-2">
+                            <button
+                                type="button"
+                                className="btn btn-sm btn-outline-secondary"
+                                onClick={() =>
+                                    onEnderecoSelecionado(
+                                        null
+                                    )
+                                }
+                            >
+                                Alterar
+                            </button>
+
+                            <button
+                                type="button"
+                                className="btn btn-sm btn-outline-primary"
+                                onClick={onCadastrarEndereco}
+                            >
+                                Novo endereço
+                            </button>
+                        </div>
                     </div>
 
                     <div className="border rounded p-3">
@@ -225,7 +235,7 @@ function MiniPdvEndereco({
                                 className="list-group"
                                 style={{
                                     maxHeight:
-                                        "280px",
+                                        "180px",
                                     overflowY:
                                         "auto",
                                     outline: "none"

@@ -1,14 +1,17 @@
 import { Container, Nav, Navbar } from "react-bootstrap";
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 
 function Layout() {
+    const { pathname } = useLocation();
+    const isMiniPdv = pathname === "/minipdv";
+
     return (
-        <>
-            <Navbar bg="dark" variant="dark" expand="lg">
+        <div className={isMiniPdv ? "mini-pdv-layout" : undefined}>
+            <Navbar bg="dark" variant="dark" expand="lg" className="app-navbar">
                 <Container>
                     <Navbar.Brand>SIGIN Delivery</Navbar.Brand>
 
-                    <Nav className="me-auto">
+                    <Nav className="me-auto flex-row flex-nowrap">
                         <Nav.Link as={NavLink} to="/minipdv">
                             Mini PDV
                         </Nav.Link>
@@ -38,10 +41,10 @@ function Layout() {
                 </Container>
             </Navbar>
 
-            <Container className="mt-4">
+            <Container fluid={isMiniPdv} className={isMiniPdv ? "p-0 mini-pdv-content" : "mt-4"}>
                 <Outlet />
             </Container>
-        </>
+        </div>
     );
 }
 

@@ -1,7 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { buscarClientesOperacional } from "../../../services/clienteService";
 
-function MiniPdvCliente({ cliente = null, onClienteSelecionado, onClienteLimpo, onDefinirEntrega, onDefinirRetirada }) {
+function MiniPdvCliente({
+    cliente = null,
+    onClienteSelecionado,
+    onClienteLimpo,
+    onDefinirEntrega,
+    onDefinirRetirada,
+    onCadastrarCliente
+}) {
     const [clienteSelecionado, setClienteSelecionado] = useState(cliente);
     const [busca, setBusca] = useState("");
     const [clientes, setClientes] = useState([]);
@@ -118,18 +125,16 @@ function MiniPdvCliente({ cliente = null, onClienteSelecionado, onClienteLimpo, 
 
     return (
         <div className="border rounded bg-body">
-            <div className="p-3 border-bottom">
-                <div className="d-flex align-items-center justify-content-between">
-                    <strong>Cliente</strong>
-
-                    {clienteAtivo && <span className="badge text-bg-success">Identificado</span>}
-                </div>
-            </div>
-
             <div className="p-3">
                 {!clienteAtivo ? (
                     <div>
-                        <label className="form-label small fw-semibold">Buscar cliente</label>
+                        <div className="d-flex justify-content-between align-items-center mb-2">
+                            <label className="form-label small fw-semibold mb-0">Buscar cliente</label>
+
+                            <button type="button" className="btn btn-sm btn-outline-primary" onClick={onCadastrarCliente}>
+                                Novo cliente
+                            </button>
+                        </div>
 
                         <input
                             type="text"
@@ -153,7 +158,11 @@ function MiniPdvCliente({ cliente = null, onClienteSelecionado, onClienteLimpo, 
                         {erro && <div className="alert alert-danger py-2 mt-2 mb-0">{erro}</div>}
 
                         {!carregando && !erro && clientes.length > 0 && (
-                            <div ref={resultadosRef} className="list-group mt-2">
+                            <div
+                                ref={resultadosRef}
+                                className="list-group mt-2"
+                                style={{ maxHeight: "160px", overflowY: "auto" }}
+                            >
                                 {clientes.map((item, indice) => (
                                     <button
                                         key={item.id}
@@ -185,46 +194,50 @@ function MiniPdvCliente({ cliente = null, onClienteSelecionado, onClienteLimpo, 
                     </div>
                 ) : (
                     <>
-                        <div className="fw-semibold">{clienteAtivo.nome || clienteAtivo.nomeCompleto || "Cliente"}</div>
+                        <div className="d-flex align-items-center justify-content-between gap-3">
+                            <div className="min-w-0">
+                                <div className="fw-semibold text-truncate">
+                                    {clienteAtivo.nome || clienteAtivo.nomeCompleto || "Cliente"}
+                                </div>
 
-                        {clienteAtivo.documento && (
-                            <div className="text-muted small">Documento: {clienteAtivo.documento}</div>
-                        )}
+                                {clienteAtivo.documento && (
+                                    <div className="text-muted small text-truncate">
+                                        Documento: {clienteAtivo.documento}
+                                    </div>
+                                )}
+                            </div>
 
-                        <div className="mt-3">
-                            <div className="small fw-semibold mb-2">Tipo de atendimento</div>
-
-                            <div className="d-flex gap-2">
-                                <button type="button" className="btn btn-primary flex-fill" onClick={onDefinirRetirada}>
+                            <div className="d-flex gap-2 flex-shrink-0">
+                                <button type="button" className="btn btn-primary" onClick={onDefinirRetirada}>
                                     Retirada
                                 </button>
 
                                 <button
                                     type="button"
-                                    className="btn btn-outline-primary flex-fill"
+                                    className="btn btn-outline-primary"
                                     onClick={onDefinirEntrega}
                                 >
                                     Entrega
                                 </button>
                             </div>
+                        </div>
 
-                            <div className="d-flex gap-2 mt-2">
-                                <button
-                                    type="button"
-                                    className="btn btn-link btn-sm px-0 text-decoration-none"
-                                    onClick={confirmarAlteracaoCliente}
-                                >
-                                    Trocar cliente
-                                </button>
+                        <div className="d-flex gap-2 mt-2">
+                            <button
+                                type="button"
+                                className="btn btn-link btn-sm px-0 text-decoration-none"
+                                onClick={confirmarAlteracaoCliente}
+                            >
+                                Trocar cliente
+                            </button>
 
-                                <button
-                                    type="button"
-                                    className="btn btn-link btn-sm px-0 text-decoration-none"
-                                    onClick={confirmarAlteracaoCliente}
-                                >
-                                    Sem cliente
-                                </button>
-                            </div>
+                            <button
+                                type="button"
+                                className="btn btn-link btn-sm px-0 text-decoration-none"
+                                onClick={confirmarAlteracaoCliente}
+                            >
+                                Sem cliente
+                            </button>
                         </div>
                     </>
                 )}

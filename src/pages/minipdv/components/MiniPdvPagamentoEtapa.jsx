@@ -187,11 +187,14 @@ function MiniPdvPagamentoEtapa({
     }
 
     return (
-        <div className="container-fluid py-3">
-            <div className="row justify-content-center">
-                <div className="col-12 col-lg-8 col-xl-7">
-                    <div className="card border-0 shadow-sm">
-                        <div className="card-body p-4">
+        <div
+            className="container-fluid py-3 d-flex flex-column mini-pdv-page"
+            style={{ minHeight: 0 }}
+        >
+            <div className="row justify-content-center flex-grow-1" style={{ minHeight: 0 }}>
+                <div className="col-12 col-lg-8 col-xl-7 d-flex" style={{ minHeight: 0 }}>
+                    <div className="card border-0 shadow-sm flex-grow-1" style={{ minHeight: 0 }}>
+                        <div className="card-body p-4 overflow-y-auto">
                             <div className="d-flex align-items-center justify-content-between mb-4">
                                 <div>
                                     <h1 className="h4 mb-1">

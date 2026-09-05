@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-import { ABA_PDV, ETAPA_PAGAMENTO, ETAPA_VENDA } from "../utils/miniPdvUtils";
+import { ETAPA_PAGAMENTO, ETAPA_VENDA } from "../utils/miniPdvUtils";
 
 function deveIgnorarTecla(event) {
     const { target } = event;
@@ -19,7 +19,6 @@ function deveIgnorarTecla(event) {
 }
 
 function useMiniPdvAtalhos({
-    aba,
     etapa,
     alertOpen,
     trocoFinal,
@@ -36,7 +35,7 @@ function useMiniPdvAtalhos({
             return;
         }
 
-        if (aba !== ABA_PDV || etapa !== ETAPA_VENDA) {
+        if (etapa !== ETAPA_VENDA) {
             return;
         }
 
@@ -79,7 +78,7 @@ function useMiniPdvAtalhos({
         return () => {
             window.removeEventListener("keydown", tratarTecla);
         };
-    }, [aba, etapa, alertOpen, trocoFinal, onFinalizarVenda, onEnviarBalcao, onRecuperarVenda, onLimparNovaVenda]);
+    }, [etapa, alertOpen, trocoFinal, onFinalizarVenda, onEnviarBalcao, onRecuperarVenda, onLimparNovaVenda]);
 
     useEffect(() => {
         if (!alertOpen && trocoFinal <= 0) {
@@ -117,7 +116,7 @@ function useMiniPdvAtalhos({
     }, [alertOpen, trocoFinal, onFecharAlerta, onFecharTrocoModal]);
 
     useEffect(() => {
-        if (aba !== ABA_PDV || etapa !== ETAPA_PAGAMENTO) {
+        if (etapa !== ETAPA_PAGAMENTO) {
             return;
         }
 
@@ -139,7 +138,7 @@ function useMiniPdvAtalhos({
         return () => {
             window.removeEventListener("keydown", tratarTecla);
         };
-    }, [aba, etapa, onVoltarParaVenda]);
+    }, [etapa, onVoltarParaVenda]);
 }
 
 export default useMiniPdvAtalhos;

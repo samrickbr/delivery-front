@@ -1,21 +1,44 @@
+import { useEffect, useRef } from "react";
 import { formatarValor } from "../../cardapio/cardapioUtils";
 
 function MiniPdvCarrinho({
     carrinho = [],
-    valorProdutos = 0,
     onAdicionarProduto,
     onDiminuirProduto,
     onRemoverProduto
 }) {
+    const listaItensRef = useRef(null);
+    const quantidadeItensAnteriorRef = useRef(carrinho.length);
+
+    useEffect(() => {
+        const houveInclusao = carrinho.length > quantidadeItensAnteriorRef.current;
+
+        quantidadeItensAnteriorRef.current = carrinho.length;
+
+        if (!houveInclusao) {
+            return;
+        }
+
+        const animationFrameId = requestAnimationFrame(() => {
+            const listaItens = listaItensRef.current;
+
+            if (listaItens) {
+                listaItens.scrollTop = listaItens.scrollHeight;
+            }
+        });
+
+        return () => cancelAnimationFrame(animationFrameId);
+    }, [carrinho.length]);
+
     return (
         <div
-            className="d-flex flex-column h-100"
+            className="d-flex flex-column flex-grow-1"
             style={{
                 minHeight: 0
             }}
         >
             {carrinho.length === 0 ? (
-                <div className="d-flex flex-column align-items-center justify-content-center h-100 text-muted text-center p-4">
+                <div className="d-flex flex-column flex-grow-1 align-items-center justify-content-center text-muted text-center p-4">
                     <div className="fs-1 mb-2">
                         +
                     </div>
@@ -34,20 +57,15 @@ function MiniPdvCarrinho({
                     {/* =================================================
                         CABEÇALHO DA TABELA
                     ================================================== */}
-                    <div
-                        className="table-responsive"
-                        style={{
-                            overflow: "hidden"
-                        }}
-                    >
-                        <table className="table table-sm mb-0 align-middle">
+                    <div>
+                        <table className="table table-sm mb-0 align-middle mini-pdv-items-table">
                             <thead className="table-light">
                                 <tr>
                                     <th style={{ width: "45px" }}>
                                         Item
                                     </th>
 
-                                    <th style={{ width: "130px" }}>
+                                    <th className="d-none d-xl-table-cell" style={{ width: "110px" }}>
                                         Código
                                     </th>
 
@@ -57,21 +75,21 @@ function MiniPdvCarrinho({
 
                                     <th
                                         className="text-center"
-                                        style={{ width: "100px" }}
+                                        style={{ width: "90px" }}
                                     >
                                         Qtd
                                     </th>
 
                                     <th
-                                        className="text-end"
-                                        style={{ width: "120px" }}
+                                        className="text-end d-none d-xl-table-cell"
+                                        style={{ width: "100px" }}
                                     >
                                         Unit.
                                     </th>
 
                                     <th
-                                        className="text-end"
-                                        style={{ width: "120px" }}
+                                        className="text-end d-none d-md-table-cell"
+                                        style={{ width: "100px" }}
                                     >
                                         Total
                                     </th>
@@ -86,14 +104,14 @@ function MiniPdvCarrinho({
                         ITENS — ÚNICA ÁREA COM ROLAGEM
                     ================================================== */}
                     <div
-                        className="flex-grow-1"
+                        ref={listaItensRef}
+                        className={`flex-grow-1 ${carrinho.length > 6 ? "mini-pdv-items-scrollable" : ""}`}
                         style={{
                             minHeight: 0,
-                            overflowY: "auto",
-                            overflowX: "hidden"
+                            overflowY: "auto"
                         }}
                     >
-                        <table className="table table-sm table-hover mb-0 align-middle">
+                        <table className="table table-sm table-hover mb-0 align-middle mini-pdv-items-table">
                             <tbody>
                                 {carrinho.map(
                                     (
@@ -135,23 +153,21 @@ function MiniPdvCarrinho({
                                                 </td>
 
                                                 <td
-                                                    className="text-muted small"
-                                                    style={{
-                                                        width: "130px"
-                                                    }}
+                                                    className="text-muted small d-none d-xl-table-cell"
+                                                    style={{ width: "110px" }}
                                                 >
                                                     {codigo}
                                                 </td>
 
-                                                <td>
-                                                    <div className="fw-semibold">
+                                                <td className="overflow-hidden">
+                                                    <div className="fw-semibold mini-pdv-item-description">
                                                         {
                                                             produto.nome
                                                         }
                                                     </div>
 
                                                     {produto.descricao && (
-                                                        <small className="text-muted">
+                                                        <small className="text-muted mini-pdv-item-description d-block">
                                                             {
                                                                 produto.descricao
                                                             }
@@ -161,7 +177,7 @@ function MiniPdvCarrinho({
 
                                                 <td
                                                     style={{
-                                                        width: "100px"
+                                                        width: "90px"
                                                     }}
                                                 >
                                                     <div className="d-flex align-items-center justify-content-center gap-1">
@@ -206,9 +222,9 @@ function MiniPdvCarrinho({
                                                 </td>
 
                                                 <td
-                                                    className="text-end"
+                                                    className="text-end d-none d-xl-table-cell"
                                                     style={{
-                                                        width: "120px"
+                                                        width: "100px"
                                                     }}
                                                 >
                                                     {formatarValor(
@@ -217,9 +233,9 @@ function MiniPdvCarrinho({
                                                 </td>
 
                                                 <td
-                                                    className="text-end fw-semibold"
+                                                    className="text-end fw-semibold d-none d-md-table-cell"
                                                     style={{
-                                                        width: "120px"
+                                                        width: "100px"
                                                     }}
                                                 >
                                                     {formatarValor(
@@ -254,22 +270,6 @@ function MiniPdvCarrinho({
                         </table>
                     </div>
 
-                    {/* =================================================
-                        RODAPÉ FIXO DO TICKET
-                    ================================================== */}
-                    <div className="border-top bg-body p-3">
-                        <div className="d-flex align-items-center justify-content-between">
-                            <span className="fs-5 fw-semibold">
-                                SUBTOTAL
-                            </span>
-
-                            <strong className="fs-2">
-                                {formatarValor(
-                                    valorProdutos
-                                )}
-                            </strong>
-                        </div>
-                    </div>
                 </>
             )}
         </div>

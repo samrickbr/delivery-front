@@ -6,6 +6,9 @@ import MiniPdvCliente from "../components/MiniPdvCliente";
 import MiniPdvEndereco from "../components/MiniPdvEndereco";
 import MiniPdvPagamentoEtapa from "../components/MiniPdvPagamentoEtapa";
 import MiniPdvAcoes from "../components/MiniPdvAcoes";
+import MiniPdvResumo from "../components/MiniPdvResumo";
+import MiniPdvClienteModal from "../components/MiniPdvClienteModal";
+import EnderecoModal from "../../cliente/checkout/components/EnderecoModal";
 
 import useMiniPdv from "../hooks/useMiniPdv";
 import useMiniPdvCarrinho from "../hooks/useMiniPdvCarrinho";
@@ -13,12 +16,10 @@ import useMiniPdvFormasPagamento from "../hooks/useMiniPdvFormasPagamento";
 import useMiniPdvPagamentos from "../hooks/useMiniPdvPagamentos";
 import useMiniPdvFluxo from "../hooks/useMiniPdvFluxo";
 import useMiniPdvAtalhos from "../hooks/useMiniPdvAtalhos";
+import useMiniPdvCadastro from "../hooks/useMiniPdvCadastro";
 import useKeyboardAlert from "../../../hooks/useKeyboardAlert";
 
 import KeyboardAlert from "../../../components/KeyboardAlert";
-
-import BalcaoPainel from "../../../components/pedido/BalcaoPainel";
-import { ABAS } from "../../../components/pedido/balcaoAbas";
 
 import { buscarTaxaEntrega } from "../../../services/configuracaoService";
 import {
@@ -34,7 +35,6 @@ import { buscarClientesOperacional } from "../../../services/clienteService";
 import { obterNumeroPedido } from "../../../utils/pedidoUtils";
 
 import {
-    ABA_PDV,
     ETAPA_PAGAMENTO,
     ETAPA_VENDA,
     calcularValorVenda,
@@ -43,8 +43,6 @@ import {
 } from "../utils/miniPdvUtils";
 
 function MiniPdv() {
-    const [aba, setAba] = useState(ABA_PDV);
-
     const [taxaEntregaConfigurada, setTaxaEntregaConfigurada] = useState(null);
     const [carregandoTaxaEntrega, setCarregandoTaxaEntrega] = useState(false);
     const [erroTaxaEntrega, setErroTaxaEntrega] = useState("");
@@ -76,9 +74,27 @@ function MiniPdv() {
         selecionarEndereco,
         definirEntrega,
         definirRetirada,
+        carregarEnderecosCliente,
         carregarPedido,
         limparVenda
     } = useMiniPdv();
+
+    const {
+        cadastroClienteAberto,
+        cadastroEnderecoAberto,
+        abrirCadastroCliente,
+        fecharCadastroCliente,
+        abrirCadastroEndereco,
+        fecharCadastroEndereco,
+        salvarCliente,
+        salvarEndereco,
+        selecionarEnderecoCadastrado
+    } = useMiniPdvCadastro({
+        cliente,
+        selecionarCliente,
+        selecionarEndereco,
+        carregarEnderecosCliente
+    });
 
     useEffect(() => {
         if (tipoRecebimento !== "ENTREGA") {
@@ -331,7 +347,6 @@ function MiniPdv() {
             setFocoProdutoSolicitado((atual) => atual + 1);
 
             setEtapa(ETAPA_VENDA);
-            setAba(ABA_PDV);
 
             setMostrarRecuperacao(false);
             setPedidosAbertos([]);
@@ -479,7 +494,6 @@ function MiniPdv() {
     }
 
     useMiniPdvAtalhos({
-        aba,
         etapa,
         alertOpen: alertState.open,
         trocoFinal,
@@ -492,14 +506,12 @@ function MiniPdv() {
         onFecharTrocoModal: () => setTrocoFinal(0)
     });
 
-    const novaVenda = aba === ABA_PDV;
-
     const podeFinalizarVenda =
         podeFinalizar &&
         carrinho.length > 0 &&
         !(tipoRecebimento === "ENTREGA" && (taxaEntrega === null || carregandoTaxaEntrega));
 
-    if (novaVenda && etapa === ETAPA_PAGAMENTO) {
+    if (etapa === ETAPA_PAGAMENTO) {
         return (
             <>
                 <MiniPdvPagamentoEtapa
@@ -638,221 +650,114 @@ function MiniPdv() {
     return (
         <>
             <div
-                className="container-fluid py-3 d-flex flex-column"
+                className="container-fluid py-3 d-flex flex-column mini-pdv-page"
                 style={{
-                    height: "calc(100vh - 88px)",
-                    minHeight: 0,
-                    overflow: "hidden"
+                    minHeight: 0
                 }}
             >
-                <div className="d-flex align-items-center justify-content-between mb-3">
-                    <div>
-                        <h1 className="h4 mb-0">SIGIN — Mini PDV</h1>
+                <div className="d-flex align-items-center justify-content-between flex-shrink-0 mb-3">
+                    <h1 className="h4 mb-0">SIGIN — Mini PDV</h1>
 
-                        <small className="text-muted">Centro Operacional</small>
+                    <span className="badge text-bg-secondary">
+                        {pedidoId ? `Pedido ${pedidoId} em atendimento` : "Venda em atendimento"}
+                    </span>
+                </div>
+
+                {erro && <div className="alert alert-danger py-2 flex-shrink-0">{erro}</div>}
+
+                <div className="row g-2 flex-shrink-0 mb-2">
+                    <div className={tipoRecebimento === "ENTREGA" ? "col-6" : "col-12"}>
+                        <MiniPdvCliente
+                            cliente={cliente}
+                            onClienteSelecionado={selecionarCliente}
+                            onClienteLimpo={() => selecionarCliente(null)}
+                            onDefinirEntrega={definirEntrega}
+                            onDefinirRetirada={definirRetirada}
+                            onCadastrarCliente={abrirCadastroCliente}
+                        />
                     </div>
 
-                    {novaVenda && (
-                        <span className="badge text-bg-secondary">
-                            {pedidoId ? `Pedido ${pedidoId} em atendimento` : "Venda em atendimento"}
-                        </span>
+                    {tipoRecebimento === "ENTREGA" && (
+                        <div className="col-6">
+                            <MiniPdvEndereco
+                                cliente={cliente}
+                                enderecos={enderecos}
+                                endereco={endereco}
+                                carregando={carregandoEnderecos}
+                                erro={erroEnderecos}
+                                onEnderecoSelecionado={selecionarEndereco}
+                                onCadastrarEndereco={abrirCadastroEndereco}
+                            />
+                        </div>
                     )}
                 </div>
 
-                {novaVenda && (
-                    <div className="d-flex flex-wrap align-items-center gap-2 small text-muted mb-3">
-                        <span className="fw-semibold">Atalhos:</span>
-                        <span>
-                            <kbd>F2</kbd> Finalizar
-                        </span>
-                        <span>
-                            <kbd>F3</kbd> Recuperar
-                        </span>
-                        <span>
-                            <kbd>F4</kbd> Limpar
-                        </span>
-                        <span>
-                            <kbd>F5</kbd> Enviar para produção
-                        </span>
+                <div className="row g-2 flex-grow-1" style={{ minHeight: 0 }}>
+                    <div className="col-4 d-flex flex-column gap-2" style={{ minHeight: 0 }}>
+                        <MiniPdvProdutos
+                            carrinho={carrinho}
+                            onAdicionarProduto={adicionarProdutoPdv}
+                            focoSolicitado={focoProdutoSolicitado}
+                        />
+
+                        {tipoRecebimento === "ENTREGA" && erroTaxaEntrega && (
+                            <div className="alert alert-warning py-2 mb-0">{erroTaxaEntrega}</div>
+                        )}
+
+                        {erroFormasPagamento && <div className="alert alert-danger py-2 mb-0">{erroFormasPagamento}</div>}
+
+                        {carregandoFormasPagamento && (
+                            <div className="text-muted small">Carregando formas de pagamento...</div>
+                        )}
+
+                        <MiniPdvResumo
+                            valorProdutos={valorProdutos}
+                            taxaEntrega={taxaEntrega}
+                            valorTotal={valorVenda}
+                            tipoRecebimento={tipoRecebimento}
+                        />
+
+                        <MiniPdvAcoes
+                            podeFinalizar={podeFinalizarVenda}
+                            carregando={carregando || carregandoRecuperacao || enviandoParaProducao}
+                            onFinalizar={finalizarVenda}
+                            onEnviarBalcao={enviarParaBalcao}
+                            onRecuperar={abrirRecuperacao}
+                            onLimpar={solicitarLimpezaVenda}
+                        />
                     </div>
-                )}
 
-                <div className="mb-4">
-                    <button
-                        type="button"
-                        className={`btn me-2 ${novaVenda ? "btn-dark" : "btn-outline-dark"}`}
-                        onClick={() => {
-                            setAba(ABA_PDV);
-                            setEtapa(ETAPA_VENDA);
-                        }}
-                    >
-                        PDV
-                    </button>
+                    <div className="col-8 d-flex" style={{ minHeight: 0 }}>
+                        <div className="card border-0 shadow-sm flex-grow-1" style={{ minHeight: 0 }}>
+                            <div className="card-body d-flex flex-column p-0" style={{ minHeight: 0 }}>
+                                <div className="p-3 border-bottom flex-shrink-0">
+                                    <h2 className="h5 mb-0">Itens da venda</h2>
+                                </div>
 
-                    <button
-                        type="button"
-                        className={`btn me-2 ${aba === ABAS.PEDIDOS ? "btn-primary" : "btn-outline-primary"}`}
-                        onClick={() => setAba(ABAS.PEDIDOS)}
-                    >
-                        📥 Pedidos
-                    </button>
-
-                    <button
-                        type="button"
-                        className={`btn me-2 ${aba === ABAS.CONFERENCIA ? "btn-info" : "btn-outline-info"}`}
-                        onClick={() => setAba(ABAS.CONFERENCIA)}
-                    >
-                        ✔ Conferência
-                    </button>
-
-                    <button
-                        type="button"
-                        className={`btn me-2 ${aba === ABAS.SEPARACAO ? "btn-success" : "btn-outline-success"}`}
-                        onClick={() => setAba(ABAS.SEPARACAO)}
-                    >
-                        📦 Separação
-                    </button>
-
-                    <button
-                        type="button"
-                        className={`btn ${aba === ABAS.RETIRADA ? "btn-warning" : "btn-outline-warning"}`}
-                        onClick={() => setAba(ABAS.RETIRADA)}
-                    >
-                        🛍️ Retirada
-                    </button>
-                </div>
-
-                {erro && novaVenda && <div className="alert alert-danger py-2">{erro}</div>}
-
-                {novaVenda ? (
-                    <div className="row g-3 flex-grow-1" style={{ minHeight: 0, overflow: "hidden" }}>
-                        <div className="col-12 col-lg-5 col-xl-4 h-100" style={{ minHeight: 0 }}>
-                            <div className="d-flex flex-column gap-3 h-100">
-                                <MiniPdvProdutos
+                                <MiniPdvCarrinho
                                     carrinho={carrinho}
                                     onAdicionarProduto={adicionarProdutoPdv}
-                                    onDiminuirProduto={diminuirProduto}
+                                    onDiminuirProduto={diminuirProdutoPdv}
                                     onRemoverProduto={removerProdutoPdv}
-                                    focoSolicitado={focoProdutoSolicitado}
                                 />
-
-                                <MiniPdvCliente
-                                    cliente={cliente}
-                                    onClienteSelecionado={selecionarCliente}
-                                    onClienteLimpo={() => selecionarCliente(null)}
-                                    onDefinirEntrega={definirEntrega}
-                                    onDefinirRetirada={definirRetirada}
-                                />
-
-                                {tipoRecebimento === "ENTREGA" && (
-                                    <MiniPdvEndereco
-                                        cliente={cliente}
-                                        enderecos={enderecos}
-                                        endereco={endereco}
-                                        carregando={carregandoEnderecos}
-                                        erro={erroEnderecos}
-                                        onEnderecoSelecionado={selecionarEndereco}
-                                        onCadastrarEndereco={() => {}}
-                                    />
-                                )}
-
-                                {tipoRecebimento === "ENTREGA" && erroTaxaEntrega && (
-                                    <div className="alert alert-warning py-2 mb-0">{erroTaxaEntrega}</div>
-                                )}
-
-                                {erroFormasPagamento && (
-                                    <div className="alert alert-danger py-2 mb-0">{erroFormasPagamento}</div>
-                                )}
-
-                                {carregandoFormasPagamento && (
-                                    <div className="text-muted small">Carregando formas de pagamento...</div>
-                                )}
-
-                                <MiniPdvAcoes
-                                    podeFinalizar={podeFinalizarVenda}
-                                    carregando={carregando || carregandoRecuperacao || enviandoParaProducao}
-                                    onFinalizar={finalizarVenda}
-                                    onEnviarBalcao={enviarParaBalcao}
-                                    onRecuperar={abrirRecuperacao}
-                                    onLimpar={solicitarLimpezaVenda}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="col-12 col-lg-7 col-xl-8">
-                            <div className="card border-0 shadow-sm h-100">
-                                <div className="card-body d-flex flex-column p-0">
-                                    <div className="p-3 border-bottom">
-                                        <h2 className="h5 mb-0">Venda</h2>
-
-                                        <small className="text-muted">
-                                            {pedidoId ? `Pedido ${pedidoId} em atendimento` : "Itens da venda atual"}
-                                        </small>
-                                    </div>
-
-                                    <div
-                                        className="flex-grow-1"
-                                        style={{
-                                            minHeight: 0,
-                                            overflowY: "auto"
-                                        }}
-                                    >
-                                        <MiniPdvCarrinho
-                                            carrinho={carrinho}
-                                            valorProdutos={valorProdutos}
-                                            onAdicionarProduto={adicionarProdutoPdv}
-                                            onDiminuirProduto={diminuirProdutoPdv}
-                                            onRemoverProduto={removerProdutoPdv}
-                                            onLimparCarrinho={limparCarrinho}
-                                        />
-                                    </div>
-
-                                    <div className="border-top p-4">
-                                        <div className="d-flex justify-content-between mb-2">
-                                            <span>Produtos</span>
-
-                                            <strong>R$ {Number(valorProdutos).toFixed(2)}</strong>
-                                        </div>
-
-                                        {tipoRecebimento === "ENTREGA" && (
-                                            <div className="d-flex justify-content-between mb-2">
-                                                <span>Taxa de entrega</span>
-
-                                                <strong>
-                                                    {taxaEntrega === null
-                                                        ? "Calculando..."
-                                                        : `R$ ${Number(taxaEntrega).toFixed(2)}`}
-                                                </strong>
-                                            </div>
-                                        )}
-
-                                        <div className="d-flex align-items-center justify-content-between border-top pt-3">
-                                            <span className="fs-5 fw-semibold">Total</span>
-
-                                            <strong className="fs-2">R$ {Number(valorVenda).toFixed(2)}</strong>
-                                        </div>
-
-                                        {cliente && (
-                                            <div className="text-muted small mt-2">
-                                                Cliente: {cliente.nome || cliente.nomeCompleto || cliente}
-                                            </div>
-                                        )}
-
-                                        {tipoRecebimento === "ENTREGA" && endereco && (
-                                            <div className="text-muted small mt-1">
-                                                Entrega para {endereco.logradouro || endereco.rua}
-                                                {endereco.numero ? `, ${endereco.numero}` : ""}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     </div>
-                ) : (
-                    <BalcaoPainel aba={aba} onAbaChange={setAba} exibirAbas={false} />
-                )}
+                </div>
             </div>
+
+            <MiniPdvClienteModal
+                aberto={cadastroClienteAberto}
+                onFechar={fecharCadastroCliente}
+                onSalvo={salvarCliente}
+            />
+
+            <EnderecoModal
+                aberto={cadastroEnderecoAberto}
+                onFechar={fecharCadastroEndereco}
+                onSalvo={selecionarEnderecoCadastrado}
+                salvarEndereco={salvarEndereco}
+            />
 
             {mostrarRecuperacao && (
                 <div

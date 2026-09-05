@@ -1,0 +1,141 @@
+.app-navbar {
+    flex-wrap: nowrap;
+}
+
+.app-navbar > .container {
+    flex-wrap: nowrap;
+    max-width: none;
+    min-width: 0;
+}
+
+.app-navbar .navbar-brand {
+    flex: 0 1 auto;
+    font-size: clamp(0.7rem, 1.3vw, 1.25rem);
+    margin-right: clamp(0.25rem, 1vw, 1rem);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.app-navbar .navbar-nav {
+    flex: 1 1 auto;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    min-width: 0;
+}
+
+.app-navbar .nav-link {
+    font-size: clamp(0.55rem, 1vw, 1rem);
+    padding: 0.35rem clamp(0.15rem, 0.75vw, 0.75rem);
+    white-space: nowrap;
+}
+
+.mini-pdv-page {
+    height: 100%;
+    min-height: 0;
+}
+
+.mini-pdv-layout {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.mini-pdv-layout .app-navbar {
+    flex-shrink: 0;
+}
+
+.mini-pdv-content {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.mini-pdv-content > .mini-pdv-page {
+    flex: 1 1 auto;
+}
+
+.mini-pdv-page .card-body {
+    padding: clamp(0.5rem, 1vw, 1rem);
+}
+
+.mini-pdv-page .form-control,
+.mini-pdv-page .btn {
+    font-size: inherit;
+}
+
+.mini-pdv-page .mini-pdv-items-table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+.mini-pdv-page .row.flex-grow-1,
+.mini-pdv-page .row.flex-grow-1 > [class*="col-"] {
+    min-height: 0;
+}
+
+.mini-pdv-page .mini-pdv-item-description {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mini-pdv-page .mini-pdv-items-scrollable {
+    max-height: 252px;
+}
+
+@media (max-height: 760px) {
+    .mini-pdv-page {
+        font-size: 0.8rem;
+    }
+
+    .mini-pdv-page .py-3 {
+        padding-top: 0.5rem !important;
+        padding-bottom: 0.5rem !important;
+    }
+
+    .mini-pdv-page .mb-3,
+    .mini-pdv-page .mb-2 {
+        margin-bottom: 0.5rem !important;
+    }
+
+    .mini-pdv-page .gap-3 {
+        gap: 0.5rem !important;
+    }
+
+    .mini-pdv-page .fs-4 {
+        font-size: 1.25rem !important;
+    }
+}
+
+@media (max-width: 767px) {
+    .mini-pdv-page {
+        font-size: 0.7rem;
+    }
+
+    .mini-pdv-page .container-fluid {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
+
+    .mini-pdv-page .h4 {
+        font-size: 1rem;
+    }
+
+    .mini-pdv-page .h5 {
+        font-size: 0.9rem;
+    }
+
+    .mini-pdv-page .btn {
+        padding: 0.25rem 0.35rem;
+    }
+
+    .mini-pdv-page .form-control {
+        min-height: 0;
+        padding: 0.25rem 0.35rem;
+    }
+}

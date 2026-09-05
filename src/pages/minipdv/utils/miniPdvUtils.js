@@ -1,4 +1,3 @@
-export const ABA_PDV = "pdv";
 export const ETAPA_VENDA = "venda";
 export const ETAPA_PAGAMENTO = "pagamento";
 

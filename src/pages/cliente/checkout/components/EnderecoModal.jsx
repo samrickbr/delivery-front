@@ -14,7 +14,7 @@ const ENDERECO_INICIAL = {
     principal: false
 };
 
-function EnderecoModal({ aberto, onFechar, onSalvo }) {
+function EnderecoModal({ aberto, onFechar, onSalvo, salvarEndereco = criarEnderecoCliente }) {
     const [formulario, setFormulario] = useState(ENDERECO_INICIAL);
     const [salvando, setSalvando] = useState(false);
     const [erro, setErro] = useState("");
@@ -102,7 +102,7 @@ function EnderecoModal({ aberto, onFechar, onSalvo }) {
                 principal: formulario.principal
             };
 
-            const endereco = await criarEnderecoCliente(dados);
+            const endereco = await salvarEndereco(dados);
 
             setFormulario({ ...ENDERECO_INICIAL });
 

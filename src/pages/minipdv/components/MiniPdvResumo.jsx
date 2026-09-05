@@ -45,7 +45,7 @@ function MiniPdvResumo({
 
                         <span className="fs-4 fw-bold">
                             {valorTotal === null
-                                ? "Aguardando..."
+                                ? "Calculando..."
                                 : `R$ ${Number(
                                       valorTotal
                                   ).toFixed(2)}`}

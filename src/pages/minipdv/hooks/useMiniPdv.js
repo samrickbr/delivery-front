@@ -141,6 +141,7 @@ function useMiniPdv() {
 
         definirEntrega,
         definirRetirada,
+        carregarEnderecosCliente,
 
         carregarPedido,
         limparVenda,

@@ -196,7 +196,7 @@ function MiniPdvProdutos({ carrinho = [], onAdicionarProduto, focoSolicitado = 0
                                     ref={resultadosRef}
                                     className="list-group"
                                     style={{
-                                        maxHeight: "360px",
+                                        maxHeight: "180px",
                                         overflowY: "auto"
                                     }}
                                 >
@@ -248,14 +248,6 @@ function MiniPdvProdutos({ carrinho = [], onAdicionarProduto, focoSolicitado = 0
                                 </div>
                             </>
                         )}
-                    </div>
-                )}
-
-                {!busca && (
-                    <div className="text-muted text-center py-4">
-                        Aguardando produto...
-                        <br />
-                        <small>Use o leitor de código de barras ou digite para pesquisar.</small>
                     </div>
                 )}
             </div>
