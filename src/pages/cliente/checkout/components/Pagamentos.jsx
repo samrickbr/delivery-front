@@ -1,16 +1,34 @@
+import { CAMPOS_CHECKOUT } from "../checkoutCampos";
+import { useCampoErro } from "../hooks/useCampoErro";
+
 function formatarValor(valor) {
     return `R$ ${Number(valor || 0)
         .toFixed(2)
         .replace(".", ",")}`;
 }
 
-function Pagamentos({ formasPagamento, carregando, erro, pagamentos, valorTotal, onSelecionarForma }) {
+function Pagamentos({ formasPagamento, carregando, erro, pagamentos, valorTotal, onSelecionarForma, campoErro, versaoErro }) {
+    const { ref, comErro, animando } = useCampoErro({
+        campos: [CAMPOS_CHECKOUT.PAGAMENTO, CAMPOS_CHECKOUT.VALOR_PAGAMENTO],
+        campoErro,
+        versaoErro
+    });
+
     const formasSelecionadas = pagamentos.map((pagamento) => Number(pagamento.formaPagamentoId));
 
     const totalSelecionado = pagamentos.length > 0 ? Number(valorTotal) || 0 : 0;
 
     return (
-        <section className="card border-0 shadow-sm mb-3">
+        <section
+            ref={ref}
+            tabIndex="-1"
+            className="card border-0 shadow-sm mb-3"
+            style={{
+                outline: comErro ? "2px solid var(--bs-danger)" : "2px solid transparent",
+                boxShadow: animando ? "0 0 0 0.25rem rgba(var(--bs-danger-rgb), 0.18)" : "none",
+                transition: "outline-color 150ms ease, box-shadow 150ms ease"
+            }}
+        >
             <div className="card-body py-3">
                 <div className="d-flex align-items-center justify-content-between mb-3">
                     <h5 className="fw-semibold mb-0">Pagamento</h5>

@@ -1,3 +1,6 @@
+import { CAMPOS_CHECKOUT } from "../checkoutCampos";
+import { useCampoErro } from "../hooks/useCampoErro";
+
 function formatarEndereco(endereco) {
     const linhaPrincipal = [endereco.logradouro, endereco.numero].filter(Boolean).join(", ");
 
@@ -6,9 +9,33 @@ function formatarEndereco(endereco) {
     return [linhaPrincipal, linhaSecundaria, endereco.cep].filter(Boolean).join(" • ");
 }
 
-function EnderecoEntrega({ enderecos, enderecoSelecionado, onChange, disabled, carregando, onNovoEndereco }) {
+function EnderecoEntrega({
+    enderecos,
+    enderecoSelecionado,
+    onChange,
+    disabled,
+    carregando,
+    onNovoEndereco,
+    campoErro,
+    versaoErro
+}) {
+    const { ref, comErro, animando } = useCampoErro({
+        campos: [CAMPOS_CHECKOUT.ENDERECO],
+        campoErro,
+        versaoErro
+    });
+
     return (
-        <section className="card border-0 shadow-sm">
+        <section
+            ref={ref}
+            tabIndex="-1"
+            className="card border-0 shadow-sm"
+            style={{
+                outline: comErro ? "2px solid var(--bs-danger)" : "2px solid transparent",
+                boxShadow: animando ? "0 0 0 0.25rem rgba(var(--bs-danger-rgb), 0.18)" : "none",
+                transition: "outline-color 150ms ease, box-shadow 150ms ease"
+            }}
+        >
             <div className="card-body p-4">
                 <div className="d-flex justify-content-between align-items-start gap-3 mb-4">
                     <div className="d-flex align-items-center gap-3">

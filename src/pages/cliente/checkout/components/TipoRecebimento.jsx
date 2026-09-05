@@ -1,8 +1,25 @@
 import { TIPOS_RECEBIMENTO } from "../checkoutUtils";
+import { CAMPOS_CHECKOUT } from "../checkoutCampos";
+import { useCampoErro } from "../hooks/useCampoErro";
 
-function TipoRecebimento({ tipoRecebimento, onChange, disabled }) {
+function TipoRecebimento({ tipoRecebimento, onChange, disabled, campoErro, versaoErro }) {
+    const { ref, comErro, animando } = useCampoErro({
+        campos: [CAMPOS_CHECKOUT.TIPO_RECEBIMENTO],
+        campoErro,
+        versaoErro
+    });
+
     return (
-        <section className="card border-0 shadow-sm">
+        <section
+            ref={ref}
+            tabIndex="-1"
+            className="card border-0 shadow-sm"
+            style={{
+                outline: comErro ? "2px solid var(--bs-danger)" : "2px solid transparent",
+                boxShadow: animando ? "0 0 0 0.25rem rgba(var(--bs-danger-rgb), 0.18)" : "none",
+                transition: "outline-color 150ms ease, box-shadow 150ms ease"
+            }}
+        >
             <div className="card-body px-3 py-2">
                 <div className="d-flex flex-column flex-md-row align-items-md-center gap-2">
                     <strong className="text-nowrap">Como deseja receber?</strong>

@@ -1,49 +1,24 @@
-import { useEffect, useRef, useState } from "react";
-
+// Alerta flutuante: fica fixo na viewport e não move o scroll da página.
+// O direcionamento até o campo inválido é feito pelo próprio campo (useCampoErro).
 function CheckoutErro({ erro, versaoErro }) {
-    const alertaRef = useRef(null);
-    const [destacado, setDestacado] = useState(false);
-
-    useEffect(() => {
-        if (!erro || !alertaRef.current) {
-            return undefined;
-        }
-
-        const alerta = alertaRef.current;
-        const reduzirMovimento = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-
-        alerta.scrollIntoView({
-            behavior: reduzirMovimento ? "auto" : "smooth",
-            block: "center"
-        });
-        alerta.focus({ preventScroll: true });
-        setDestacado(true);
-
-        const temporizador = window.setTimeout(() => {
-            setDestacado(false);
-        }, 2000);
-
-        return () => {
-            window.clearTimeout(temporizador);
-        };
-    }, [erro, versaoErro]);
-
     if (!erro) {
         return null;
     }
 
     return (
         <div
-            ref={alertaRef}
-            className="alert alert-danger"
+            key={versaoErro}
+            className="alert alert-danger shadow-lg mb-0"
             role="alert"
             aria-live="assertive"
             aria-atomic="true"
-            tabIndex="-1"
             style={{
-                outline: destacado ? "2px solid var(--bs-danger)" : "2px solid transparent",
-                boxShadow: destacado ? "0 0 0 0.25rem rgba(var(--bs-danger-rgb), 0.18)" : "none",
-                transition: "outline-color 150ms ease, box-shadow 150ms ease"
+                position: "fixed",
+                left: "50%",
+                bottom: "1rem",
+                transform: "translateX(-50%)",
+                zIndex: 1080,
+                width: "min(92vw, 480px)"
             }}
         >
             {erro}

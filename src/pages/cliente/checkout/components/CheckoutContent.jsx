@@ -16,6 +16,7 @@ import PedidoSucesso from "./PedidoSucesso";
 function CheckoutContent({
     erro,
     versaoErro,
+    campoErro,
     cliente,
     carrinho,
     tipoRecebimento,
@@ -60,6 +61,8 @@ function CheckoutContent({
                                 tipoRecebimento={tipoRecebimento}
                                 onChange={onTipoRecebimento}
                                 disabled={carregandoCliente || enviando}
+                                campoErro={campoErro}
+                                versaoErro={versaoErro}
                             />
 
                             {tipoRecebimento === TIPOS_RECEBIMENTO.ENTREGA && (
@@ -70,6 +73,8 @@ function CheckoutContent({
                                     disabled={carregandoCliente || enviando}
                                     carregando={carregandoCliente}
                                     onNovoEndereco={onNovoEndereco}
+                                    campoErro={campoErro}
+                                    versaoErro={versaoErro}
                                 />
                             )}
 
@@ -115,6 +120,8 @@ function CheckoutContent({
                                 valorTotal={valorTotal}
                                 onSelecionarForma={onSelecionarFormaPagamento}
                                 onRemover={onRemoverPagamento}
+                                campoErro={campoErro}
+                                versaoErro={versaoErro}
                             />
 
                             <Observacao

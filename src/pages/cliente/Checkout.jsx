@@ -10,6 +10,7 @@ import { useCheckoutSubmit } from "./checkout/hooks/useCheckoutSubmit";
 import { useCheckoutCliente } from "./checkout/hooks/useCheckoutCliente";
 import { useCheckoutFormasPagamento } from "./checkout/hooks/useCheckoutFormasPagamento";
 import { buscarTaxaEntrega } from "../../services/configuracaoService";
+import { CAMPOS_CHECKOUT } from "./checkout/checkoutCampos";
 
 import CheckoutContent from "./checkout/components/CheckoutContent";
 import EnderecoModal from "./checkout/components/EnderecoModal";
@@ -25,11 +26,11 @@ function Checkout() {
 
     const { observacao, setObservacao } = useCheckoutObservacao();
 
-    const { erro, setErro, versaoErro } = useCheckoutErro();
+    const { erro, campoErro, setErro, versaoErro } = useCheckoutErro();
 
     const { carrinho, setCarrinho, valorProdutos } = useCheckoutCarrinho();
 
-    const { pagamentos, totalPagamentos, selecionarFormaPagamento, removerPagamento } = useCheckoutPagamentos();
+    const { pagamentos, selecionarFormaPagamento, removerPagamento } = useCheckoutPagamentos();
 
     const {
         formasPagamento,
@@ -81,6 +82,26 @@ function Checkout() {
         taxaEntregaConfigurada
     });
 
+    // O total pago sempre acompanha o valor total vigente (sem congelar valores antigos).
+    const totalPagamentos = pagamentos.length > 0 ? Number(valorTotal) || 0 : 0;
+
+    useEffect(() => {
+        if (!campoErro) {
+            return;
+        }
+
+        const campoCorrigido =
+            (campoErro === CAMPOS_CHECKOUT.PAGAMENTO && pagamentos.length > 0) ||
+            (campoErro === CAMPOS_CHECKOUT.TIPO_RECEBIMENTO && Boolean(tipoRecebimento)) ||
+            (campoErro === CAMPOS_CHECKOUT.ENDERECO && Boolean(enderecoSelecionado)) ||
+            (campoErro === CAMPOS_CHECKOUT.VALOR_PAGAMENTO &&
+                Math.abs(totalPagamentos - (Number(valorTotal) || 0)) <= 0.01);
+
+        if (campoCorrigido) {
+            setErro("");
+        }
+    }, [campoErro, pagamentos, tipoRecebimento, enderecoSelecionado, totalPagamentos, valorTotal, setErro]);
+
     const { prepararCheckout, enviando } = useCheckoutSubmit({
         cliente: cliente || {},
         carrinho,
@@ -114,7 +135,7 @@ function Checkout() {
     }
 
     function tratarFormaPagamento(formaPagamentoId) {
-        selecionarFormaPagamento(formaPagamentoId, valorTotal);
+        selecionarFormaPagamento(formaPagamentoId);
     }
 
     const erroAtual = erroCliente || erro;
@@ -124,6 +145,7 @@ function Checkout() {
             <CheckoutContent
                 erro={erroAtual}
                 versaoErro={erroCliente ? erroCliente : versaoErro}
+                campoErro={campoErro}
                 cliente={cliente || {}}
                 carrinho={carrinho}
                 tipoRecebimento={tipoRecebimento}

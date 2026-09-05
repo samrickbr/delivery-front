@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { criarPedido } from "../../../../services/pedidoService";
 import { montarPedido } from "../checkoutPayload";
+import { CAMPOS_CHECKOUT } from "../checkoutCampos";
 
 export function useCheckoutSubmit({
     cliente,
@@ -70,27 +71,27 @@ export function useCheckoutSubmit({
         setErro("");
 
         if (!cliente?.nome) {
-            setErro("Cliente não identificado.");
+            setErro("Cliente não identificado.", CAMPOS_CHECKOUT.CLIENTE);
             return;
         }
 
         if (!carrinho?.length) {
-            setErro("O carrinho está vazio.");
-            return;
-        }
-
-        if (!tipoRecebimento) {
-            setErro("Selecione o tipo de recebimento.");
-            return;
-        }
-
-        if (tipoRecebimento === "ENTREGA" && !enderecoSelecionado) {
-            setErro("Selecione um endereço para entrega.");
+            setErro("O carrinho está vazio.", CAMPOS_CHECKOUT.CARRINHO);
             return;
         }
 
         if (!pagamentos?.length) {
-            setErro("Selecione uma forma de pagamento.");
+            setErro("Selecione o tipo de recebimento.", CAMPOS_CHECKOUT.PAGAMENTO);
+            return;
+        }
+
+        if (!tipoRecebimento) {
+            setErro("Selecione o tipo de entrega ou retirada.", CAMPOS_CHECKOUT.TIPO_RECEBIMENTO);
+            return;
+        }
+
+        if (tipoRecebimento === "ENTREGA" && !enderecoSelecionado) {
+            setErro("Selecione um endereço para entrega.", CAMPOS_CHECKOUT.ENDERECO);
             return;
         }
 
@@ -98,7 +99,7 @@ export function useCheckoutSubmit({
         const pago = Number(totalPagamentos || 0);
 
         if (Math.abs(pago - total) > 0.01) {
-            setErro("O pagamento precisa corresponder ao valor total do pedido.");
+            setErro("O pagamento precisa corresponder ao valor total do pedido.", CAMPOS_CHECKOUT.VALOR_PAGAMENTO);
             return;
         }
 
