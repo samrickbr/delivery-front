@@ -3,7 +3,7 @@ import { useState } from "react";
 import { TIPOS_RECEBIMENTO } from "../checkoutUtils";
 
 export function useCheckoutRecebimento(enderecos = []) {
-    const [tipoRecebimento, setTipoRecebimento] = useState(TIPOS_RECEBIMENTO.RETIRADA);
+    const [tipoRecebimento, setTipoRecebimento] = useState(null);
     const [enderecoSelecionado, setEnderecoSelecionado] = useState("");
 
     function selecionarTipoRecebimento(tipo) {

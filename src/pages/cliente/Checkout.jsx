@@ -25,7 +25,7 @@ function Checkout() {
 
     const { observacao, setObservacao } = useCheckoutObservacao();
 
-    const { erro, setErro } = useCheckoutErro();
+    const { erro, setErro, versaoErro } = useCheckoutErro();
 
     const { carrinho, setCarrinho, valorProdutos } = useCheckoutCarrinho();
 
@@ -123,6 +123,7 @@ function Checkout() {
         <>
             <CheckoutContent
                 erro={erroAtual}
+                versaoErro={erroCliente ? erroCliente : versaoErro}
                 cliente={cliente || {}}
                 carrinho={carrinho}
                 tipoRecebimento={tipoRecebimento}

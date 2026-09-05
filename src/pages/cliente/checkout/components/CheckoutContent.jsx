@@ -15,6 +15,7 @@ import PedidoSucesso from "./PedidoSucesso";
 
 function CheckoutContent({
     erro,
+    versaoErro,
     cliente,
     carrinho,
     tipoRecebimento,
@@ -43,7 +44,7 @@ function CheckoutContent({
         <>
             <CheckoutHeader />
 
-            {!pedidoPreparado && <CheckoutErro erro={erro} />}
+            {!pedidoPreparado && <CheckoutErro erro={erro} versaoErro={versaoErro} />}
 
             {pedidoPreparado ? (
                 <PedidoSucesso pedido={pedidoPreparado} />

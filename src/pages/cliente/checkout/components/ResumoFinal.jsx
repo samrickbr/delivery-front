@@ -15,7 +15,12 @@ function formatarEndereco(endereco) {
 function ResumoFinal({ cliente, tipoRecebimento, enderecoSelecionado, enderecos, valorTotal }) {
     const nomeCliente = cliente?.nome || "Não disponível";
 
-    const recebimento = tipoRecebimento === TIPOS_RECEBIMENTO.ENTREGA ? "Entrega" : "Retirada no local";
+    const recebimento =
+        tipoRecebimento === TIPOS_RECEBIMENTO.ENTREGA
+            ? "Entrega"
+            : tipoRecebimento === TIPOS_RECEBIMENTO.RETIRADA
+              ? "Retirada no local"
+              : "Não selecionado";
 
     const endereco = enderecos?.find((item) => String(item.id) === String(enderecoSelecionado));
 

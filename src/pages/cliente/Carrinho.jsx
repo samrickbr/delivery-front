@@ -259,7 +259,7 @@ function Carrinho() {
                                         className="btn btn-success btn-lg w-100 rounded-pill"
                                         onClick={() => navigate(clienteAutenticado() ? "/checkout" : "/identificacao")}
                                     >
-                                        Continuar pedido
+                                        Finalizar pedido
                                     </button>
 
                                     <button

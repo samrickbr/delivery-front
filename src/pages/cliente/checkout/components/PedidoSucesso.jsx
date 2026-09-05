@@ -4,6 +4,7 @@ import { obterNumeroPedido } from "../../../../utils/pedidoUtils";
 
 function PedidoSucesso({ pedido }) {
     const navigate = useNavigate();
+    const numeroPedido = obterNumeroPedido(pedido);
 
     return (
         <div className="card mt-4 border-0 shadow-sm">
@@ -22,9 +23,9 @@ function PedidoSucesso({ pedido }) {
 
                 <h2 className="h3 mb-2">Pedido enviado com sucesso!</h2>
 
-                {pedido?.id != null && (
+                {numeroPedido !== "-" && (
                     <p className="fs-5 mb-2">
-                        Pedido <strong>{obterNumeroPedido(pedido)}</strong>
+                        Pedido: <strong>{numeroPedido}</strong>
                     </p>
                 )}
 

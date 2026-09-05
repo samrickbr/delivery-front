@@ -79,6 +79,11 @@ export function useCheckoutSubmit({
             return;
         }
 
+        if (!tipoRecebimento) {
+            setErro("Selecione o tipo de recebimento.");
+            return;
+        }
+
         if (tipoRecebimento === "ENTREGA" && !enderecoSelecionado) {
             setErro("Selecione um endereço para entrega.");
             return;
