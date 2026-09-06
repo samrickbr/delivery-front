@@ -83,6 +83,9 @@ function useBalcaoPainel({ aba: abaControlada, onAbaChange, pedidoDirecionadoId,
     const obterAbaPedido = useCallback((pedido) => {
         switch (pedido?.status) {
             case "RECEBIDO":
+            case "APROVADO":
+            case "PENDENTE":
+            case "EM_PRODUCAO":
                 return ABAS.PEDIDOS;
 
             case "FINALIZADO":
@@ -186,7 +189,7 @@ function useBalcaoPainel({ aba: abaControlada, onAbaChange, pedidoDirecionadoId,
 
             switch (aba) {
                 case ABAS.PEDIDOS:
-                    return pedido.status === "RECEBIDO";
+                    return ["RECEBIDO", "APROVADO", "PENDENTE", "EM_PRODUCAO"].includes(pedido.status);
 
                 case ABAS.CONFERENCIA:
                     return pedido.status === "FINALIZADO";
