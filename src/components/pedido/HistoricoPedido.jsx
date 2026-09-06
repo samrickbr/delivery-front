@@ -4,10 +4,12 @@ function HistoricoPedido({ historico = [] }) {
     }
 
     return (
-        <div className="mt-3">
-            <h6 className="fw-bold">Histórico</h6>
+        <details className="mt-3">
+            <summary className="fw-bold" style={{ cursor: "pointer" }}>
+                Histórico ({historico.length})
+            </summary>
 
-            <div className="list-group">
+            <div className="list-group mt-2">
                 {historico.map((evento, index) => (
                     <div key={index} className="list-group-item">
                         <div className="d-flex justify-content-between">
@@ -24,7 +26,7 @@ function HistoricoPedido({ historico = [] }) {
                     </div>
                 ))}
             </div>
-        </div>
+        </details>
     );
 }
 

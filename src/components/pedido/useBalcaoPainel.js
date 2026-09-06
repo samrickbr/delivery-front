@@ -188,8 +188,23 @@ function useBalcaoPainel({ aba: abaControlada, onAbaChange, pedidoDirecionadoId,
             }
 
             switch (aba) {
-                case ABAS.PEDIDOS:
-                    return ["RECEBIDO", "APROVADO", "PENDENTE", "EM_PRODUCAO"].includes(pedido.status);
+                case ABAS.PEDIDOS: {
+                    if (pedido.status === "RECEBIDO" || pedido.status === "PENDENTE") {
+                        return true;
+                    }
+
+                    if (pedido.status !== "APROVADO" && pedido.status !== "EM_PRODUCAO") {
+                        return false;
+                    }
+
+                    const possuiProducaoPendente = pedido.itens?.some(
+                        (item) =>
+                            ["COZINHA", "PIZZARIA"].includes(item.setor) &&
+                            !["FINALIZADO", "CANCELADO"].includes(item.statusOperacao)
+                    );
+
+                    return possuiProducaoPendente;
+                }
 
                 case ABAS.CONFERENCIA:
                     return pedido.status === "FINALIZADO";
