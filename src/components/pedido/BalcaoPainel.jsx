@@ -16,7 +16,14 @@ import { obterNumeroPedido } from "../../utils/pedidoUtils";
 // próprio para evitar que o JSX fique carregado de estado,
 // filtros e ações assíncronas.
 // ============================================================
-function BalcaoPainel({ aba: abaControlada, onAbaChange, exibirAbas = true }) {
+function BalcaoPainel({
+    aba: abaControlada,
+    onAbaChange,
+    exibirAbas = true,
+    pedidoDirecionadoId,
+    pedidoItemDirecionadoId,
+    pedidosProntosIds = []
+}) {
     // =====================================
     // 1) Estado e ações centralizadas em hook
     // =====================================
@@ -33,15 +40,17 @@ function BalcaoPainel({ aba: abaControlada, onAbaChange, exibirAbas = true }) {
         abrirEdicao,
         fecharEdicao,
         adicionarItem,
+        incrementarItem,
         alterarQuantidade,
-        removerItem,
         abrirCancelamento,
         fecharCancelamento,
         aceitarPedido,
         conferir,
         concluirRetirada,
-        carregarDados
-    } = useBalcaoPainel({ aba: abaControlada, onAbaChange });
+        carregarDados,
+        pedidoEmDestaqueId,
+        pedidoItemEmDestaqueId
+    } = useBalcaoPainel({ aba: abaControlada, onAbaChange, pedidoDirecionadoId, pedidoItemDirecionadoId });
 
     // =====================================
     // 2) Renderização dos blocos do painel
@@ -59,7 +68,12 @@ function BalcaoPainel({ aba: abaControlada, onAbaChange, exibirAbas = true }) {
                 <div className="row">
                     {pedidosFiltrados.map((pedido) => (
                         <div className="col-md-6" key={pedido.id}>
-                            <PedidoCard pedido={pedido}>
+                            <div className={pedido.id === pedidoEmDestaqueId ? "pedido-direcionado rounded" : undefined}>
+                            <PedidoCard
+                                pedido={pedido}
+                                pedidoItemEmDestaqueId={pedidoItemEmDestaqueId}
+                                pedidoPronto={pedidosProntosIds.some((id) => Number(id) === Number(pedido.id))}
+                            >
                                 {pedidoPodeSerEditado(pedido) && (
                                     <button className="btn btn-primary w-100 mb-2" onClick={() => abrirEdicao(pedido)}>
                                         ✏️ Editar Pedido
@@ -94,6 +108,7 @@ function BalcaoPainel({ aba: abaControlada, onAbaChange, exibirAbas = true }) {
                                     <ChecklistSeparacao pedido={pedido} onAtualizar={carregarDados} />
                                 )}
                             </PedidoCard>
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -103,11 +118,18 @@ function BalcaoPainel({ aba: abaControlada, onAbaChange, exibirAbas = true }) {
                 <div className="row">
                     {retiradasFiltradas.map((pedido) => (
                         <div className="col-md-6" key={pedido.id}>
-                            <PedidoCard pedido={pedido} mostrarValor={true}>
+                            <div className={pedido.id === pedidoEmDestaqueId ? "pedido-direcionado rounded" : undefined}>
+                            <PedidoCard
+                                pedido={pedido}
+                                mostrarValor={true}
+                                pedidoItemEmDestaqueId={pedidoItemEmDestaqueId}
+                                pedidoPronto={pedidosProntosIds.some((id) => Number(id) === Number(pedido.id))}
+                            >
                                 <button className="btn btn-warning w-100" onClick={() => concluirRetirada(pedido.id)}>
                                     🛍️ Concluir retirada
                                 </button>
                             </PedidoCard>
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -192,7 +214,14 @@ function BalcaoPainel({ aba: abaControlada, onAbaChange, exibirAbas = true }) {
                                                 ) : (
                                                     <div className="list-group">
                                                         {pedidoSelecionado.itens.map((item) => (
-                                                            <div key={item.id} className="list-group-item">
+                                                            <div
+                                                                key={item.id}
+                                                                className={`list-group-item ${
+                                                                    item.statusOperacao === "CANCELADO"
+                                                                        ? "border-danger bg-danger-subtle"
+                                                                        : ""
+                                                                }`}
+                                                            >
                                                                 <div className="d-flex justify-content-between align-items-center gap-3">
                                                                     <div>
                                                                         <div className="fw-semibold">
@@ -208,6 +237,10 @@ function BalcaoPainel({ aba: abaControlada, onAbaChange, exibirAbas = true }) {
                                                                         <button
                                                                             type="button"
                                                                             className="btn btn-outline-secondary"
+                                                                            disabled={
+                                                                                item.statusOperacao === "CANCELADO" ||
+                                                                                Number(item.quantidade) <= 1
+                                                                            }
                                                                             onClick={() =>
                                                                                 alterarQuantidade(
                                                                                     pedidoSelecionado.id,
@@ -219,42 +252,54 @@ function BalcaoPainel({ aba: abaControlada, onAbaChange, exibirAbas = true }) {
                                                                             −
                                                                         </button>
 
-                                                                        <span
-                                                                            className="fw-bold"
-                                                                            style={{
-                                                                                minWidth: "32px",
-                                                                                textAlign: "center"
+                                                                        <input
+                                                                            type="number"
+                                                                            min="1"
+                                                                            step="1"
+                                                                            defaultValue={item.quantidade}
+                                                                            disabled={item.statusOperacao === "CANCELADO"}
+                                                                            className="form-control form-control-sm text-center"
+                                                                            style={{ width: "64px" }}
+                                                                            onBlur={(event) => {
+                                                                                const quantidade = Number(event.target.value);
+
+                                                                                if (
+                                                                                    Number.isFinite(quantidade) &&
+                                                                                    Number.isInteger(quantidade) &&
+                                                                                    quantidade !== Number(item.quantidade)
+                                                                                ) {
+                                                                                    alterarQuantidade(
+                                                                                        pedidoSelecionado.id,
+                                                                                        item.id,
+                                                                                        quantidade
+                                                                                    );
+                                                                                } else if (
+                                                                                    !Number.isInteger(quantidade) ||
+                                                                                    quantidade < 1
+                                                                                ) {
+                                                                                    event.target.value = item.quantidade;
+                                                                                }
                                                                             }}
-                                                                        >
-                                                                            {item.quantidade}
-                                                                        </span>
+                                                                        />
 
                                                                         <button
                                                                             type="button"
                                                                             className="btn btn-outline-secondary"
+                                                                            disabled={item.statusOperacao === "CANCELADO"}
                                                                             onClick={() =>
-                                                                                alterarQuantidade(
+                                                                                incrementarItem(
                                                                                     pedidoSelecionado.id,
                                                                                     item.id,
-                                                                                    Number(item.quantidade) + 1
+                                                                                    1
                                                                                 )
                                                                             }
                                                                         >
                                                                             +
                                                                         </button>
 
-                                                                        <button
-                                                                            type="button"
-                                                                            className="btn btn-outline-danger"
-                                                                            onClick={() =>
-                                                                                removerItem(
-                                                                                    pedidoSelecionado.id,
-                                                                                    item.id
-                                                                                )
-                                                                            }
-                                                                        >
-                                                                            🗑️
-                                                                        </button>
+                                                                        {item.statusOperacao === "CANCELADO" && (
+                                                                            <span className="badge bg-danger">CANCELADO</span>
+                                                                        )}
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -292,6 +337,7 @@ function BalcaoPainel({ aba: abaControlada, onAbaChange, exibirAbas = true }) {
                     onFechar={fecharCancelamento}
                     onAtualizar={carregarDados}
                     permitirCompleto={true}
+                    cancelarIndividualmente={true}
                 />
             )}
         </>

@@ -30,7 +30,6 @@ function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
     const [categorias, setCategorias] = useState([]);
     const [carregando, setCarregando] = useState(false);
     const [digitando, setDigitando] = useState(false);
-    const [novoPedido, setNovoPedido] = useState(false);
 
     const digitandoRef = useRef(false);
     const atualizacaoPendenteRef = useRef(false);
@@ -115,8 +114,6 @@ function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
                     return;
                 }
 
-                setNovoPedido(true);
-
                 if (digitandoRef.current) {
                     atualizacaoPendenteRef.current = true;
                     return;
@@ -136,18 +133,6 @@ function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
         atualizarEmSegundoPlano();
     }, [digitando, atualizarEmSegundoPlano]);
 
-    useEffect(() => {
-        if (!novoPedido) {
-            return;
-        }
-
-        const timer = setTimeout(() => {
-            setNovoPedido(false);
-        }, 5000);
-
-        return () => clearTimeout(timer);
-    }, [novoPedido]);
-
     const pedidosFiltrados =
         aba === "finalizados"
             ? pedidos
@@ -156,6 +141,11 @@ function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
               : pedidos.filter((pedido) =>
                     pedido.itens?.some((item) => item.setor === setor && item.categoria === filtro)
                 );
+
+    const pedidosExibidos = pedidosFiltrados.map((pedido) => ({
+        ...pedido,
+        itens: pedido.itens?.filter((item) => item.setor === setor) || []
+    }));
 
     const categoriasComQuantidade = categorias
         .map((categoria) => ({
@@ -172,16 +162,6 @@ function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
     return (
         <div className="container mt-4 position-relative">
             <h1 className="mb-4">{titulo}</h1>
-
-            {novoPedido && (
-                <div
-                    className="alert alert-success position-fixed top-0 end-0 m-3 shadow"
-                    style={{ zIndex: 1050, pointerEvents: "none" }}
-                    role="status"
-                >
-                    Novo pedido recebido.
-                </div>
-            )}
 
             <div className="mb-4">
                 <button
@@ -233,18 +213,26 @@ function OperacaoPedidos({ setor, titulo, mostrarValor = true }) {
             )}
 
             <div className="row">
-                {pedidosFiltrados.map((pedido) => (
+                {pedidosExibidos.map((pedido) => (
                     <div className="col-12 col-md-6 col-xl-4" key={pedido.id}>
-                        <PedidoCard pedido={pedido} mostrarValor={mostrarValor}>
-                            {aba === "producao" && (
-                                <PedidoActions
-                                    pedido={pedido}
-                                    setor={setor}
-                                    onAtualizar={atualizar}
-                                    onDigitando={alterarDigitando}
-                                />
-                            )}
-                        </PedidoCard>
+                        <PedidoCard
+                            pedido={pedido}
+                            mostrarValor={mostrarValor}
+                            renderizarAcoesItem={
+                                aba === "producao"
+                                    ? (item) =>
+                                          item.setor === setor && (
+                                              <PedidoActions
+                                                  pedido={pedido}
+                                                  item={item}
+                                                  setor={setor}
+                                                  onAtualizar={atualizar}
+                                                  onDigitando={alterarDigitando}
+                                              />
+                                          )
+                                    : undefined
+                            }
+                        />
                     </div>
                 ))}
             </div>

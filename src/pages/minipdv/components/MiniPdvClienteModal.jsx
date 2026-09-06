@@ -51,7 +51,11 @@ function MiniPdvClienteModal({ aberto, onFechar, onSalvo }) {
             setSalvando(true);
             setErro("");
 
-            const cliente = await cadastrarClienteOperacional({ nome, cpf, telefone });
+            const cliente = await cadastrarClienteOperacional({
+                nome,
+                documento: cpf,
+                telefone
+            });
 
             await onSalvo(cliente);
             setFormulario(FORMULARIO_INICIAL);

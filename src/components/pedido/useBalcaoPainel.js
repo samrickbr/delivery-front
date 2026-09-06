@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
     listarBalcao,
@@ -8,7 +8,6 @@ import {
     entregarPedido,
     adicionarItemPedido,
     alterarQuantidadeItemPedido,
-    removerItemPedido
 } from "../../services/pedidoService";
 
 import { ABAS } from "./balcaoAbas";
@@ -19,7 +18,7 @@ import { ABAS } from "./balcaoAbas";
 // de edição/cancelamento em um único ponto para reduzir o
 // acoplamento do componente visual.
 // ============================================================
-function useBalcaoPainel({ aba: abaControlada, onAbaChange }) {
+function useBalcaoPainel({ aba: abaControlada, onAbaChange, pedidoDirecionadoId, pedidoItemDirecionadoId }) {
     const [pedidos, setPedidos] = useState([]);
     const [retiradas, setRetiradas] = useState([]);
     const [abaInterna, setAbaInterna] = useState(ABAS.PEDIDOS);
@@ -29,6 +28,9 @@ function useBalcaoPainel({ aba: abaControlada, onAbaChange }) {
     const [mostrarModalEdicao, setMostrarModalEdicao] = useState(false);
     const [mostrarModalCancelamento, setMostrarModalCancelamento] = useState(false);
     const [erroEdicao, setErroEdicao] = useState("");
+    const [pedidoEmDestaqueId, setPedidoEmDestaqueId] = useState(null);
+    const [pedidoItemEmDestaqueId, setPedidoItemEmDestaqueId] = useState(null);
+    const pedidoDirecionadoPendenteRef = useRef(pedidoDirecionadoId ?? null);
 
     const pedidoPodeSerEditado = useCallback((pedido) => {
         return !["FATURADO", "ENTREGUE", "CANCELADO"].includes(pedido?.status);
@@ -78,6 +80,25 @@ function useBalcaoPainel({ aba: abaControlada, onAbaChange }) {
         await Promise.all([carregarPedidos(), carregarRetiradas()]);
     }, [carregarPedidos, carregarRetiradas]);
 
+    const obterAbaPedido = useCallback((pedido) => {
+        switch (pedido?.status) {
+            case "RECEBIDO":
+                return ABAS.PEDIDOS;
+
+            case "FINALIZADO":
+                return ABAS.CONFERENCIA;
+
+            case "AGUARDANDO_SEPARACAO":
+                return ABAS.SEPARACAO;
+
+            case "SEPARADO":
+                return ABAS.RETIRADA;
+
+            default:
+                return null;
+        }
+    }, []);
+
     const recarregarPedido = useCallback(
         async (pedidoId) => {
             const response = await listarBalcao();
@@ -112,6 +133,20 @@ function useBalcaoPainel({ aba: abaControlada, onAbaChange }) {
         [recarregarPedido]
     );
 
+    const incrementarItem = useCallback(
+        async (pedidoId, itemId, quantidade = 1) => {
+            try {
+                setErroEdicao("");
+                await adicionarItemPedido(pedidoId, undefined, quantidade, itemId);
+                await recarregarPedido(pedidoId);
+            } catch (error) {
+                console.error("Erro ao incrementar item do pedido.", error);
+                setErroEdicao(error?.response?.data?.message || "Não foi possível incrementar o item do pedido.");
+            }
+        },
+        [recarregarPedido]
+    );
+
     const alterarQuantidade = useCallback(
         async (pedidoId, itemId, quantidade) => {
             try {
@@ -119,34 +154,21 @@ function useBalcaoPainel({ aba: abaControlada, onAbaChange }) {
 
                 const novaQuantidade = Number(quantidade);
 
-                if (!Number.isFinite(novaQuantidade)) {
+                if (!Number.isInteger(novaQuantidade)) {
+                    setErroEdicao("Informe uma quantidade inteira válida.");
                     return;
                 }
 
                 if (novaQuantidade < 1) {
-                    await removerItemPedido(pedidoId, itemId);
-                } else {
-                    await alterarQuantidadeItemPedido(pedidoId, itemId, novaQuantidade);
+                    setErroEdicao("A quantidade deve ser maior que zero. Use o cancelamento para remover o item.");
+                    return;
                 }
 
+                await alterarQuantidadeItemPedido(pedidoId, itemId, novaQuantidade);
                 await recarregarPedido(pedidoId);
             } catch (error) {
                 console.error("Erro ao alterar quantidade do item.", error);
                 setErroEdicao("Não foi possível alterar a quantidade do item.");
-            }
-        },
-        [recarregarPedido]
-    );
-
-    const removerItem = useCallback(
-        async (pedidoId, itemId) => {
-            try {
-                setErroEdicao("");
-                await removerItemPedido(pedidoId, itemId);
-                await recarregarPedido(pedidoId);
-            } catch (error) {
-                console.error("Erro ao remover item do pedido.", error);
-                setErroEdicao("Não foi possível remover o item do pedido.");
             }
         },
         [recarregarPedido]
@@ -215,6 +237,10 @@ function useBalcaoPainel({ aba: abaControlada, onAbaChange }) {
     }, []);
 
     useEffect(() => {
+        pedidoDirecionadoPendenteRef.current = pedidoDirecionadoId ?? null;
+    }, [pedidoDirecionadoId]);
+
+    useEffect(() => {
         let ativo = true;
 
         async function carregar() {
@@ -226,6 +252,21 @@ function useBalcaoPainel({ aba: abaControlada, onAbaChange }) {
 
             setPedidos(balcaoResponse.data || []);
             setRetiradas(retiradaResponse.data || []);
+
+            const pedidoDirecionado = [...(balcaoResponse.data || []), ...(retiradaResponse.data || [])].find(
+                (pedido) => Number(pedido.id) === Number(pedidoDirecionadoPendenteRef.current)
+            );
+
+            if (pedidoDirecionado) {
+                const abaPedido = obterAbaPedido(pedidoDirecionado);
+
+                if (abaPedido) {
+                    setAba(abaPedido);
+                }
+
+                setPedidoEmDestaqueId(pedidoDirecionado.id);
+                pedidoDirecionadoPendenteRef.current = null;
+            }
         }
 
         carregar();
@@ -240,7 +281,60 @@ function useBalcaoPainel({ aba: abaControlada, onAbaChange }) {
             ativo = false;
             clearInterval(intervalo);
         };
-    }, []);
+    }, [obterAbaPedido, setAba]);
+
+    useEffect(() => {
+        if (!pedidoDirecionadoId) {
+            return undefined;
+        }
+
+        let ativo = true;
+        let temporizadorDestaque;
+
+        async function direcionarPedido() {
+            const [balcaoResponse, retiradaResponse] = await Promise.all([listarBalcao(), listarRetirada()]);
+
+            if (!ativo) {
+                return;
+            }
+
+            const pedidosAtualizados = balcaoResponse.data || [];
+            const retiradasAtualizadas = retiradaResponse.data || [];
+            const pedido = [...pedidosAtualizados, ...retiradasAtualizadas].find(
+                (item) => Number(item.id) === Number(pedidoDirecionadoId)
+            );
+
+            setPedidos(pedidosAtualizados);
+            setRetiradas(retiradasAtualizadas);
+
+            if (!pedido) {
+                return;
+            }
+
+            const abaPedido = obterAbaPedido(pedido);
+
+            if (abaPedido) {
+                setAba(abaPedido);
+            }
+
+            setPedidoEmDestaqueId(pedido.id);
+            setPedidoItemEmDestaqueId(pedidoItemDirecionadoId ?? null);
+            pedidoDirecionadoPendenteRef.current = null;
+            temporizadorDestaque = setTimeout(() => {
+                if (ativo) {
+                    setPedidoEmDestaqueId(null);
+                    setPedidoItemEmDestaqueId(null);
+                }
+            }, 5000);
+        }
+
+        direcionarPedido();
+
+        return () => {
+            ativo = false;
+            clearTimeout(temporizadorDestaque);
+        };
+    }, [pedidoDirecionadoId, pedidoItemDirecionadoId, obterAbaPedido, setAba]);
 
     return {
         aba,
@@ -252,6 +346,8 @@ function useBalcaoPainel({ aba: abaControlada, onAbaChange }) {
         mostrarModalEdicao,
         mostrarModalCancelamento,
         erroEdicao,
+        pedidoEmDestaqueId,
+        pedidoItemEmDestaqueId,
         setPedidoSelecionado,
         setErroEdicao,
         setMostrarModalEdicao,
@@ -263,8 +359,8 @@ function useBalcaoPainel({ aba: abaControlada, onAbaChange }) {
         carregarDados,
         recarregarPedido,
         adicionarItem,
+        incrementarItem,
         alterarQuantidade,
-        removerItem,
         abrirCancelamento,
         fecharCancelamento,
         aceitarPedido,

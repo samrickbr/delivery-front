@@ -3,24 +3,18 @@ import CancelarItensModal from "./pedido/CancelarItensModal";
 import ConfirmDialog from "./ConfirmDialog";
 import InputDialog from "./InputDialog";
 import {
-    colocarPendente,
-    iniciarProducao,
-    finalizarPedido
+    colocarPendenteItem,
+    iniciarProducaoItem,
+    finalizarItem
 } from "../services/pedidoService";
 
-function PedidoActions({ pedido, setor, onAtualizar, onDigitando }) {
+function PedidoActions({ pedido, item, setor, onAtualizar, onDigitando }) {
     const [showDialog, setShowDialog] = useState(false);
     const [acaoSelecionada, setAcaoSelecionada] = useState(null);
     const [showInput, setShowInput] = useState(false);
     const [mostrarCancelamento, setMostrarCancelamento] = useState(false);
     const [processando, setProcessando] = useState(false);
-
-    const itensDoSetor =
-        pedido.itens?.filter(
-            (item) =>
-                item.setor === setor &&
-                item.statusOperacao !== "CANCELADO"
-        ) || [];
+    const [itemEmEspera, setItemEmEspera] = useState(null);
 
     function confirmar(acao) {
         setAcaoSelecionada(() => acao);
@@ -34,7 +28,8 @@ function PedidoActions({ pedido, setor, onAtualizar, onDigitando }) {
         onDigitando?.(false);
     }
 
-    function abrirEspera() {
+    function abrirEspera(item) {
+        setItemEmEspera(item);
         setShowInput(true);
         onDigitando?.(true);
     }
@@ -75,134 +70,67 @@ function PedidoActions({ pedido, setor, onAtualizar, onDigitando }) {
         fecharConfirmacao();
     }
 
-    if (itensDoSetor.length === 0) {
+    if (item.statusOperacao === "CANCELADO" || item.statusOperacao === "FINALIZADO") {
         return null;
     }
 
     return (
         <div className="mt-3">
+            {item.statusOperacao === "APROVADO" && (
+                <div className="d-flex flex-nowrap gap-1 pedido-item-acoes">
+                    <button
+                        className="btn btn-primary btn-sm flex-fill text-nowrap"
+                        disabled={processando}
+                        onClick={() => confirmar(() => iniciarProducaoItem(pedido.id, item.id))}
+                    >
+                        Produzir
+                    </button>
 
-            {itensDoSetor.map((item) => (
-                <div
-                    key={item.id}
-                    className="border rounded p-3 mb-3"
-                >
-                    <div className="d-flex justify-content-between align-items-center mb-2">
-                        <div>
-                            <div className="fw-bold">
-                                {item.quantidade}x {item.produto}
-                            </div>
+                    <button
+                        className="btn btn-warning btn-sm flex-fill text-nowrap"
+                        disabled={processando}
+                        onClick={() => abrirEspera(item)}
+                    >
+                        Espera
+                    </button>
 
-                            {item.categoria && (
-                                <small className="text-muted">
-                                    {item.categoria}
-                                </small>
-                            )}
-                        </div>
-
-                        <span className="badge bg-secondary">
-                            {item.statusOperacao?.replaceAll("_", " ")}
-                        </span>
-                    </div>
-
-                    {item.statusOperacao === "APROVADO" && (
-                        <div className="d-grid gap-2">
-                            <button
-                                className="btn btn-primary"
-                                disabled={processando}
-                                onClick={() =>
-                                    confirmar(() =>
-                                        iniciarProducao(
-                                            pedido.id,
-                                            setor
-                                        )
-                                    )
-                                }
-                            >
-                                Produzir
-                            </button>
-
-                            <button
-                                className="btn btn-warning"
-                                disabled={processando}
-                                onClick={abrirEspera}
-                            >
-                                Espera
-                            </button>
-
-                            <button
-                                className="btn btn-danger"
-                                disabled={processando}
-                                onClick={abrirCancelamento}
-                            >
-                                Cancelar
-                            </button>
-                        </div>
-                    )}
-
-                    {item.statusOperacao === "PENDENTE" && (
-                        <div className="d-grid gap-2">
-                            <button
-                                className="btn btn-primary"
-                                disabled={processando}
-                                onClick={() =>
-                                    confirmar(() =>
-                                        iniciarProducao(
-                                            pedido.id,
-                                            setor
-                                        )
-                                    )
-                                }
-                            >
-                                Retomar
-                            </button>
-
-                            <button
-                                className="btn btn-danger"
-                                disabled={processando}
-                                onClick={abrirCancelamento}
-                            >
-                                Cancelar
-                            </button>
-                        </div>
-                    )}
-
-                    {item.statusOperacao === "EM_PRODUCAO" && (
-                        <div className="d-grid gap-2">
-                            <button
-                                className="btn btn-success"
-                                disabled={processando}
-                                onClick={() =>
-                                    confirmar(() =>
-                                        finalizarPedido(
-                                            pedido.id,
-                                            setor
-                                        )
-                                    )
-                                }
-                            >
-                                Finalizar
-                            </button>
-
-                            <button
-                                className="btn btn-warning"
-                                disabled={processando}
-                                onClick={abrirEspera}
-                            >
-                                Espera
-                            </button>
-
-                            <button
-                                className="btn btn-danger"
-                                disabled={processando}
-                                onClick={abrirCancelamento}
-                            >
-                                Cancelar
-                            </button>
-                        </div>
-                    )}
+                    <button
+                        className="btn btn-danger btn-sm flex-fill text-nowrap"
+                        disabled={processando}
+                        onClick={abrirCancelamento}
+                    >
+                        Cancelar
+                    </button>
                 </div>
-            ))}
+            )}
+
+            {item.statusOperacao === "EM_PRODUCAO" && (
+                <div className="d-flex flex-nowrap gap-1 pedido-item-acoes">
+                    <button
+                        className="btn btn-success btn-sm flex-fill text-nowrap"
+                        disabled={processando}
+                        onClick={() => confirmar(() => finalizarItem(pedido.id, item.id))}
+                    >
+                        Finalizar
+                    </button>
+
+                    <button
+                        className="btn btn-warning btn-sm flex-fill text-nowrap"
+                        disabled={processando}
+                        onClick={() => abrirEspera(item)}
+                    >
+                        Espera
+                    </button>
+
+                    <button
+                        className="btn btn-danger btn-sm flex-fill text-nowrap"
+                        disabled={processando}
+                        onClick={abrirCancelamento}
+                    >
+                        Cancelar
+                    </button>
+                </div>
+            )}
 
             <ConfirmDialog
                 show={showDialog}
@@ -220,19 +148,17 @@ function PedidoActions({ pedido, setor, onAtualizar, onDigitando }) {
                 placeholder="Ex.: Sem calabresa"
                 onCancel={() => {
                     setShowInput(false);
+                    setItemEmEspera(null);
                     onDigitando?.(false);
                 }}
                 onConfirm={async (motivo) => {
                     setShowInput(false);
 
-                    await executar(() =>
-                        colocarPendente(
-                            pedido.id,
-                            setor,
-                            motivo
-                        )
-                    );
+                    if (itemEmEspera) {
+                        await executar(() => colocarPendenteItem(pedido.id, itemEmEspera.id, motivo));
+                    }
 
+                    setItemEmEspera(null);
                     onDigitando?.(false);
                 }}
             />

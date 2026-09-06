@@ -56,11 +56,12 @@ export async function listarBalcao() {
     return api.get("/pedidos/balcao", configOperacional());
 }
 
-export async function adicionarItemPedido(pedidoId, produtoId, quantidade) {
+export async function adicionarItemPedido(pedidoId, produtoId, quantidade, itemId) {
     return api.post(
         `/pedidos/${pedidoId}/itens`,
         {
             produtoId,
+            itemId,
             quantidade
         },
         configOperacional()
@@ -79,6 +80,13 @@ export async function alterarQuantidadeItemPedido(pedidoId, itemId, quantidade) 
 
 export async function removerItemPedido(pedidoId, itemId) {
     return api.delete(`/pedidos/${pedidoId}/itens/${itemId}`, configOperacional());
+}
+
+export async function cancelarItemPedido(pedidoId, itemId, justificativa) {
+    return api.delete(`/pedidos/${pedidoId}/itens/${itemId}`, {
+        ...configOperacional(),
+        data: { justificativa }
+    });
 }
 
 export async function aprovarPedido(id) {
@@ -142,6 +150,18 @@ export async function iniciarProducao(id, setor) {
 
 export async function finalizarPedido(id, setor) {
     return api.put(`/pedidos/${id}/finalizar/${setor}`, null, configOperacional());
+}
+
+export async function iniciarProducaoItem(pedidoId, itemId) {
+    return api.put(`/pedidos/${pedidoId}/itens/${itemId}/iniciar-producao`, null, configOperacional());
+}
+
+export async function colocarPendenteItem(pedidoId, itemId, motivo) {
+    return api.put(`/pedidos/${pedidoId}/itens/${itemId}/pendente`, { motivo }, configOperacional());
+}
+
+export async function finalizarItem(pedidoId, itemId) {
+    return api.put(`/pedidos/${pedidoId}/itens/${itemId}/finalizar`, null, configOperacional());
 }
 
 export async function listarFinalizados() {

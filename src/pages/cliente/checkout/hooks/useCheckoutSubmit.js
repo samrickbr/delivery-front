@@ -95,7 +95,7 @@ export function useCheckoutSubmit({
             return;
         }
 
-        const total = Number(valorTotal || 0);
+        const total = Math.round((Number(valorTotal) || 0) * 100) / 100;
         const pago = Number(totalPagamentos || 0);
 
         if (Math.abs(pago - total) > 0.01) {

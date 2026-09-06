@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { cancelarItens, cancelarPedidoCompleto } from "../../services/pedidoService";
+import { cancelarItemPedido, cancelarItens, cancelarPedidoCompleto } from "../../services/pedidoService";
 import { obterNumeroPedido } from "../../utils/pedidoUtils";
 
 function CancelarItensModal({
@@ -9,7 +9,8 @@ function CancelarItensModal({
     onFechar,
     onAtualizar,
     onDigitando,
-    permitirCompleto = false
+    permitirCompleto = false,
+    cancelarIndividualmente = false
 }) {
     const [tipo, setTipo] = useState("ITEM");
     const [itensSelecionados, setItensSelecionados] = useState([]);
@@ -53,6 +54,10 @@ function CancelarItensModal({
         try {
             if (tipo === "COMPLETO") {
                 await cancelarPedidoCompleto(pedido.id, motivo.trim());
+            } else if (cancelarIndividualmente) {
+                await Promise.all(
+                    itensSelecionados.map((itemId) => cancelarItemPedido(pedido.id, itemId, motivo.trim()))
+                );
             } else {
                 await cancelarItens(pedido.id, setor, itensSelecionados, motivo.trim());
             }

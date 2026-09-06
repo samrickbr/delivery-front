@@ -1,7 +1,14 @@
 import HistoricoPedido from "./HistoricoPedido";
 import { obterNumeroPedido } from "../../utils/pedidoUtils";
 
-function PedidoCard({ pedido, children, mostrarValor = true }) {
+function PedidoCard({
+    pedido,
+    children,
+    mostrarValor = true,
+    pedidoItemEmDestaqueId,
+    renderizarAcoesItem,
+    pedidoPronto = false
+}) {
     function badgeStatus(status) {
         switch (status) {
             case "RECEBIDO":
@@ -38,7 +45,7 @@ function PedidoCard({ pedido, children, mostrarValor = true }) {
                 return "bg-success";
 
             case "CANCELADO":
-                return "bg-dark";
+                return "bg-danger";
 
             default:
                 return "bg-secondary";
@@ -54,7 +61,7 @@ function PedidoCard({ pedido, children, mostrarValor = true }) {
     }
 
     return (
-        <div className="card shadow-sm border-0 mb-4">
+        <div className={`card shadow-sm border-0 mb-4 ${pedidoPronto ? "pedido-pronto-destaque" : ""}`}>
             <div className="card-header bg-dark text-white d-flex justify-content-between align-items-center">
                 <div>
                     <h5 className="mb-0 fw-bold">Pedido {obterNumeroPedido(pedido)}</h5>
@@ -93,7 +100,12 @@ function PedidoCard({ pedido, children, mostrarValor = true }) {
 
                 <ul className="list-group mb-3">
                     {pedido.itens?.map((item) => (
-                        <li key={item.id} className="list-group-item">
+                        <li
+                            key={item.id}
+                            className={`list-group-item ${
+                                Number(item.id) === Number(pedidoItemEmDestaqueId) ? "pedido-item-direcionado" : ""
+                            } ${item.statusOperacao === "CANCELADO" ? "border-danger bg-danger-subtle" : ""}`}
+                        >
                             <div className="d-flex justify-content-between align-items-center">
                                 <div>
                                     <div className="fw-semibold fs-5">
@@ -113,6 +125,8 @@ function PedidoCard({ pedido, children, mostrarValor = true }) {
                                     )}
                                 </div>
                             </div>
+
+                            {renderizarAcoesItem?.(item)}
                         </li>
                     ))}
                 </ul>

@@ -1,0 +1,73 @@
+.notificacoes-operacionais {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-width: min(360px, calc(100vw - 2rem));
+    pointer-events: none;
+    position: fixed;
+    right: 1rem;
+    top: 1rem;
+    z-index: 1080;
+}
+
+.notificacao-operacional {
+    margin: 0;
+    padding-right: 2.5rem;
+    pointer-events: auto;
+    position: relative;
+}
+
+.notificacao-operacional .btn-close {
+    position: absolute;
+    right: 0.75rem;
+    top: 0.75rem;
+}
+
+.notificacao-pedido-pronto {
+    animation: notificacao-pedido-pronto 1.5s ease-in-out infinite;
+}
+
+.pedido-direcionado {
+    animation: pedido-direcionado 1.5s ease-in-out 3;
+    outline: 3px solid var(--bs-danger);
+}
+
+.pedido-pronto-destaque {
+    animation: pedido-pronto-destaque 1.5s ease-in-out infinite;
+    background-color: var(--bs-danger-bg-subtle);
+    outline: 3px solid var(--bs-danger);
+}
+
+.pedido-item-direcionado {
+    animation: pedido-direcionado 1.5s ease-in-out 3;
+    outline: 3px solid var(--bs-warning);
+    position: relative;
+    z-index: 1;
+}
+
+@keyframes notificacao-pedido-pronto {
+    50% {
+        box-shadow: 0 0 0 0.4rem rgba(var(--bs-danger-rgb), 0.35);
+    }
+}
+
+@keyframes pedido-direcionado {
+    50% {
+        background-color: var(--bs-danger-bg-subtle);
+    }
+}
+
+@keyframes pedido-pronto-destaque {
+    50% {
+        box-shadow: 0 0 0 0.45rem rgba(var(--bs-danger-rgb), 0.35);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .notificacao-pedido-pronto,
+    .pedido-direcionado,
+    .pedido-item-direcionado,
+    .pedido-pronto-destaque {
+        animation: none;
+    }
+}
