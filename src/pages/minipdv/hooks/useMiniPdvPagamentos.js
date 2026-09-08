@@ -177,25 +177,30 @@ function useMiniPdvPagamentos(valorVenda = 0, formasPagamento = []) {
         };
     }
 
-    function alterarPagamento(
-        indice,
-        formaPagamentoId,
-        valor
-    ) {
+    function alterarPagamento(indice, formaPagamentoId, valor) {
         const id = Number(formaPagamentoId);
         const valorNumerico = Number(valor);
 
-        if (
-            !id ||
-            !Number.isFinite(valorNumerico) ||
-            valorNumerico <= 0
-        ) {
+        if (!id || !Number.isFinite(valorNumerico) || valorNumerico <= 0) {
             return;
         }
 
         const forma = encontrarForma(id);
 
         if (!forma || !forma.disponivel) {
+            return;
+        }
+
+        const totalSemPagamentoAtual = pagamentos.reduce(
+            (total, pagamento, index) => (index === indice ? total : total + (Number(pagamento.valor) || 0)),
+            0
+        );
+
+        const restanteDisponivel = Math.max(totalVenda - totalSemPagamentoAtual, 0);
+
+        const eDinheiro = forma.atalho === "D";
+
+        if (!eDinheiro && valorNumerico > restanteDisponivel) {
             return;
         }
 
@@ -207,14 +212,72 @@ function useMiniPdvPagamentos(valorVenda = 0, formasPagamento = []) {
                           formaPagamentoId: id,
                           valor: valorNumerico,
                           atalho: forma.atalho,
-                          descricao:
-                              forma.descricao ||
-                              forma.nome ||
-                              ""
+                          descricao: forma.descricao || forma.nome || ""
                       }
                     : pagamento
             )
         );
+    }
+
+    function alterarPagamentoPorAtalho(indice, atalho, valor) {
+        const codigo = String(atalho || "")
+            .trim()
+            .toUpperCase();
+
+        const forma = formas.find((item) => item.atalho === codigo && item.disponivel);
+
+        if (!forma) {
+            return {
+                sucesso: false,
+                mensagem: "Forma de pagamento não disponível."
+            };
+        }
+
+        const pagamento = pagamentos[indice];
+
+        if (!pagamento) {
+            return {
+                sucesso: false,
+                mensagem: "Pagamento não encontrado."
+            };
+        }
+        const valorNumerico = Number(valor);
+
+        if (!Number.isFinite(valorNumerico) || valorNumerico <= 0) {
+            return {
+                sucesso: false,
+                mensagem: "Informe um valor válido para o pagamento."
+            };
+        }
+
+        const totalSemPagamentoAtual = pagamentos.reduce(
+            (total, item, index) => (index === indice ? total : total + (Number(item.valor) || 0)),
+            0
+        );
+
+        const restanteDisponivel = Math.max(totalVenda - totalSemPagamentoAtual, 0);
+
+        if (forma.atalho !== "D" && valorNumerico > restanteDisponivel) {
+            return {
+                sucesso: false,
+                mensagem: "O valor informado excede o valor restante da venda."
+            };
+        }
+
+        const pagamentoAtualizado = {
+            ...pagamento,
+            formaPagamentoId: Number(forma.id),
+            valor: valorNumerico,
+            atalho: forma.atalho,
+            descricao: forma.descricao || forma.nome || ""
+        };
+
+        setPagamentos((atuais) => atuais.map((item, index) => (index === indice ? pagamentoAtualizado : item)));
+
+        return {
+            sucesso: true,
+            pagamento: pagamentoAtualizado
+        };
     }
 
     function removerPagamento(indice) {
@@ -286,12 +349,11 @@ function useMiniPdvPagamentos(valorVenda = 0, formasPagamento = []) {
         troco,
         valorRecebimento,
 
-        pagamentoCompleto:
-            totalPagamentos >= totalVenda &&
-            totalVenda > 0,
+        pagamentoCompleto: totalPagamentos >= totalVenda && totalVenda > 0,
 
         adicionarPagamentoPorAtalho,
         alterarPagamento,
+        alterarPagamentoPorAtalho,
         removerPagamento,
         limparPagamentos,
         definirValorRecebimento,

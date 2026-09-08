@@ -252,7 +252,7 @@ function MiniPdvCarrinho({
                                                     <button
                                                         type="button"
                                                         className="btn btn-sm btn-outline-danger"
-                                                        title="Excluir item"
+                                                        title="Cancelar item"
                                                         onClick={() =>
                                                             onRemoverProduto(
                                                                 produto.id

@@ -2,15 +2,17 @@ function MiniPdvAcoes({
     podeFinalizar = false,
     carregando = false,
     onFinalizar,
-    onEnviarBalcao,
+    onEnviarProducao,
     onRecuperar,
-    onLimpar
+    onLimpar,
+    onCancelar
 }) {
     const atalhos = {
         finalizar: "F2",
         recuperar: "F3",
         limpar: "F4",
-        enviar: "F5"
+        cancelar: "F8",
+        enviar: "F9"
     };
 
     return (
@@ -27,10 +29,19 @@ function MiniPdvAcoes({
             <button
                 type="button"
                 className="btn btn-outline-primary col-6"
-                onClick={onEnviarBalcao}
+                onClick={onEnviarProducao}
                 disabled={carregando || !podeFinalizar}
             >
                 Enviar para produção <kbd>{atalhos.enviar}</kbd>
+            </button>
+
+            <button
+                type="button"
+                className="btn btn-outline-danger col-6"
+                onClick={onCancelar}
+                disabled={carregando || !podeFinalizar}
+            >
+                Cancelar <kbd>{atalhos.cancelar}</kbd>
             </button>
 
             <button type="button" className="btn btn-outline-info col-6" onClick={onRecuperar} disabled={carregando}>

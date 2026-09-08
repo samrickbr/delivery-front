@@ -35,6 +35,7 @@ function MiniPdvPagamentoEtapa({
     definirValorRecebimento,
     adicionarPagamentoPorAtalho,
     alterarPagamento,
+    alterarPagamentoPorAtalho,
     removerPagamento,
     onConfirmar,
     onVoltar,
@@ -43,10 +44,9 @@ function MiniPdvPagamentoEtapa({
     const campoRecebimentoRef = useRef(null);
 
     const [formaSelecionada, setFormaSelecionada] = useState(null);
+    const [indiceEditando, setIndiceEditando] = useState(null);
 
-    const possuiPagamentoExistente = pagamentos.some(
-        (pagamento) => pagamento.existente === true
-    );
+    const possuiPagamentoExistente = pagamentos.some((pagamento) => pagamento.existente === true);
 
     const pagamentoCompleto = restante <= 0 && Number(valorVenda) > 0;
 
@@ -71,6 +71,25 @@ function MiniPdvPagamentoEtapa({
 
             setFormaSelecionada(codigo);
 
+            if (indiceEditando !== null) {
+                const pagamento = pagamentos[indiceEditando];
+
+                if (!pagamento) {
+                    setIndiceEditando(null);
+                    return;
+                }
+
+                const resultado = alterarPagamentoPorAtalho(indiceEditando, codigo, pagamento.valor);
+
+                if (!resultado || !resultado.sucesso) {
+                    window.alert(resultado?.mensagem || "Não foi possível alterar a forma de pagamento.");
+                    return;
+                }
+
+                setIndiceEditando(null);
+                return;
+            }
+
             const valorInformado = Number(valorRecebimento);
 
             const valor =
@@ -87,10 +106,7 @@ function MiniPdvPagamentoEtapa({
             const resultado = adicionarPagamentoPorAtalho(codigo, valor);
 
             if (!resultado || !resultado.sucesso) {
-                window.alert(
-                    resultado?.mensagem ||
-                        "Não foi possível registrar o pagamento."
-                );
+                window.alert(resultado?.mensagem || "Não foi possível registrar o pagamento.");
 
                 return;
             }
@@ -105,6 +121,9 @@ function MiniPdvPagamentoEtapa({
             restante,
             valorVenda,
             adicionarPagamentoPorAtalho,
+            alterarPagamentoPorAtalho,
+            indiceEditando,
+            pagamentos,
             onConfirmar
         ]
     );
@@ -123,13 +142,7 @@ function MiniPdvPagamentoEtapa({
             pagamentoCompleto: true,
             troco: 0
         });
-    }, [
-        carregando,
-        possuiPagamentoExistente,
-        pagamentoCompleto,
-        pagamentos,
-        onConfirmar
-    ]);
+    }, [carregando, possuiPagamentoExistente, pagamentoCompleto, pagamentos, onConfirmar]);
 
     useEffect(() => {
         function tratarTecla(event) {
@@ -165,73 +178,54 @@ function MiniPdvPagamentoEtapa({
     function obterValorForma(atalho) {
         return pagamentos
             .filter((pagamento) => pagamento.atalho === atalho)
-            .reduce(
-                (total, pagamento) =>
-                    total + Number(pagamento.valor || 0),
-                0
-            );
+            .reduce((total, pagamento) => total + Number(pagamento.valor || 0), 0);
     }
 
-    function alterarValor(indice, valor) {
-        const pagamento = pagamentos[indice];
+   function alterarValor(indice, valor) {
+       const pagamento = pagamentos[indice];
 
-        if (!pagamento || pagamento.existente === true) {
-            return;
-        }
+       if (!pagamento) {
+           return;
+       }
 
-        alterarPagamento(
-            indice,
-            pagamento.formaPagamentoId,
-            valor
-        );
-    }
+       alterarPagamento(indice, pagamento.formaPagamentoId, valor);
+   }
 
     return (
         <div
-            className="container-fluid py-3 d-flex flex-column mini-pdv-page"
-            style={{ minHeight: 0 }}
+            className="container-fluid py-2 d-flex flex-column mini-pdv-page"
+            style={{ height: "100vh", minHeight: 0 }}
         >
             <div className="row justify-content-center flex-grow-1" style={{ minHeight: 0 }}>
                 <div className="col-12 col-lg-8 col-xl-7 d-flex" style={{ minHeight: 0 }}>
                     <div className="card border-0 shadow-sm flex-grow-1" style={{ minHeight: 0 }}>
-                        <div className="card-body p-4 overflow-y-auto">
-                            <div className="d-flex align-items-center justify-content-between mb-4">
+                        <div className="card-body p-2 d-flex flex-column" style={{ minHeight: 0 }}>
+                            <div className="d-flex align-items-center justify-content-between mb-2">
                                 <div>
-                                    <h1 className="h4 mb-1">
-                                        Pagamento
-                                    </h1>
+                                    <h1 className="h4 mb-1">Pagamento</h1>
 
-                                    <small className="text-muted">
-                                        Informe os recebimentos da venda
-                                    </small>
+                                    <small className="text-muted">Informe os recebimentos da venda</small>
                                 </div>
 
                                 <div className="text-end">
-                                    <div className="text-muted small">
-                                        Total venda
-                                    </div>
+                                    <div className="text-muted small">Total venda</div>
 
-                                    <strong className="fs-3">
-                                        {formatarMoeda(valorVenda)}
-                                    </strong>
+                                    <strong className="fs-3">{formatarMoeda(valorVenda)}</strong>
                                 </div>
                             </div>
 
                             {possuiPagamentoExistente && (
                                 <div className="alert alert-info py-2">
-                                    Este pedido possui pagamentos já
-                                    registrados. Esses recebimentos não
-                                    podem ser alterados ou removidos.
+                                    Este pedido possui pagamentos já registrados. Esses recebimentos não podem ser
+                                    alterados ou removidos.
                                 </div>
                             )}
 
-                            <div className="mb-4 border rounded p-3 bg-light-subtle">
+                            <div className="mb-2 border rounded p-3 bg-light-subtle">
                                 <div className="d-flex justify-content-between mb-2">
                                     <span>Produtos</span>
 
-                                    <strong>
-                                        {formatarMoeda(valorProdutos)}
-                                    </strong>
+                                    <strong>{formatarMoeda(valorProdutos)}</strong>
                                 </div>
 
                                 {tipoRecebimento === "ENTREGA" && (
@@ -239,31 +233,20 @@ function MiniPdvPagamentoEtapa({
                                         <span>Taxa de entrega</span>
 
                                         <strong>
-                                            {taxaEntrega === null
-                                                ? "Calculando..."
-                                                : formatarMoeda(
-                                                      taxaEntrega
-                                                  )}
+                                            {taxaEntrega === null ? "Calculando..." : formatarMoeda(taxaEntrega)}
                                         </strong>
                                     </div>
                                 )}
 
                                 <div className="d-flex justify-content-between border-top pt-2">
-                                    <span className="fw-semibold">
-                                        Total
-                                    </span>
+                                    <span className="fw-semibold">Total</span>
 
-                                    <strong className="fs-5">
-                                        {formatarMoeda(valorVenda)}
-                                    </strong>
+                                    <strong className="fs-5">{formatarMoeda(valorVenda)}</strong>
                                 </div>
                             </div>
 
-                            <div className="mb-4">
-                                <label
-                                    htmlFor="mini-pdv-valor-recebimento"
-                                    className="form-label fw-semibold"
-                                >
+                            <div className="mb-2">
+                                <label htmlFor="mini-pdv-valor-recebimento" className="form-label fw-semibold">
                                     Valor do recebimento
                                 </label>
 
@@ -275,15 +258,8 @@ function MiniPdvPagamentoEtapa({
                                     step="0.01"
                                     className="form-control form-control-lg"
                                     value={valorRecebimento}
-                                    onChange={(event) =>
-                                        definirValorRecebimento(
-                                            event.target.value
-                                        )
-                                    }
-                                    disabled={
-                                        carregando ||
-                                        restante <= 0
-                                    }
+                                    onChange={(event) => definirValorRecebimento(event.target.value)}
+                                    disabled={carregando || (restante <= 0 && indiceEditando === null)}
                                     onKeyDown={(event) => {
                                         if (event.key === "Enter") {
                                             event.preventDefault();
@@ -292,187 +268,126 @@ function MiniPdvPagamentoEtapa({
                                 />
                             </div>
 
-                            <div className="row g-2 mb-4">
+                            <div className="row g-2 mb-2">
                                 {ATALHOS.map(({ atalho, label }) => (
-                                    <div
-                                        key={atalho}
-                                        className="col-12 col-md-4"
-                                    >
+                                    <div key={atalho} className="col-12 col-md-4">
                                         <button
                                             type="button"
                                             className={`btn w-100 ${
-                                                formaSelecionada === atalho
-                                                    ? "btn-dark"
-                                                    : "btn-outline-dark"
+                                                formaSelecionada === atalho ? "btn-dark" : "btn-outline-dark"
                                             }`}
-                                            onClick={() =>
-                                                confirmarForma(
-                                                    atalho
-                                                )
-                                            }
-                                            disabled={
-                                                carregando ||
-                                                restante <= 0
-                                            }
+                                            onClick={() => confirmarForma(atalho)}
+                                            disabled={carregando || (restante <= 0 && indiceEditando === null)}
                                         >
                                             <strong>{label}</strong>
 
-                                            <span className="ms-2">
-                                                ({atalho})
-                                            </span>
+                                            <span className="ms-2">({atalho})</span>
 
-                                            <div className="small mt-1">
-                                                {formatarMoeda(
-                                                    obterValorForma(
-                                                        atalho
-                                                    )
-                                                )}
-                                            </div>
+                                            <div className="small mt-1">{formatarMoeda(obterValorForma(atalho))}</div>
                                         </button>
                                     </div>
                                 ))}
 
                                 <div className="col-12 col-md-4">
-                                    <button
-                                        type="button"
-                                        className="btn btn-outline-secondary w-100"
-                                        disabled
-                                    >
-                                        <strong>
-                                            {LABELS_ATALHO.K}
-                                        </strong>
+                                    <button type="button" className="btn btn-outline-secondary w-100" disabled>
+                                        <strong>{LABELS_ATALHO.K}</strong>
 
-                                        <span className="ms-2">
-                                            (K)
-                                        </span>
+                                        <span className="ms-2">(K)</span>
 
-                                        <div className="small mt-1">
-                                            Indisponível
-                                        </div>
+                                        <div className="small mt-1">Indisponível</div>
                                     </button>
                                 </div>
                             </div>
 
-                            <div className="border rounded p-3 mb-4">
+                            <div className="border rounded p-2 mb-2">
                                 <div className="d-flex justify-content-between">
-                                    <span>
-                                        Total recebimentos
-                                    </span>
+                                    <span>Total recebimentos</span>
 
-                                    <strong>
-                                        {formatarMoeda(
-                                            totalPagamentos
-                                        )}
-                                    </strong>
+                                    <strong>{formatarMoeda(totalPagamentos)}</strong>
                                 </div>
 
                                 <div className="d-flex justify-content-between mt-2">
                                     <span>Restante</span>
 
-                                    <strong>
-                                        {formatarMoeda(restante)}
-                                    </strong>
+                                    <strong>{formatarMoeda(restante)}</strong>
                                 </div>
 
                                 <div className="d-flex justify-content-between mt-2">
                                     <span>Troco</span>
 
-                                    <strong>
-                                        {formatarMoeda(troco)}
-                                    </strong>
+                                    <strong>{formatarMoeda(troco)}</strong>
                                 </div>
                             </div>
 
                             {pagamentos.length > 0 && (
-                                <div className="mb-4">
-                                    <div className="fw-semibold mb-2">
-                                        Recebimentos
-                                    </div>
+                                <div className="mb-2">
+                                    <div className="fw-semibold mb-2">Recebimentos</div>
 
                                     <div className="list-group">
-                                        {pagamentos.map(
-                                            (
-                                                pagamento,
-                                                indice
-                                            ) => {
-                                                const existente =
-                                                    pagamento.existente ===
-                                                    true;
+                                        {pagamentos.map((pagamento, indice) => {
+                                            const existente = pagamento.existente === true;
 
-                                                return (
-                                                    <div
-                                                        key={`${pagamento.formaPagamentoId}-${indice}`}
-                                                        className="list-group-item"
-                                                    >
-                                                        <div className="d-flex align-items-center justify-content-between gap-3">
-                                                            <div>
-                                                                <span>
-                                                                    {LABELS_ATALHO[
-                                                                        pagamento
-                                                                            .atalho
-                                                                    ] ||
-                                                                        pagamento.descricao ||
-                                                                        pagamento.formaPagamentoId}
-                                                                </span>
+                                            return (
+                                                <div
+                                                    key={`${pagamento.formaPagamentoId}-${indice}`}
+                                                    className="list-group-item py-2"
+                                                >
+                                                    <div className="d-flex align-items-center justify-content-between gap-3">
+                                                        <div>
+                                                            <span>
+                                                                {LABELS_ATALHO[pagamento.atalho] ||
+                                                                    pagamento.descricao ||
+                                                                    pagamento.formaPagamentoId}
+                                                            </span>
 
-                                                                {existente && (
-                                                                    <div className="small text-muted">
-                                                                        Já
-                                                                        recebido
-                                                                    </div>
-                                                                )}
-                                                            </div>
+                                                            {existente && (
+                                                                <div className="small text-muted">Já recebido</div>
+                                                            )}
+                                                        </div>
 
-                                                            <div className="d-flex align-items-center gap-2">
-                                                                <input
-                                                                    type="number"
-                                                                    min="0.01"
-                                                                    step="0.01"
-                                                                    className="form-control"
-                                                                    style={{
-                                                                        width: 140
-                                                                    }}
-                                                                    value={
-                                                                        pagamento.valor
-                                                                    }
-                                                                    disabled={
-                                                                        carregando ||
-                                                                        existente
-                                                                    }
-                                                                    onChange={(
-                                                                        event
-                                                                    ) =>
-                                                                        alterarValor(
-                                                                            indice,
-                                                                            event
-                                                                                .target
-                                                                                .value
-                                                                        )
-                                                                    }
-                                                                />
+                                                        <div className="d-flex align-items-center gap-2">
+                                                            <input
+                                                                type="number"
+                                                                min="0.01"
+                                                                step="0.01"
+                                                                className="form-control"
+                                                                style={{
+                                                                    width: 140
+                                                                }}
+                                                                value={pagamento.valor}
+                                                                disabled={
+                                                                    carregando ||
+                                                                    (existente && indiceEditando !== indice)
+                                                                }
+                                                                onChange={(event) =>
+                                                                    alterarValor(indice, event.target.value)
+                                                                }
+                                                            />
 
-                                                                {!existente && (
-                                                                    <button
-                                                                        type="button"
-                                                                        className="btn btn-sm btn-outline-danger"
-                                                                        onClick={() =>
-                                                                            removerPagamento(
-                                                                                indice
-                                                                            )
-                                                                        }
-                                                                        disabled={
-                                                                            carregando
-                                                                        }
-                                                                    >
-                                                                        Remover
-                                                                    </button>
-                                                                )}
-                                                            </div>
+                                                            <>
+                                                                <button
+                                                                    type="button"
+                                                                    className="btn btn-sm btn-outline-primary"
+                                                                    onClick={() => setIndiceEditando(indice)}
+                                                                    disabled={carregando}
+                                                                >
+                                                                    Editar
+                                                                </button>
+
+                                                                <button
+                                                                    type="button"
+                                                                    className="btn btn-sm btn-outline-danger"
+                                                                    onClick={() => removerPagamento(indice)}
+                                                                    disabled={carregando}
+                                                                >
+                                                                    Remover
+                                                                </button>
+                                                            </>
                                                         </div>
                                                     </div>
-                                                );
-                                            }
-                                        )}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             )}
@@ -487,19 +402,16 @@ function MiniPdvPagamentoEtapa({
                                     Voltar
                                 </button>
 
-                                {pagamentoCompleto &&
-                                    possuiPagamentoExistente && (
-                                        <button
-                                            type="button"
-                                            className="btn btn-success"
-                                            onClick={
-                                                finalizarPagamentoExistente
-                                            }
-                                            disabled={carregando}
-                                        >
-                                            Finalizar venda
-                                        </button>
-                                    )}
+                                {pagamentoCompleto && possuiPagamentoExistente && (
+                                    <button
+                                        type="button"
+                                        className="btn btn-success"
+                                        onClick={finalizarPagamentoExistente}
+                                        disabled={carregando}
+                                    >
+                                        Finalizar venda
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>

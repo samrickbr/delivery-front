@@ -23,11 +23,12 @@ function useMiniPdvAtalhos({
     alertOpen,
     trocoFinal,
     onFinalizarVenda,
-    onEnviarBalcao,
+    onEnviarProducao,
     onRecuperarVenda,
     onLimparNovaVenda,
     onVoltarParaVenda,
     onFecharAlerta,
+    onCancelar,
     onFecharTrocoModal
 }) {
     useEffect(() => {
@@ -46,9 +47,9 @@ function useMiniPdvAtalhos({
 
             const tecla = event.key;
 
-            if (tecla !== "F2" && tecla !== "F3" && tecla !== "F4" && tecla !== "F5") {
-                return;
-            }
+           if (tecla !== "F2" && tecla !== "F3" && tecla !== "F4" && tecla !== "F8" && tecla !== "F9") {
+               return;
+           }
 
             event.preventDefault();
             event.stopPropagation();
@@ -68,8 +69,13 @@ function useMiniPdvAtalhos({
                 return;
             }
 
-            if (tecla === "F5") {
-                onEnviarBalcao?.();
+            if (tecla === "F8") {
+                onCancelar?.();
+                return;
+            }
+
+            if (tecla === "F9") {
+                onEnviarProducao?.();
             }
         }
 
@@ -78,7 +84,19 @@ function useMiniPdvAtalhos({
         return () => {
             window.removeEventListener("keydown", tratarTecla);
         };
-    }, [etapa, alertOpen, trocoFinal, onFinalizarVenda, onEnviarBalcao, onRecuperarVenda, onLimparNovaVenda]);
+    }, [
+        etapa,
+        alertOpen,
+        trocoFinal,
+        onFinalizarVenda,
+        onEnviarProducao,
+        onRecuperarVenda,
+        onLimparNovaVenda,
+        onCancelar,
+        onVoltarParaVenda,
+        onFecharAlerta,
+        onFecharTrocoModal
+    ]);
 
     useEffect(() => {
         if (!alertOpen && trocoFinal <= 0) {

@@ -20,12 +20,14 @@ import useMiniPdvCadastro from "../hooks/useMiniPdvCadastro";
 import useKeyboardAlert from "../../../hooks/useKeyboardAlert";
 
 import KeyboardAlert from "../../../components/KeyboardAlert";
+import CancelarItensModal from "../../../components/pedido/CancelarItensModal";
 
 import { buscarTaxaEntrega } from "../../../services/configuracaoService";
 import {
     adicionarItemPedido,
     alterarQuantidadeItemPedido,
-    removerItemPedido,
+    cancelarItemPedido,
+    cancelarPedidoCompleto,
     aprovarPedido,
     criarPedidoOperacional,
     listarPedidosAbertos,
@@ -52,12 +54,16 @@ function MiniPdv() {
     const [carregandoRecuperacao, setCarregandoRecuperacao] = useState(false);
     const [erroRecuperacao, setErroRecuperacao] = useState("");
     const [filtroRecuperacao, setFiltroRecuperacao] = useState("");
-    const [tipoFiltroRecuperacao, setTipoFiltroRecuperacao] = useState("TODOS");
+    const [tipoFiltroRecuperacao, setTipoFiltroRecuperacao] = useState("ABERTOS");
     const [pedidoSelecionadoRecuperacao, setPedidoSelecionadoRecuperacao] = useState(0);
+    const [numeroPedidoAtual, setNumeroPedidoAtual] = useState(null);
 
     const [clientesRecuperacao, setClientesRecuperacao] = useState([]);
     const [focoProdutoSolicitado, setFocoProdutoSolicitado] = useState(0);
     const [enviandoParaProducao, setEnviandoParaProducao] = useState(false);
+
+    const [mostrarCancelamento, setMostrarCancelamento] = useState(false);
+    const [pedidoCancelamento, setPedidoCancelamento] = useState(null);
 
     const {
         pedidoId,
@@ -205,6 +211,7 @@ function MiniPdv() {
         valorRecebimento,
         adicionarPagamentoPorAtalho,
         alterarPagamento,
+        alterarPagamentoPorAtalho,
         removerPagamento,
         carregarPagamentos,
         limparPagamentos,
@@ -240,20 +247,50 @@ function MiniPdv() {
         showAlert
     });
 
-    const solicitarLimpezaVenda = useCallback(() => {
+    const solicitarLimpezaVenda = useCallback(async () => {
         if (!carrinho.length) {
+            setNumeroPedidoAtual(null);
             limparNovaVenda();
             return;
         }
 
-        const confirmar = window.confirm("Deseja realmente cancelar e limpar a venda atual?");
+        const confirmar = window.confirm(
+            pedidoId ? "Deseja realmente cancelar o pedido atual?" : "Deseja realmente cancelar e limpar a venda atual?"
+        );
 
         if (!confirmar) {
             return;
         }
 
-        limparNovaVenda();
-    }, [carrinho.length, limparNovaVenda]);
+        if (!pedidoId) {
+            setNumeroPedidoAtual(null);
+            limparNovaVenda();
+            return;
+        }
+
+        const justificativa = window.prompt("Informe o motivo do cancelamento do pedido:");
+
+        if (justificativa === null) {
+            return;
+        }
+
+        if (!justificativa.trim()) {
+            showAlert("Informe a justificativa do cancelamento.");
+            return;
+        }
+
+        try {
+            await cancelarPedidoCompleto(pedidoId, justificativa.trim());
+
+            setNumeroPedidoAtual(null);
+            limparNovaVenda();
+            showAlert("Pedido cancelado com sucesso.");
+        } catch (error) {
+            console.error("Erro ao cancelar pedido no Mini PDV.", error);
+
+            showAlert(error?.response?.data?.message || "Não foi possível cancelar o pedido.");
+        }
+    }, [carrinho.length, pedidoId, limparNovaVenda, showAlert]);
 
     const abrirRecuperacao = useCallback(async () => {
         if (carregandoRecuperacao) {
@@ -276,18 +313,18 @@ function MiniPdv() {
         setPedidosAbertos([]);
         setErroRecuperacao("");
         setFiltroRecuperacao("");
-        setTipoFiltroRecuperacao("TODOS");
+        setTipoFiltroRecuperacao("ABERTOS");
         setPedidoSelecionadoRecuperacao(0);
         setCarregandoRecuperacao(true);
 
         try {
-            const response = await listarPedidosAbertos();
+const response = await listarPedidosAbertos();
 
-            setPedidosAbertos(Array.isArray(response?.data) ? response.data : []);
+setPedidosAbertos(Array.isArray(response?.data) ? response.data : []);
         } catch (error) {
-            console.error("Erro ao listar pedidos abertos para recuperação.", error);
+            console.error("Erro ao listar pedidos para recuperação.", error);
 
-            setErroRecuperacao(error?.response?.data?.message || "Não foi possível consultar os pedidos abertos.");
+            setErroRecuperacao(error?.response?.data?.message || "Não foi possível consultar os pedidos.");
         } finally {
             setCarregandoRecuperacao(false);
         }
@@ -302,7 +339,7 @@ function MiniPdv() {
         setPedidosAbertos([]);
         setErroRecuperacao("");
         setFiltroRecuperacao("");
-        setTipoFiltroRecuperacao("TODOS");
+        setTipoFiltroRecuperacao("ABERTOS");
         setPedidoSelecionadoRecuperacao(0);
     }, [carregandoRecuperacao]);
 
@@ -341,6 +378,7 @@ function MiniPdv() {
                 clientesRecuperacao.find((item) => Number(item.id) === Number(pedidoParaRecuperar.clienteId)) || null;
 
             carregarPedido(pedidoParaRecuperar, clienteRecuperado);
+            setNumeroPedidoAtual(obterNumeroPedido(pedidoParaRecuperar));
 
             carregarCarrinho(itensNormalizados);
             carregarPagamentos(pedidoParaRecuperar.pagamentos || []);
@@ -365,7 +403,16 @@ function MiniPdv() {
         const clientesEncontrados = new Set(clientesRecuperacao.map((item) => Number(item.id)));
 
         return pedidosAbertos.filter((pedido) => {
-            if (tipoFiltroRecuperacao !== "TODOS" && pedido.tipoRecebimento !== tipoFiltroRecuperacao) {
+            const status = String(pedido.status || "");
+
+            if (tipoFiltroRecuperacao === "ABERTOS" && ["FINALIZADO", "CANCELADO", "ENTREGUE"].includes(status)) {
+                return false;
+            }
+
+            if (
+                ["ENTREGA", "RETIRADA"].includes(tipoFiltroRecuperacao) &&
+                pedido.tipoRecebimento !== tipoFiltroRecuperacao
+            ) {
                 return false;
             }
 
@@ -374,9 +421,7 @@ function MiniPdv() {
             }
 
             const numero = String(pedido.numero || "").toLowerCase();
-
             const nomeCliente = String(pedido.cliente || "").toLowerCase();
-
             const whatsapp = String(pedido.clienteWhatsapp || "").toLowerCase();
 
             const clienteEncontrado = pedido.clienteId != null && clientesEncontrados.has(Number(pedido.clienteId));
@@ -449,7 +494,7 @@ function MiniPdv() {
         fecharRecuperacao
     ]);
 
-    async function enviarParaBalcao() {
+    async function enviarParaProducao() {
         if (!carrinho.length) {
             return;
         }
@@ -493,16 +538,34 @@ function MiniPdv() {
         }
     }
 
+    const abrirCancelamento = useCallback(async () => {
+        if (!pedidoId || carregando) {
+            return;
+        }
+
+        try {
+            const response = await buscarPedido(pedidoId);
+
+            setPedidoCancelamento(response.data);
+            setMostrarCancelamento(true);
+        } catch (error) {
+            console.error("Erro ao carregar pedido para cancelamento.", error);
+
+            showAlert(error?.response?.data?.message || "Não foi possível carregar o pedido.");
+        }
+    }, [pedidoId, carregando, showAlert]);
+
     useMiniPdvAtalhos({
         etapa,
         alertOpen: alertState.open,
         trocoFinal,
         onFinalizarVenda: finalizarVenda,
-        onEnviarBalcao: enviarParaBalcao,
+        onEnviarProducao: enviarParaProducao,
         onRecuperarVenda: abrirRecuperacao,
         onLimparNovaVenda: solicitarLimpezaVenda,
         onVoltarParaVenda: voltarParaVenda,
         onFecharAlerta: closeAlert,
+        onCancelar: abrirCancelamento,
         onFecharTrocoModal: () => setTrocoFinal(0)
     });
 
@@ -528,6 +591,7 @@ function MiniPdv() {
                     adicionarPagamentoPorAtalho={adicionarPagamentoPorAtalho}
                     alterarPagamento={alterarPagamento}
                     removerPagamento={removerPagamento}
+                    alterarPagamentoPorAtalho={alterarPagamentoPorAtalho}
                     onConfirmar={confirmarPagamento}
                     onVoltar={voltarParaVenda}
                     carregando={carregando || carregandoFormasPagamento}
@@ -621,31 +685,55 @@ function MiniPdv() {
         }
     }
 
-    async function removerProdutoPdv(produtoId) {
-        if (!pedidoId) {
-            removerProduto(produtoId);
-            return;
-        }
+   async function removerProdutoPdv(produtoId) {
+       if (!pedidoId) {
+           removerProduto(produtoId);
+           return;
+       }
 
-        const item = carrinho.find((produto) => produto.id === produtoId);
+       const item = carrinho.find((produto) => produto.id === produtoId);
 
-        if (!item?.itemPedidoId) {
-            showAlert("Não foi possível identificar o item do pedido.");
-            return;
-        }
+       if (!item?.itemPedidoId) {
+           showAlert("Não foi possível identificar o item do pedido.");
+           return;
+       }
 
-        try {
-            await removerItemPedido(pedidoId, item.itemPedidoId);
+       const justificativa = window.prompt("Informe o motivo do cancelamento do item:");
 
-            const novoCarrinho = carrinho.filter((produto) => produto.id !== produtoId);
+       if (justificativa === null) {
+           return;
+       }
 
-            carregarCarrinho(novoCarrinho);
-        } catch (error) {
-            console.error("Erro ao remover produto do pedido recuperado.", error);
+       if (!justificativa.trim()) {
+           showAlert("Informe a justificativa do cancelamento.");
+           return;
+       }
 
-            showAlert(error?.response?.data?.message || "Não foi possível remover o produto.");
-        }
-    }
+       try {
+           const response = await cancelarItemPedido(pedidoId, item.itemPedidoId, justificativa.trim());
+
+           const pedidoAtualizado = response.data;
+
+           if (pedidoAtualizado?.itens) {
+               carregarCarrinho(
+                   filtrarItensEditaveis(pedidoAtualizado.itens).map((item) => ({
+                       ...item,
+                       id: item.id,
+                       itemPedidoId: item.id,
+                       coreItemId: item.coreItemId,
+                       produtoId: item.produtoId,
+                       nome: item.produto || `Produto #${item.produtoId}`,
+                       preco: Number(item.valorUnitario || 0),
+                       quantidade: Number(item.quantidade || 0)
+                   }))
+               );
+           }
+       } catch (error) {
+           console.error("Erro ao cancelar item do pedido recuperado.", error);
+
+           showAlert(error?.response?.data?.message || "Não foi possível cancelar o item.");
+       }
+   }
 
     return (
         <>
@@ -659,7 +747,9 @@ function MiniPdv() {
                     <h1 className="h4 mb-0">SIGIN — Mini PDV</h1>
 
                     <span className="badge text-bg-secondary">
-                        {pedidoId ? `Pedido ${pedidoId} em atendimento` : "Venda em atendimento"}
+                        {pedidoId
+                            ? `Pedido ${numeroPedidoAtual || obterNumeroPedido({ id: pedidoId })} em atendimento`
+                            : "Venda em atendimento"}
                     </span>
                 </div>
 
@@ -704,7 +794,9 @@ function MiniPdv() {
                             <div className="alert alert-warning py-2 mb-0">{erroTaxaEntrega}</div>
                         )}
 
-                        {erroFormasPagamento && <div className="alert alert-danger py-2 mb-0">{erroFormasPagamento}</div>}
+                        {erroFormasPagamento && (
+                            <div className="alert alert-danger py-2 mb-0">{erroFormasPagamento}</div>
+                        )}
 
                         {carregandoFormasPagamento && (
                             <div className="text-muted small">Carregando formas de pagamento...</div>
@@ -721,9 +813,10 @@ function MiniPdv() {
                             podeFinalizar={podeFinalizarVenda}
                             carregando={carregando || carregandoRecuperacao || enviandoParaProducao}
                             onFinalizar={finalizarVenda}
-                            onEnviarBalcao={enviarParaBalcao}
+                            onEnviarProducao={enviarParaProducao}
                             onRecuperar={abrirRecuperacao}
                             onLimpar={solicitarLimpezaVenda}
+                            onCancelar={abrirCancelamento}
                         />
                     </div>
 
@@ -758,6 +851,51 @@ function MiniPdv() {
                 onSalvo={selecionarEnderecoCadastrado}
                 salvarEndereco={salvarEndereco}
             />
+
+            {pedidoCancelamento && (
+                <CancelarItensModal
+                    pedido={pedidoCancelamento}
+                    setor="BALCAO"
+                    mostrar={mostrarCancelamento}
+                    permitirCompleto={true}
+                    onFechar={() => {
+                        setMostrarCancelamento(false);
+                        setPedidoCancelamento(null);
+                    }}
+                    onAtualizar={async () => {
+                        if (!pedidoId) {
+                            return;
+                        }
+
+                        const response = await buscarPedido(pedidoId);
+                        const pedidoAtualizado = response.data;
+
+                        if (pedidoAtualizado.status === "CANCELADO") {
+                            setMostrarCancelamento(false);
+                            setPedidoCancelamento(null);
+                            setNumeroPedidoAtual(null);
+                            limparNovaVenda();
+                            showAlert("Pedido cancelado com sucesso.");
+                            return;
+                        }
+
+                        setPedidoCancelamento(pedidoAtualizado);
+
+                        carregarCarrinho(
+                            filtrarItensEditaveis(pedidoAtualizado.itens || []).map((item) => ({
+                                ...item,
+                                id: item.id,
+                                itemPedidoId: item.id,
+                                coreItemId: item.coreItemId,
+                                produtoId: item.produtoId,
+                                nome: item.produto || `Produto #${item.produtoId}`,
+                                preco: Number(item.valorUnitario || 0),
+                                quantidade: Number(item.quantidade || 0)
+                            }))
+                        );
+                    }}
+                />
+            )}
 
             {mostrarRecuperacao && (
                 <div
@@ -816,6 +954,7 @@ function MiniPdv() {
                                                         setPedidoSelecionadoRecuperacao(0);
                                                     }}
                                                 >
+                                                    <option value="ABERTOS">Abertos</option>
                                                     <option value="TODOS">Todos</option>
                                                     <option value="ENTREGA">Entrega</option>
                                                     <option value="RETIRADA">Retirada</option>
@@ -890,10 +1029,13 @@ function MiniPdv() {
                                                         <div className="small text-muted">
                                                             {pedido.tipoRecebimento === "ENTREGA"
                                                                 ? "Entrega"
-                                                                : "Retirada"}
-                                                            {" · "}
-                                                            {pedido.itens?.length || 0} item(ns)
+                                                                : "Retirada"}{" "}
+                                                            • {pedido.itens?.length || 0} item(ns)
                                                         </div>
+
+                                                        <span className="badge text-bg-secondary mt-1">
+                                                            {String(pedido.status || "").replaceAll("_", " ")}
+                                                        </span>
                                                     </div>
 
                                                     <div className="text-end">
