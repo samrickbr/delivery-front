@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 
 import {
     adicionarPagamentoPedido,
+    aprovarPedido,
     criarPedidoOperacional,
     faturarPedido
 } from "../../../services/pedidoService";
@@ -67,37 +68,33 @@ function useMiniPdvFluxo({
                   ? pagamentosConfirmados.pagamentos
                   : [];
 
-            const pagamentosExistentes = pagamentosAtuais.filter(
-                (pagamento) => pagamento.existente === true
-            );
+            const pagamentosExistentes = pagamentosAtuais.filter((pagamento) => pagamento.existente === true);
 
-            const pagamentosNovos = pagamentosAtuais.filter(
-                (pagamento) => pagamento.existente !== true
-            );
+            const pagamentosNovos = pagamentosAtuais.filter((pagamento) => pagamento.existente !== true);
 
             const totalExistente = pagamentosExistentes.reduce(
-                (total, pagamento) =>
-                    total + (Number(pagamento.valor) || 0),
+                (total, pagamento) => total + (Number(pagamento.valor) || 0),
                 0
             );
 
-            const totalNovo = pagamentosNovos.reduce(
-                (total, pagamento) =>
-                    total + (Number(pagamento.valor) || 0),
-                0
-            );
+            const totalNovo = pagamentosNovos.reduce((total, pagamento) => total + (Number(pagamento.valor) || 0), 0);
 
-            const valorRestante = Math.max(
-                Number(valorVenda) - totalExistente,
-                0
-            );
+            const valorVendaNumero = Number(valorVenda) || 0;
+
+            const valorRestante = Math.max(valorVendaNumero - totalExistente, 0);
+
+            if (pedidoId && totalExistente > valorVendaNumero) {
+                showAlert("Os pagamentos registrados excedem o valor atual da venda.");
+
+                return;
+            }
 
             /*
              * Pedido recuperado já totalmente pago:
              * não há pagamento novo para validar/enviar.
              * Basta faturar o pedido existente.
              */
-            if (pedidoId && valorRestante <= 0) {
+            if (pedidoId && totalExistente > 0 && Math.abs(totalExistente - valorVendaNumero) <= 0.0001) {
                 try {
                     await faturarPedido(pedidoId);
 
@@ -111,14 +108,9 @@ function useMiniPdvFluxo({
 
                     showAlert("Venda finalizada com sucesso.");
                 } catch (error) {
-                    console.error(
-                        "Erro ao faturar pedido recuperado.",
-                        error
-                    );
+                    console.error("Erro ao faturar pedido recuperado.", error);
 
-                    const mensagem =
-                        error?.response?.data?.message ||
-                        "Não foi possível finalizar a venda.";
+                    const mensagem = error?.response?.data?.message || "Não foi possível finalizar a venda.";
 
                     showAlert(mensagem);
                 }
@@ -136,15 +128,9 @@ function useMiniPdvFluxo({
              * Por isso, retiramos a taxa do valor restante e zeramos
              * a taxa enviada ao validador para evitar dupla cobrança.
              */
-            const taxaRestante = Math.min(
-                Number(taxaEntrega) || 0,
-                valorRestante
-            );
+            const taxaRestante = Math.min(Number(taxaEntrega) || 0, valorRestante);
 
-            const produtosRestantes = Math.max(
-                valorRestante - taxaRestante,
-                0
-            );
+            const produtosRestantes = Math.max(valorRestante - taxaRestante, 0);
 
             const erroPagamento = validarPagamento({
                 pagamentos: pagamentosNovos,
@@ -160,15 +146,10 @@ function useMiniPdvFluxo({
                 return;
             }
 
-            const resultadoPagamentos = montarPagamentosParaEnvio(
-                pagamentosNovos,
-                valorRestante
-            );
+            const resultadoPagamentos = montarPagamentosParaEnvio(pagamentosNovos, valorRestante);
 
             if (!resultadoPagamentos.ok) {
-                showAlert(
-                    "Não foi possível montar os pagamentos da venda."
-                );
+                showAlert("Não foi possível montar os pagamentos da venda.");
 
                 return;
             }
@@ -186,10 +167,7 @@ function useMiniPdvFluxo({
                      * Os pagamentos existentes permanecem no Core.
                      */
                     for (const pagamento of resultadoPagamentos.pagamentos) {
-                        await adicionarPagamentoPedido(
-                            pedidoId,
-                            pagamento
-                        );
+                        await adicionarPagamentoPedido(pedidoId, pagamento);
                     }
 
                     await faturarPedido(pedidoId);
@@ -207,7 +185,25 @@ function useMiniPdvFluxo({
                         valorVenda
                     });
 
-                    await criarPedidoOperacional(pedido);
+                    const response = await criarPedidoOperacional(pedido);
+
+                    const novoPedidoId = response?.data?.id;
+
+                    if (!novoPedidoId) {
+                        throw new Error("O pedido criado não retornou um identificador.");
+                    }
+
+                    const possuiProducao = carrinho.some(
+                        (item) => item?.setor === "COZINHA" || item?.setor === "PIZZARIA"
+                    );
+
+                    if (possuiProducao) {
+                        await aprovarPedido(novoPedidoId);
+                    } else {
+                        await faturarPedido(novoPedidoId);
+                    }
+
+                    await faturarPedido(novoPedidoId);
                 }
 
                 setTrocoFinal(trocoCalculado);
@@ -220,13 +216,10 @@ function useMiniPdvFluxo({
 
                 if (trocoCalculado > 0) {
                     showAlert(
-                        `Venda finalizada com sucesso. Troco: ${trocoCalculado.toLocaleString(
-                            "pt-BR",
-                            {
-                                style: "currency",
-                                currency: "BRL"
-                            }
-                        )}`
+                        `Venda finalizada com sucesso. Troco: ${trocoCalculado.toLocaleString("pt-BR", {
+                            style: "currency",
+                            currency: "BRL"
+                        })}`
                     );
 
                     return;
@@ -234,14 +227,9 @@ function useMiniPdvFluxo({
 
                 showAlert("Venda finalizada com sucesso.");
             } catch (error) {
-                console.error(
-                    "Erro ao finalizar pagamento.",
-                    error
-                );
+                console.error("Erro ao finalizar pagamento.", error);
 
-                const mensagem =
-                    error?.response?.data?.message ||
-                    "Não foi possível finalizar a venda.";
+                const mensagem = error?.response?.data?.message || "Não foi possível finalizar a venda.";
 
                 showAlert(mensagem);
             }

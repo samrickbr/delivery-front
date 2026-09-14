@@ -9,6 +9,7 @@ import MiniPdvAcoes from "../components/MiniPdvAcoes";
 import MiniPdvResumo from "../components/MiniPdvResumo";
 import MiniPdvClienteModal from "../components/MiniPdvClienteModal";
 import EnderecoModal from "../../cliente/checkout/components/EnderecoModal";
+import MiniPdvStatusItens from "../components/MiniPdvStatusItens";
 
 import useMiniPdv from "../hooks/useMiniPdv";
 import useMiniPdvCarrinho from "../hooks/useMiniPdvCarrinho";
@@ -57,6 +58,9 @@ function MiniPdv() {
     const [tipoFiltroRecuperacao, setTipoFiltroRecuperacao] = useState("ABERTOS");
     const [pedidoSelecionadoRecuperacao, setPedidoSelecionadoRecuperacao] = useState(0);
     const [numeroPedidoAtual, setNumeroPedidoAtual] = useState(null);
+    const [valorProdutosPedido, setValorProdutosPedido] = useState(null);
+
+    const [mostrarStatusItens, setMostrarStatusItens] = useState(false);
 
     const [clientesRecuperacao, setClientesRecuperacao] = useState([]);
     const [focoProdutoSolicitado, setFocoProdutoSolicitado] = useState(0);
@@ -197,8 +201,10 @@ function MiniPdv() {
 
     const taxaEntrega = tipoRecebimento === "ENTREGA" ? (taxaEntregaConfigurada ?? null) : 0;
 
+    const valorProdutosParaVenda = pedidoId && valorProdutosPedido !== null ? valorProdutosPedido : valorProdutos;
+
     const valorVenda = calcularValorVenda({
-        valorProdutos,
+        valorProdutos: valorProdutosParaVenda,
         tipoRecebimento,
         taxaEntrega: taxaEntrega ?? 0
     });
@@ -318,9 +324,9 @@ function MiniPdv() {
         setCarregandoRecuperacao(true);
 
         try {
-const response = await listarPedidosAbertos();
+            const response = await listarPedidosAbertos();
 
-setPedidosAbertos(Array.isArray(response?.data) ? response.data : []);
+            setPedidosAbertos(Array.isArray(response?.data) ? response.data : []);
         } catch (error) {
             console.error("Erro ao listar pedidos para recuperação.", error);
 
@@ -376,6 +382,15 @@ setPedidosAbertos(Array.isArray(response?.data) ? response.data : []);
 
             const clienteRecuperado =
                 clientesRecuperacao.find((item) => Number(item.id) === Number(pedidoParaRecuperar.clienteId)) || null;
+
+            const valorProdutosRecuperado =
+                pedidoParaRecuperar.valorProdutos != null
+                    ? Number(pedidoParaRecuperar.valorProdutos)
+                    : (pedidoParaRecuperar.itens || [])
+                          .filter((item) => item?.ativo !== false && item?.statusOperacao !== "CANCELADO")
+                          .reduce((total, item) => total + (Number(item.valorTotal) || 0), 0);
+
+            setValorProdutosPedido(valorProdutosRecuperado);
 
             carregarPedido(pedidoParaRecuperar, clienteRecuperado);
             setNumeroPedidoAtual(obterNumeroPedido(pedidoParaRecuperar));
@@ -625,6 +640,10 @@ setPedidosAbertos(Array.isArray(response?.data) ? response.data : []);
 
             const pedidoAtualizado = response.data;
 
+            if (pedidoAtualizado?.valorProdutos != null) {
+                setValorProdutosPedido(Number(pedidoAtualizado.valorProdutos));
+            }
+
             if (pedidoAtualizado?.itens) {
                 carregarCarrinho(
                     filtrarItensEditaveis(pedidoAtualizado.itens).map((item) => ({
@@ -664,6 +683,10 @@ setPedidosAbertos(Array.isArray(response?.data) ? response.data : []);
 
             const pedidoAtualizado = response.data;
 
+            if (pedidoAtualizado?.valorProdutos != null) {
+                setValorProdutosPedido(Number(pedidoAtualizado.valorProdutos));
+            }
+
             if (pedidoAtualizado?.itens) {
                 carregarCarrinho(
                     filtrarItensEditaveis(pedidoAtualizado.itens).map((item) => ({
@@ -685,55 +708,60 @@ setPedidosAbertos(Array.isArray(response?.data) ? response.data : []);
         }
     }
 
-   async function removerProdutoPdv(produtoId) {
-       if (!pedidoId) {
-           removerProduto(produtoId);
-           return;
-       }
+    async function removerProdutoPdv(produtoId) {
+        if (!pedidoId) {
+            removerProduto(produtoId);
+            return;
+        }
 
-       const item = carrinho.find((produto) => produto.id === produtoId);
+        const item = carrinho.find((produto) => produto.id === produtoId);
 
-       if (!item?.itemPedidoId) {
-           showAlert("Não foi possível identificar o item do pedido.");
-           return;
-       }
+        if (!item?.itemPedidoId) {
+            showAlert("Não foi possível identificar o item do pedido.");
+            return;
+        }
 
-       const justificativa = window.prompt("Informe o motivo do cancelamento do item:");
+        const justificativa = window.prompt("Informe o motivo do cancelamento do item:");
 
-       if (justificativa === null) {
-           return;
-       }
+        if (justificativa === null) {
+            return;
+        }
 
-       if (!justificativa.trim()) {
-           showAlert("Informe a justificativa do cancelamento.");
-           return;
-       }
+        if (!justificativa.trim()) {
+            showAlert("Informe a justificativa do cancelamento.");
+            return;
+        }
 
-       try {
-           const response = await cancelarItemPedido(pedidoId, item.itemPedidoId, justificativa.trim());
+        try {
+            const response = await cancelarItemPedido(pedidoId, item.itemPedidoId, justificativa.trim());
 
-           const pedidoAtualizado = response.data;
+            const pedidoAtualizado = response.data;
 
-           if (pedidoAtualizado?.itens) {
-               carregarCarrinho(
-                   filtrarItensEditaveis(pedidoAtualizado.itens).map((item) => ({
-                       ...item,
-                       id: item.id,
-                       itemPedidoId: item.id,
-                       coreItemId: item.coreItemId,
-                       produtoId: item.produtoId,
-                       nome: item.produto || `Produto #${item.produtoId}`,
-                       preco: Number(item.valorUnitario || 0),
-                       quantidade: Number(item.quantidade || 0)
-                   }))
-               );
-           }
-       } catch (error) {
-           console.error("Erro ao cancelar item do pedido recuperado.", error);
+            if (pedidoAtualizado?.valorProdutos != null) {
+                setValorProdutosPedido(Number(pedidoAtualizado.valorProdutos));
+            }
 
-           showAlert(error?.response?.data?.message || "Não foi possível cancelar o item.");
-       }
-   }
+            if (pedidoAtualizado?.itens) {
+                carregarCarrinho(
+                    filtrarItensEditaveis(pedidoAtualizado.itens).map((item) => ({
+                        ...item,
+                        id: item.id,
+                        itemPedidoId: item.id,
+                        coreItemId: item.coreItemId,
+                        produtoId: item.produtoId,
+                        nome: item.produto || `Produto #${item.produtoId}`,
+                        preco: Number(item.valorUnitario || 0),
+                        quantidade: Number(item.quantidade || 0)
+                    }))
+                );
+            }
+        } catch (error) {
+            console.error("Erro ao cancelar item do pedido recuperado.", error);
+
+            showAlert(error?.response?.data?.message || "Não foi possível cancelar o item.");
+        }
+        
+    }
 
     return (
         <>
@@ -809,6 +837,15 @@ setPedidosAbertos(Array.isArray(response?.data) ? response.data : []);
                             tipoRecebimento={tipoRecebimento}
                         />
 
+                        <button
+                            type="button"
+                            className="btn btn-outline-primary"
+                            onClick={() => setMostrarStatusItens(true)}
+                            disabled={carrinho.length === 0}
+                        >
+                            Status dos itens
+                        </button>
+
                         <MiniPdvAcoes
                             podeFinalizar={podeFinalizarVenda}
                             carregando={carregando || carregandoRecuperacao || enviandoParaProducao}
@@ -837,6 +874,11 @@ setPedidosAbertos(Array.isArray(response?.data) ? response.data : []);
                         </div>
                     </div>
                 </div>
+                <MiniPdvStatusItens
+                    carrinho={carrinho}
+                    aberto={mostrarStatusItens}
+                    onFechar={() => setMostrarStatusItens(false)}
+                />
             </div>
 
             <MiniPdvClienteModal
