@@ -202,8 +202,6 @@ function useMiniPdvFluxo({
                     } else {
                         await faturarPedido(novoPedidoId);
                     }
-
-                    await faturarPedido(novoPedidoId);
                 }
 
                 setTrocoFinal(trocoCalculado);
@@ -214,9 +212,15 @@ function useMiniPdvFluxo({
 
                 setEtapa(ETAPA_VENDA);
 
+                const possuiProducao = carrinho.some((item) => item?.setor === "COZINHA" || item?.setor === "PIZZARIA");
+
+                const mensagemSucesso = possuiProducao
+                    ? "Pedido aberto com pagamento registrado e enviado para produção."
+                    : "Venda finalizada com sucesso.";
+
                 if (trocoCalculado > 0) {
                     showAlert(
-                        `Venda finalizada com sucesso. Troco: ${trocoCalculado.toLocaleString("pt-BR", {
+                        `${mensagemSucesso} Troco: ${trocoCalculado.toLocaleString("pt-BR", {
                             style: "currency",
                             currency: "BRL"
                         })}`
@@ -225,7 +229,7 @@ function useMiniPdvFluxo({
                     return;
                 }
 
-                showAlert("Venda finalizada com sucesso.");
+                showAlert(mensagemSucesso);
             } catch (error) {
                 console.error("Erro ao finalizar pagamento.", error);
 
