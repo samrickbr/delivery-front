@@ -77,22 +77,44 @@ function useBalcaoPainel({
 
     const carregarPedidos = useCallback(async () => {
         const response = await listarBalcao();
-        setPedidos(response.data || []);
+        const dados = response.data || [];
+
+        setPedidos(dados);
+
+        return dados;
     }, []);
 
     const carregarSeparacoes = useCallback(async () => {
         const response = await listarSeparacao();
-        setSeparacoes(response.data || []);
+        const dados = response.data || [];
+
+        setSeparacoes(dados);
+
+        return dados;
     }, []);
 
-    const carregarRetiradas = useCallback(async () => {
-        const response = await listarRetirada();
-        setRetiradas(response.data || []);
-    }, []);
+   const carregarRetiradas = useCallback(async () => {
+       const response = await listarRetirada();
+       const dados = response.data || [];
 
-    const carregarDados = useCallback(async () => {
-        await Promise.all([carregarPedidos(), carregarSeparacoes(), carregarRetiradas()]);
-    }, [carregarPedidos, carregarSeparacoes, carregarRetiradas]);
+       setRetiradas(dados);
+
+       return dados;
+   }, []);
+
+   const carregarDados = useCallback(async () => {
+       const [pedidosAtualizados, separacoesAtualizadas, retiradasAtualizadas] = await Promise.all([
+           carregarPedidos(),
+           carregarSeparacoes(),
+           carregarRetiradas()
+       ]);
+
+       return {
+           pedidos: pedidosAtualizados,
+           separacoes: separacoesAtualizadas,
+           retiradas: retiradasAtualizadas
+       };
+   }, [carregarPedidos, carregarSeparacoes, carregarRetiradas]);
 
     const obterAbaPedido = useCallback((pedido) => {
         switch (pedido?.status) {
@@ -271,9 +293,22 @@ function useBalcaoPainel({
     const aceitarPedido = useCallback(
         async (id) => {
             await aprovarPedido(id);
-            await carregarDados();
+
+            const dados = await carregarDados();
+
+            const pedidoAtualizado = [...dados.pedidos, ...dados.separacoes, ...dados.retiradas].find(
+                (pedido) => Number(pedido.id) === Number(id)
+            );
+
+            if (pedidoAtualizado) {
+                const abaPedido = obterAbaPedido(pedidoAtualizado);
+
+                if (abaPedido) {
+                    setAba(abaPedido);
+                }
+            }
         },
-        [carregarDados]
+        [carregarDados, obterAbaPedido, setAba]
     );
 
     const concluirRetirada = useCallback(
