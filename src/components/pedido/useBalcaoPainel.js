@@ -2,9 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
     listarBalcao,
+    listarSeparacao,
     listarRetirada,
     aprovarPedido,
-    conferirPedido,
     entregarPedido,
     adicionarItemPedido,
     alterarQuantidadeItemPedido
@@ -25,6 +25,7 @@ function useBalcaoPainel({
     pedidoItemDirecionadoId
 }) {
     const [pedidos, setPedidos] = useState([]);
+    const [separacoes, setSeparacoes] = useState([]);
     const [retiradas, setRetiradas] = useState([]);
     const [abaInterna, setAbaInterna] = useState(ABAS.PEDIDOS);
     const aba = abaControlada ?? abaInterna;
@@ -79,14 +80,19 @@ function useBalcaoPainel({
         setPedidos(response.data || []);
     }, []);
 
+    const carregarSeparacoes = useCallback(async () => {
+        const response = await listarSeparacao();
+        setSeparacoes(response.data || []);
+    }, []);
+
     const carregarRetiradas = useCallback(async () => {
         const response = await listarRetirada();
         setRetiradas(response.data || []);
     }, []);
 
     const carregarDados = useCallback(async () => {
-        await Promise.all([carregarPedidos(), carregarRetiradas()]);
-    }, [carregarPedidos, carregarRetiradas]);
+        await Promise.all([carregarPedidos(), carregarSeparacoes(), carregarRetiradas()]);
+    }, [carregarPedidos, carregarSeparacoes, carregarRetiradas]);
 
     const obterAbaPedido = useCallback((pedido) => {
         switch (pedido?.status) {
@@ -118,9 +124,7 @@ function useBalcaoPainel({
 
             setPedidos(pedidosAtualizados);
 
-            const pedidoAtualizado = pedidosAtualizados.find(
-                (pedido) => pedido.id === pedidoId
-            );
+            const pedidoAtualizado = pedidosAtualizados.find((pedido) => pedido.id === pedidoId);
 
             if (!pedidoAtualizado) {
                 fecharEdicao();
@@ -224,49 +228,37 @@ function useBalcaoPainel({
     }, []);
 
     const pedidosFiltrados = useMemo(() => {
-        return pedidos.filter((pedido) => {
-            if (!possuiItemBalcaoDisponivel(pedido)) {
-                return false;
-            }
+        switch (aba) {
+            case ABAS.PEDIDOS:
+                return pedidos.filter((pedido) => {
+                    if (!possuiItemBalcaoDisponivel(pedido)) {
+                        return false;
+                    }
 
-            switch (aba) {
-                case ABAS.PEDIDOS: {
-                    if (
-                        pedido.status === "RECEBIDO" ||
-                        pedido.status === "PENDENTE"
-                    ) {
+                    if (pedido.status === "RECEBIDO" || pedido.status === "PENDENTE") {
                         return true;
                     }
 
-                    if (
-                        pedido.status !== "APROVADO" &&
-                        pedido.status !== "EM_PRODUCAO"
-                    ) {
+                    if (pedido.status !== "APROVADO" && pedido.status !== "EM_PRODUCAO") {
                         return false;
                     }
 
                     const possuiProducaoPendente = pedido.itens?.some(
                         (item) =>
                             ["COZINHA", "PIZZARIA"].includes(item.setor) &&
-                            !["FINALIZADO", "CANCELADO"].includes(
-                                item.statusOperacao
-                            )
+                            !["FINALIZADO", "CANCELADO"].includes(item.statusOperacao)
                     );
 
                     return possuiProducaoPendente;
-                }
+                });
 
-                case ABAS.CONFERENCIA:
-                    return false;
+            case ABAS.SEPARACAO:
+                return separacoes.filter((pedido) => pedido.status === "AGUARDANDO_SEPARACAO");
 
-                case ABAS.SEPARACAO:
-                    return pedido.status === "AGUARDANDO_SEPARACAO";
-
-                default:
-                    return false;
-            }
-        });
-    }, [aba, pedidos, possuiItemBalcaoDisponivel]);
+            default:
+                return [];
+        }
+    }, [aba, pedidos, separacoes, possuiItemBalcaoDisponivel]);
 
     const retiradasFiltradas = useMemo(
         () =>
@@ -279,14 +271,6 @@ function useBalcaoPainel({
     const aceitarPedido = useCallback(
         async (id) => {
             await aprovarPedido(id);
-            await carregarDados();
-        },
-        [carregarDados]
-    );
-
-    const conferir = useCallback(
-        async (id) => {
-            await conferirPedido(id);
             await carregarDados();
         },
         [carregarDados]
@@ -319,21 +303,23 @@ function useBalcaoPainel({
         let ativo = true;
 
         async function carregar() {
-            const [balcaoResponse, retiradaResponse] =
-                await Promise.all([
-                    listarBalcao(),
-                    listarRetirada()
-                ]);
+           const [balcaoResponse, separacaoResponse, retiradaResponse] = await Promise.all([
+               listarBalcao(),
+               listarSeparacao(),
+               listarRetirada()
+           ]);
 
             if (!ativo) {
                 return;
             }
 
             setPedidos(balcaoResponse.data || []);
+            setSeparacoes(separacaoResponse.data || []);
             setRetiradas(retiradaResponse.data || []);
 
             const pedidoDirecionado = [
                 ...(balcaoResponse.data || []),
+                ...(separacaoResponse.data || []),
                 ...(retiradaResponse.data || [])
             ].find(
                 (pedido) =>
@@ -377,11 +363,11 @@ function useBalcaoPainel({
         let temporizadorDestaque;
 
         async function direcionarPedido() {
-            const [balcaoResponse, retiradaResponse] =
-                await Promise.all([
-                    listarBalcao(),
-                    listarRetirada()
-                ]);
+           const [balcaoResponse, separacaoResponse, retiradaResponse] = await Promise.all([
+               listarBalcao(),
+               listarSeparacao(),
+               listarRetirada()
+           ]);
 
             if (!ativo) {
                 return;
@@ -390,11 +376,15 @@ function useBalcaoPainel({
             const pedidosAtualizados =
                 balcaoResponse.data || [];
 
+            const separacoesAtualizadas =
+                separacaoResponse.data || [];
+
             const retiradasAtualizadas =
                 retiradaResponse.data || [];
 
             const pedido = [
                 ...pedidosAtualizados,
+                ...separacoesAtualizadas,
                 ...retiradasAtualizadas
             ].find(
                 (item) =>
@@ -404,6 +394,7 @@ function useBalcaoPainel({
 
             setPedidos(pedidosAtualizados);
             setRetiradas(retiradasAtualizadas);
+            setSeparacoes(separacoesAtualizadas);
 
             if (!pedido) {
                 return;
@@ -447,6 +438,7 @@ function useBalcaoPainel({
     return {
         aba,
         pedidos,
+        separacoes,
         retiradas,
         pedidosFiltrados,
         retiradasFiltradas,
@@ -472,7 +464,6 @@ function useBalcaoPainel({
         abrirCancelamento,
         fecharCancelamento,
         aceitarPedido,
-        conferir,
         concluirRetirada
     };
 }

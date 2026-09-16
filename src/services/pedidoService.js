@@ -124,10 +124,6 @@ export async function cancelarPedidoCompleto(id, justificativa) {
    LIBERAR PARA ENTREGA / RETIRADA
 ========================================================== */
 
-export async function conferirPedido(id) {
-    return api.put(`/pedidos/${id}/conferir`, null, configOperacional());
-}
-
 export async function liberarEntrega(id, itens) {
     return api.put(`/pedidos/${id}/liberar-entrega`, { itens }, configOperacional());
 }

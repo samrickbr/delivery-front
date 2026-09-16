@@ -20,13 +20,6 @@ function BalcaoTabs({ aba, exibirAbas, onChange, totalRetiradas }) {
             </button>
 
             <button
-                className={`btn me-2 ${aba === ABAS.CONFERENCIA ? "btn-info" : "btn-outline-info"}`}
-                onClick={() => onChange(ABAS.CONFERENCIA)}
-            >
-                ✔ Conferência
-            </button>
-
-            <button
                 className={`btn me-2 ${aba === ABAS.SEPARACAO ? "btn-success" : "btn-outline-success"}`}
                 onClick={() => onChange(ABAS.SEPARACAO)}
             >

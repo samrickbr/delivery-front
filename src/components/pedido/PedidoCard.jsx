@@ -131,13 +131,6 @@ function PedidoCard({
                     ))}
                 </ul>
 
-                {pedido.aguardaConferencia && (
-                    <div className="alert alert-warning">
-                        <strong>Atenção:</strong> Todos os setores finalizaram a produção. Verifique os itens antes de
-                        continuar o pedido.
-                    </div>
-                )}
-
                 {pedido.observacao && (
                     <div className="alert alert-info">
                         <strong>Observação do cliente</strong>

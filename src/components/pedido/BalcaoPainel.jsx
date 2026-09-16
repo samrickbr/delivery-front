@@ -45,7 +45,6 @@ function BalcaoPainel({
         abrirCancelamento,
         fecharCancelamento,
         aceitarPedido,
-        conferir,
         concluirRetirada,
         carregarDados,
         pedidoEmDestaqueId,
@@ -96,12 +95,6 @@ function BalcaoPainel({
                                             ❌ Cancelar
                                         </button>
                                     </>
-                                )}
-
-                                {aba === ABAS.CONFERENCIA && (
-                                    <button className="btn btn-success w-100" onClick={() => conferir(pedido.id)}>
-                                        ✔ Confirmar Conferência
-                                    </button>
                                 )}
 
                                 {aba === ABAS.SEPARACAO && (
