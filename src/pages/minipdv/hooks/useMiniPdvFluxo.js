@@ -193,15 +193,7 @@ function useMiniPdvFluxo({
                         throw new Error("O pedido criado não retornou um identificador.");
                     }
 
-                    const possuiProducao = carrinho.some(
-                        (item) => item?.setor === "COZINHA" || item?.setor === "PIZZARIA"
-                    );
-
-                    if (possuiProducao) {
-                        await aprovarPedido(novoPedidoId);
-                    } else {
-                        await faturarPedido(novoPedidoId);
-                    }
+                    await aprovarPedido(novoPedidoId);
                 }
 
                 setTrocoFinal(trocoCalculado);

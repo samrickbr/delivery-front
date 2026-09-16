@@ -7,7 +7,7 @@ import {
     conferirPedido,
     entregarPedido,
     adicionarItemPedido,
-    alterarQuantidadeItemPedido,
+    alterarQuantidadeItemPedido
 } from "../../services/pedidoService";
 
 import { ABAS } from "./balcaoAbas";
@@ -18,7 +18,12 @@ import { ABAS } from "./balcaoAbas";
 // de edição/cancelamento em um único ponto para reduzir o
 // acoplamento do componente visual.
 // ============================================================
-function useBalcaoPainel({ aba: abaControlada, onAbaChange, pedidoDirecionadoId, pedidoItemDirecionadoId }) {
+function useBalcaoPainel({
+    aba: abaControlada,
+    onAbaChange,
+    pedidoDirecionadoId,
+    pedidoItemDirecionadoId
+}) {
     const [pedidos, setPedidos] = useState([]);
     const [retiradas, setRetiradas] = useState([]);
     const [abaInterna, setAbaInterna] = useState(ABAS.PEDIDOS);
@@ -30,10 +35,13 @@ function useBalcaoPainel({ aba: abaControlada, onAbaChange, pedidoDirecionadoId,
     const [erroEdicao, setErroEdicao] = useState("");
     const [pedidoEmDestaqueId, setPedidoEmDestaqueId] = useState(null);
     const [pedidoItemEmDestaqueId, setPedidoItemEmDestaqueId] = useState(null);
+
     const pedidoDirecionadoPendenteRef = useRef(pedidoDirecionadoId ?? null);
 
     const pedidoPodeSerEditado = useCallback((pedido) => {
-        return !["FATURADO", "ENTREGUE", "CANCELADO"].includes(pedido?.status);
+        return !["FINALIZADO", "FATURADO", "ENTREGUE", "CANCELADO"].includes(
+            pedido?.status
+        );
     }, []);
 
     const setAba = useCallback(
@@ -88,28 +96,16 @@ function useBalcaoPainel({ aba: abaControlada, onAbaChange, pedidoDirecionadoId,
             case "EM_PRODUCAO":
                 return ABAS.PEDIDOS;
 
-            case "FINALIZADO": {
-                const possuiItemProducao = pedido.itens?.some(
-                    (item) => ["COZINHA", "PIZZARIA"].includes(item.setor) && item.statusOperacao !== "CANCELADO"
-                );
-
-                const possuiClienteIdentificado = pedido.clienteId != null;
-
-                const possuiEntregaOuRetirada = ["ENTREGA", "RETIRADA"].includes(
-                    String(pedido.tipoRecebimento || "").toUpperCase()
-                );
-
-                return possuiItemProducao || possuiClienteIdentificado || possuiEntregaOuRetirada
-                    ? ABAS.CONFERENCIA
-                    : null;
-            }
-
             case "AGUARDANDO_SEPARACAO":
                 return ABAS.SEPARACAO;
 
             case "SEPARADO":
                 return ABAS.RETIRADA;
 
+            case "FINALIZADO":
+            case "FATURADO":
+            case "ENTREGUE":
+            case "CANCELADO":
             default:
                 return null;
         }
@@ -122,7 +118,9 @@ function useBalcaoPainel({ aba: abaControlada, onAbaChange, pedidoDirecionadoId,
 
             setPedidos(pedidosAtualizados);
 
-            const pedidoAtualizado = pedidosAtualizados.find((pedido) => pedido.id === pedidoId);
+            const pedidoAtualizado = pedidosAtualizados.find(
+                (pedido) => pedido.id === pedidoId
+            );
 
             if (!pedidoAtualizado) {
                 fecharEdicao();
@@ -143,7 +141,9 @@ function useBalcaoPainel({ aba: abaControlada, onAbaChange, pedidoDirecionadoId,
                 await recarregarPedido(pedidoId);
             } catch (error) {
                 console.error("Erro ao adicionar item ao pedido.", error);
-                setErroEdicao("Não foi possível adicionar o item ao pedido.");
+                setErroEdicao(
+                    "Não foi possível adicionar o item ao pedido."
+                );
             }
         },
         [recarregarPedido]
@@ -153,11 +153,22 @@ function useBalcaoPainel({ aba: abaControlada, onAbaChange, pedidoDirecionadoId,
         async (pedidoId, itemId, quantidade = 1) => {
             try {
                 setErroEdicao("");
-                await adicionarItemPedido(pedidoId, undefined, quantidade, itemId);
+                await adicionarItemPedido(
+                    pedidoId,
+                    undefined,
+                    quantidade,
+                    itemId
+                );
                 await recarregarPedido(pedidoId);
             } catch (error) {
-                console.error("Erro ao incrementar item do pedido.", error);
-                setErroEdicao(error?.response?.data?.message || "Não foi possível incrementar o item do pedido.");
+                console.error(
+                    "Erro ao incrementar item do pedido.",
+                    error
+                );
+                setErroEdicao(
+                    error?.response?.data?.message ||
+                        "Não foi possível incrementar o item do pedido."
+                );
             }
         },
         [recarregarPedido]
@@ -171,27 +182,45 @@ function useBalcaoPainel({ aba: abaControlada, onAbaChange, pedidoDirecionadoId,
                 const novaQuantidade = Number(quantidade);
 
                 if (!Number.isInteger(novaQuantidade)) {
-                    setErroEdicao("Informe uma quantidade inteira válida.");
+                    setErroEdicao(
+                        "Informe uma quantidade inteira válida."
+                    );
                     return;
                 }
 
                 if (novaQuantidade < 1) {
-                    setErroEdicao("A quantidade deve ser maior que zero. Use o cancelamento para remover o item.");
+                    setErroEdicao(
+                        "A quantidade deve ser maior que zero. Use o cancelamento para remover o item."
+                    );
                     return;
                 }
 
-                await alterarQuantidadeItemPedido(pedidoId, itemId, novaQuantidade);
+                await alterarQuantidadeItemPedido(
+                    pedidoId,
+                    itemId,
+                    novaQuantidade
+                );
+
                 await recarregarPedido(pedidoId);
             } catch (error) {
-                console.error("Erro ao alterar quantidade do item.", error);
-                setErroEdicao("Não foi possível alterar a quantidade do item.");
+                console.error(
+                    "Erro ao alterar quantidade do item.",
+                    error
+                );
+                setErroEdicao(
+                    "Não foi possível alterar a quantidade do item."
+                );
             }
         },
         [recarregarPedido]
     );
 
     const possuiItemBalcaoDisponivel = useCallback((pedido) => {
-        return pedido.itens?.some((item) => item.setor === "BALCAO" && item.statusOperacao !== "CANCELADO");
+        return pedido.itens?.some(
+            (item) =>
+                item.setor === "BALCAO" &&
+                item.statusOperacao !== "CANCELADO"
+        );
     }, []);
 
     const pedidosFiltrados = useMemo(() => {
@@ -202,25 +231,33 @@ function useBalcaoPainel({ aba: abaControlada, onAbaChange, pedidoDirecionadoId,
 
             switch (aba) {
                 case ABAS.PEDIDOS: {
-                    if (pedido.status === "RECEBIDO" || pedido.status === "PENDENTE") {
+                    if (
+                        pedido.status === "RECEBIDO" ||
+                        pedido.status === "PENDENTE"
+                    ) {
                         return true;
                     }
 
-                    if (pedido.status !== "APROVADO" && pedido.status !== "EM_PRODUCAO") {
+                    if (
+                        pedido.status !== "APROVADO" &&
+                        pedido.status !== "EM_PRODUCAO"
+                    ) {
                         return false;
                     }
 
                     const possuiProducaoPendente = pedido.itens?.some(
                         (item) =>
                             ["COZINHA", "PIZZARIA"].includes(item.setor) &&
-                            !["FINALIZADO", "CANCELADO"].includes(item.statusOperacao)
+                            !["FINALIZADO", "CANCELADO"].includes(
+                                item.statusOperacao
+                            )
                     );
 
                     return possuiProducaoPendente;
                 }
 
                 case ABAS.CONFERENCIA:
-                    return pedido.status === "FINALIZADO";
+                    return false;
 
                 case ABAS.SEPARACAO:
                     return pedido.status === "AGUARDANDO_SEPARACAO";
@@ -231,7 +268,13 @@ function useBalcaoPainel({ aba: abaControlada, onAbaChange, pedidoDirecionadoId,
         });
     }, [aba, pedidos, possuiItemBalcaoDisponivel]);
 
-    const retiradasFiltradas = useMemo(() => retiradas.filter((pedido) => pedido.status === "SEPARADO"), [retiradas]);
+    const retiradasFiltradas = useMemo(
+        () =>
+            retiradas.filter(
+                (pedido) => pedido.status === "SEPARADO"
+            ),
+        [retiradas]
+    );
 
     const aceitarPedido = useCallback(
         async (id) => {
@@ -268,14 +311,19 @@ function useBalcaoPainel({ aba: abaControlada, onAbaChange, pedidoDirecionadoId,
     }, []);
 
     useEffect(() => {
-        pedidoDirecionadoPendenteRef.current = pedidoDirecionadoId ?? null;
+        pedidoDirecionadoPendenteRef.current =
+            pedidoDirecionadoId ?? null;
     }, [pedidoDirecionadoId]);
 
     useEffect(() => {
         let ativo = true;
 
         async function carregar() {
-            const [balcaoResponse, retiradaResponse] = await Promise.all([listarBalcao(), listarRetirada()]);
+            const [balcaoResponse, retiradaResponse] =
+                await Promise.all([
+                    listarBalcao(),
+                    listarRetirada()
+                ]);
 
             if (!ativo) {
                 return;
@@ -284,12 +332,18 @@ function useBalcaoPainel({ aba: abaControlada, onAbaChange, pedidoDirecionadoId,
             setPedidos(balcaoResponse.data || []);
             setRetiradas(retiradaResponse.data || []);
 
-            const pedidoDirecionado = [...(balcaoResponse.data || []), ...(retiradaResponse.data || [])].find(
-                (pedido) => Number(pedido.id) === Number(pedidoDirecionadoPendenteRef.current)
+            const pedidoDirecionado = [
+                ...(balcaoResponse.data || []),
+                ...(retiradaResponse.data || [])
+            ].find(
+                (pedido) =>
+                    Number(pedido.id) ===
+                    Number(pedidoDirecionadoPendenteRef.current)
             );
 
             if (pedidoDirecionado) {
-                const abaPedido = obterAbaPedido(pedidoDirecionado);
+                const abaPedido =
+                    obterAbaPedido(pedidoDirecionado);
 
                 if (abaPedido) {
                     setAba(abaPedido);
@@ -323,16 +377,29 @@ function useBalcaoPainel({ aba: abaControlada, onAbaChange, pedidoDirecionadoId,
         let temporizadorDestaque;
 
         async function direcionarPedido() {
-            const [balcaoResponse, retiradaResponse] = await Promise.all([listarBalcao(), listarRetirada()]);
+            const [balcaoResponse, retiradaResponse] =
+                await Promise.all([
+                    listarBalcao(),
+                    listarRetirada()
+                ]);
 
             if (!ativo) {
                 return;
             }
 
-            const pedidosAtualizados = balcaoResponse.data || [];
-            const retiradasAtualizadas = retiradaResponse.data || [];
-            const pedido = [...pedidosAtualizados, ...retiradasAtualizadas].find(
-                (item) => Number(item.id) === Number(pedidoDirecionadoId)
+            const pedidosAtualizados =
+                balcaoResponse.data || [];
+
+            const retiradasAtualizadas =
+                retiradaResponse.data || [];
+
+            const pedido = [
+                ...pedidosAtualizados,
+                ...retiradasAtualizadas
+            ].find(
+                (item) =>
+                    Number(item.id) ===
+                    Number(pedidoDirecionadoId)
             );
 
             setPedidos(pedidosAtualizados);
@@ -342,15 +409,20 @@ function useBalcaoPainel({ aba: abaControlada, onAbaChange, pedidoDirecionadoId,
                 return;
             }
 
-            const abaPedido = obterAbaPedido(pedido);
+            const abaPedido =
+                obterAbaPedido(pedido);
 
             if (abaPedido) {
                 setAba(abaPedido);
             }
 
             setPedidoEmDestaqueId(pedido.id);
-            setPedidoItemEmDestaqueId(pedidoItemDirecionadoId ?? null);
+            setPedidoItemEmDestaqueId(
+                pedidoItemDirecionadoId ?? null
+            );
+
             pedidoDirecionadoPendenteRef.current = null;
+
             temporizadorDestaque = setTimeout(() => {
                 if (ativo) {
                     setPedidoEmDestaqueId(null);
@@ -365,7 +437,12 @@ function useBalcaoPainel({ aba: abaControlada, onAbaChange, pedidoDirecionadoId,
             ativo = false;
             clearTimeout(temporizadorDestaque);
         };
-    }, [pedidoDirecionadoId, pedidoItemDirecionadoId, obterAbaPedido, setAba]);
+    }, [
+        pedidoDirecionadoId,
+        pedidoItemDirecionadoId,
+        obterAbaPedido,
+        setAba
+    ]);
 
     return {
         aba,
