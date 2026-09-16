@@ -219,23 +219,8 @@ function useBalcaoPainel({ aba: abaControlada, onAbaChange, pedidoDirecionadoId,
                     return possuiProducaoPendente;
                 }
 
-                case ABAS.CONFERENCIA: {
-                    if (pedido.status !== "FINALIZADO") {
-                        return false;
-                    }
-
-                    const possuiItemProducao = pedido.itens?.some(
-                        (item) => ["COZINHA", "PIZZARIA"].includes(item.setor) && item.statusOperacao !== "CANCELADO"
-                    );
-
-                    const possuiClienteIdentificado = pedido.clienteId != null;
-
-                    const possuiEntregaOuRetirada = ["ENTREGA", "RETIRADA"].includes(
-                        String(pedido.tipoRecebimento || "").toUpperCase()
-                    );
-
-                    return possuiItemProducao || possuiClienteIdentificado || possuiEntregaOuRetirada;
-                }
+                case ABAS.CONFERENCIA:
+                    return pedido.status === "FINALIZADO";
 
                 case ABAS.SEPARACAO:
                     return pedido.status === "AGUARDANDO_SEPARACAO";
