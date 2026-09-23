@@ -93,6 +93,10 @@ export async function aprovarPedido(id) {
     return api.put(`/pedidos/${id}/aprovar`, null, configOperacional());
 }
 
+export async function alterarStatusOperacaoItem(pedidoId, itemId, statusOperacao) {
+    return api.put(`/pedidos/${pedidoId}/itens/${itemId}/operacao`, statusOperacao, configOperacional());
+}
+
 export async function cancelarPedido(id, setor, justificativa) {
     return api.put(`/pedidos/${id}/cancelar/${setor}`, { justificativa }, configOperacional());
 }

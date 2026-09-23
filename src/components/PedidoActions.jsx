@@ -2,11 +2,7 @@ import { useState } from "react";
 import CancelarItensModal from "./pedido/CancelarItensModal";
 import ConfirmDialog from "./ConfirmDialog";
 import InputDialog from "./InputDialog";
-import {
-    colocarPendenteItem,
-    iniciarProducaoItem,
-    finalizarItem
-} from "../services/pedidoService";
+import { colocarPendenteItem, iniciarProducaoItem, finalizarItem } from "../services/pedidoService";
 
 function PedidoActions({ pedido, item, setor, onAtualizar, onDigitando }) {
     const [showDialog, setShowDialog] = useState(false);
@@ -52,10 +48,7 @@ function PedidoActions({ pedido, item, setor, onAtualizar, onDigitando }) {
         } catch (error) {
             console.error(error);
 
-            alert(
-                error?.response?.data?.message ||
-                "Erro ao atualizar pedido."
-            );
+            alert(error?.response?.data?.message || "Erro ao atualizar pedido.");
         } finally {
             setProcessando(false);
         }
@@ -76,7 +69,7 @@ function PedidoActions({ pedido, item, setor, onAtualizar, onDigitando }) {
 
     return (
         <div className="mt-3">
-            {item.statusOperacao === "APROVADO" && (
+            {(item.statusOperacao === "APROVADO" || item.statusOperacao === "PENDENTE") && (
                 <div className="d-flex flex-nowrap gap-1 pedido-item-acoes">
                     <button
                         className="btn btn-primary btn-sm flex-fill text-nowrap"
@@ -86,13 +79,15 @@ function PedidoActions({ pedido, item, setor, onAtualizar, onDigitando }) {
                         Produzir
                     </button>
 
-                    <button
-                        className="btn btn-warning btn-sm flex-fill text-nowrap"
-                        disabled={processando}
-                        onClick={() => abrirEspera(item)}
-                    >
-                        Espera
-                    </button>
+                    {item.statusOperacao === "APROVADO" && (
+                        <button
+                            className="btn btn-warning btn-sm flex-fill text-nowrap"
+                            disabled={processando}
+                            onClick={() => abrirEspera(item)}
+                        >
+                            Espera
+                        </button>
+                    )}
 
                     <button
                         className="btn btn-danger btn-sm flex-fill text-nowrap"

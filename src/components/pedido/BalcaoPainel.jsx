@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import PedidoCard from "./PedidoCard";
 import ChecklistSeparacao from "./ChecklistSeparacao";
 import MiniPdvProdutos from "../../pages/minipdv/components/MiniPdvProdutos";
@@ -27,6 +29,7 @@ function BalcaoPainel({
     // =====================================
     // 1) Estado e ações centralizadas em hook
     // =====================================
+    const [checksSeparacao, setChecksSeparacao] = useState({});
     const {
         aba,
         pedidosFiltrados,
@@ -51,6 +54,32 @@ function BalcaoPainel({
         pedidoItemEmDestaqueId
     } = useBalcaoPainel({ aba: abaControlada, onAbaChange, pedidoDirecionadoId, pedidoItemDirecionadoId });
 
+
+        function alternarItemSeparacao(itemId) {
+            const chave = `produto-${itemId}`;
+
+            setChecksSeparacao((atual) => ({
+                ...atual,
+                [chave]: !atual[chave]
+            }));
+        }
+
+        function obterCheckboxSeparacao(pedido, item) {
+            if (item.statusOperacao === "CANCELADO") {
+                return <span className="badge bg-danger">❌ CANCELADO</span>;
+            }
+
+            return (
+                <input
+                    type="checkbox"
+                    className="form-check-input fs-5"
+                    checked={checksSeparacao[`produto-${item.id}`] || false}
+                    onChange={() => alternarItemSeparacao(item.id)}
+                    aria-label={`Separar ${item.produto}`}
+                />
+            );
+    }
+    
     // =====================================
     // 2) Renderização dos blocos do painel
     // =====================================
@@ -67,40 +96,65 @@ function BalcaoPainel({
                 <div className="row">
                     {pedidosFiltrados.map((pedido) => (
                         <div className="col-md-6" key={pedido.id}>
-                            <div className={pedido.id === pedidoEmDestaqueId ? "pedido-direcionado rounded" : undefined}>
-                            <PedidoCard
-                                pedido={pedido}
-                                pedidoItemEmDestaqueId={pedidoItemEmDestaqueId}
-                                pedidoPronto={pedidosProntosIds.some((id) => Number(id) === Number(pedido.id))}
+                            <div
+                                className={pedido.id === pedidoEmDestaqueId ? "pedido-direcionado rounded" : undefined}
                             >
-                                {pedidoPodeSerEditado(pedido) && (
-                                    <button className="btn btn-primary w-100 mb-2" onClick={() => abrirEdicao(pedido)}>
-                                        ✏️ Editar Pedido
-                                    </button>
-                                )}
+                                <PedidoCard
+                                    pedido={pedido}
+                                    pedidoItemEmDestaqueId={pedidoItemEmDestaqueId}
+                                    ocultarStatusOperacaoBalcao={aba !== ABAS.SEPARACAO}
+                                    renderizarCheckboxItem={
+                                        aba === ABAS.SEPARACAO
+                                            ? (item) => obterCheckboxSeparacao(pedido, item)
+                                            : undefined
+                                    }
+                                    pedidoPronto={pedidosProntosIds.some((id) => Number(id) === Number(pedido.id))}
+                                >
+                                    {(pedidoPodeSerEditado(pedido) || pedido.status === "RECEBIDO") && (
+                                        <div className="d-flex flex-wrap gap-2 mt-3">
+                                            {pedidoPodeSerEditado(pedido) && (
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-primary flex-grow-1"
+                                                    onClick={() => abrirEdicao(pedido)}
+                                                >
+                                                    ✏️ Editar
+                                                </button>
+                                            )}
 
-                                {pedido.status === "RECEBIDO" && (
-                                    <>
-                                        <button
-                                            className="btn btn-success w-100 mb-2"
-                                            onClick={() => aceitarPedido(pedido.id)}
-                                        >
-                                            ✅ Aceitar Pedido
-                                        </button>
+                                            {pedido.status === "RECEBIDO" && (
+                                                <>
+                                                    <button
+                                                        type="button"
+                                                        className="btn btn-success flex-grow-1"
+                                                        onClick={() => aceitarPedido(pedido.id)}
+                                                    >
+                                                        ✅ Aceitar
+                                                    </button>
 
-                                        <button
-                                            className="btn btn-danger w-100"
-                                            onClick={() => abrirCancelamento(pedido)}
-                                        >
-                                            ❌ Cancelar
-                                        </button>
-                                    </>
-                                )}
+                                                    <button
+                                                        type="button"
+                                                        className="btn btn-danger flex-grow-1"
+                                                        onClick={() => abrirCancelamento(pedido)}
+                                                    >
+                                                        ❌ Cancelar
+                                                    </button>
+                                                </>
+                                            )}
+                                        </div>
+                                    )}
 
-                                {aba === ABAS.SEPARACAO && (
-                                    <ChecklistSeparacao pedido={pedido} onAtualizar={carregarDados} />
-                                )}
-                            </PedidoCard>
+                                    {aba === ABAS.SEPARACAO && (
+                                        <ChecklistSeparacao
+                                            pedido={pedido}
+                                            checks={checksSeparacao}
+                                            onAtualizar={() => {
+                                                setChecksSeparacao({});
+                                                carregarDados();
+                                            }}
+                                        />
+                                    )}
+                                </PedidoCard>
                             </div>
                         </div>
                     ))}
@@ -111,17 +165,22 @@ function BalcaoPainel({
                 <div className="row">
                     {retiradasFiltradas.map((pedido) => (
                         <div className="col-md-6" key={pedido.id}>
-                            <div className={pedido.id === pedidoEmDestaqueId ? "pedido-direcionado rounded" : undefined}>
-                            <PedidoCard
-                                pedido={pedido}
-                                mostrarValor={true}
-                                pedidoItemEmDestaqueId={pedidoItemEmDestaqueId}
-                                pedidoPronto={pedidosProntosIds.some((id) => Number(id) === Number(pedido.id))}
+                            <div
+                                className={pedido.id === pedidoEmDestaqueId ? "pedido-direcionado rounded" : undefined}
                             >
-                                <button className="btn btn-warning w-100" onClick={() => concluirRetirada(pedido.id)}>
-                                    🛍️ Concluir retirada
-                                </button>
-                            </PedidoCard>
+                                <PedidoCard
+                                    pedido={pedido}
+                                    mostrarValor={true}
+                                    pedidoItemEmDestaqueId={pedidoItemEmDestaqueId}
+                                    pedidoPronto={pedidosProntosIds.some((id) => Number(id) === Number(pedido.id))}
+                                >
+                                    <button
+                                        className="btn btn-warning w-100"
+                                        onClick={() => concluirRetirada(pedido.id)}
+                                    >
+                                        🛍️ Concluir retirada
+                                    </button>
+                                </PedidoCard>
                             </div>
                         </div>
                     ))}
@@ -250,16 +309,21 @@ function BalcaoPainel({
                                                                             min="1"
                                                                             step="1"
                                                                             defaultValue={item.quantidade}
-                                                                            disabled={item.statusOperacao === "CANCELADO"}
+                                                                            disabled={
+                                                                                item.statusOperacao === "CANCELADO"
+                                                                            }
                                                                             className="form-control form-control-sm text-center"
                                                                             style={{ width: "64px" }}
                                                                             onBlur={(event) => {
-                                                                                const quantidade = Number(event.target.value);
+                                                                                const quantidade = Number(
+                                                                                    event.target.value
+                                                                                );
 
                                                                                 if (
                                                                                     Number.isFinite(quantidade) &&
                                                                                     Number.isInteger(quantidade) &&
-                                                                                    quantidade !== Number(item.quantidade)
+                                                                                    quantidade !==
+                                                                                        Number(item.quantidade)
                                                                                 ) {
                                                                                     alterarQuantidade(
                                                                                         pedidoSelecionado.id,
@@ -270,7 +334,8 @@ function BalcaoPainel({
                                                                                     !Number.isInteger(quantidade) ||
                                                                                     quantidade < 1
                                                                                 ) {
-                                                                                    event.target.value = item.quantidade;
+                                                                                    event.target.value =
+                                                                                        item.quantidade;
                                                                                 }
                                                                             }}
                                                                         />
@@ -278,7 +343,9 @@ function BalcaoPainel({
                                                                         <button
                                                                             type="button"
                                                                             className="btn btn-outline-secondary"
-                                                                            disabled={item.statusOperacao === "CANCELADO"}
+                                                                            disabled={
+                                                                                item.statusOperacao === "CANCELADO"
+                                                                            }
                                                                             onClick={() =>
                                                                                 incrementarItem(
                                                                                     pedidoSelecionado.id,
@@ -291,7 +358,9 @@ function BalcaoPainel({
                                                                         </button>
 
                                                                         {item.statusOperacao === "CANCELADO" && (
-                                                                            <span className="badge bg-danger">CANCELADO</span>
+                                                                            <span className="badge bg-danger">
+                                                                                CANCELADO
+                                                                            </span>
                                                                         )}
                                                                     </div>
                                                                 </div>

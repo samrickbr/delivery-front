@@ -1,32 +1,44 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { liberarEntrega } from "../../services/pedidoService";
 
-function ChecklistSeparacao({ pedido, onAtualizar }) {
-    const itensChecklist = [
-        ...pedido.itens
-            .filter((item) => item.statusOperacao !== "CANCELADO")
-            .map((item) => ({
-                id: `produto-${item.id}`,
-                nome: `${item.quantidade}x ${item.produto}`
-            })),
-        { id: "guardanapo", nome: "Guardanapos" },
-        { id: "molho", nome: "Molhos" },
-        { id: "copo", nome: "Copos" }
-    ];
+const COMPLEMENTOS_SEPARACAO = [
+    {
+        id: "guardanapo",
+        nome: "Guardanapos"
+    },
+    {
+        id: "molho",
+        nome: "Molhos"
+    },
+    {
+        id: "copo",
+        nome: "Copos"
+    }
+];
 
-    const [checks, setChecks] = useState({});
+function ChecklistSeparacao({ pedido, checks = {}, onAtualizar }) {
+    const [checksComplementos, setChecksComplementos] = useState({});
 
-    function alternar(id) {
-        setChecks((old) => ({
+    function alternarComplemento(id) {
+        setChecksComplementos((old) => ({
             ...old,
             [id]: !old[id]
         }));
     }
 
-    const todosMarcados = itensChecklist.length > 0 && itensChecklist.every((item) => checks[item.id]);
+    const produtosValidos = useMemo(
+        () => pedido.itens?.filter((item) => item.statusOperacao !== "CANCELADO") || [],
+        [pedido.itens]
+    );
+
+    const produtosMarcados = produtosValidos.every((item) => checks[`produto-${item.id}`]);
+
+    const complementosMarcados = COMPLEMENTOS_SEPARACAO.every((item) => checksComplementos[item.id]);
+
+    const todosMarcados = produtosValidos.length > 0 && produtosMarcados && complementosMarcados;
 
     async function liberar() {
-        const itensSeparados = pedido.itens.map((item) => ({
+        const itensSeparados = (pedido.itens || []).map((item) => ({
             itemId: item.id,
             separado: item.statusOperacao !== "CANCELADO" ? checks[`produto-${item.id}`] || false : false
         }));
@@ -41,59 +53,34 @@ function ChecklistSeparacao({ pedido, onAtualizar }) {
     const textoLiberacao = retirada ? "🛍️ Liberar para retirada" : "🚚 Liberar para entrega";
 
     return (
-        <>
-            <h5>Checklist</h5>
+        <div className="mt-3 border-top pt-3">
+            <h6 className="fw-bold mb-2">Complementos</h6>
 
-            <div className="mb-3">
-                {pedido.itens.map((item) => (
-                    <div
+            <div className="d-flex flex-column gap-2 mb-3">
+                {COMPLEMENTOS_SEPARACAO.map((item) => (
+                    <label
                         key={item.id}
-                        className="d-flex justify-content-between align-items-center border rounded p-2 mb-2"
+                        className="d-flex justify-content-between align-items-center border rounded p-2"
+                        style={{
+                            cursor: "pointer"
+                        }}
                     >
-                        <div>
-                            <strong>
-                                {item.quantidade}x {item.produto}
-                            </strong>
-
-                            <div className="small text-muted">{item.categoria}</div>
-                        </div>
-
-                        {item.statusOperacao === "CANCELADO" ? (
-                            <span className="badge bg-danger">❌ CANCELADO</span>
-                        ) : (
-                            <input
-                                type="checkbox"
-                                className="form-check-input fs-5"
-                                checked={checks[`produto-${item.id}`] || false}
-                                onChange={() => alternar(`produto-${item.id}`)}
-                            />
-                        )}
-                    </div>
-                ))}
-
-                <hr />
-
-                {["guardanapo", "molho", "copo"].map((item) => (
-                    <div
-                        key={item}
-                        className="d-flex justify-content-between align-items-center border rounded p-2 mb-2"
-                    >
-                        <strong style={{ textTransform: "capitalize" }}>{item}</strong>
+                        <strong>{item.nome}</strong>
 
                         <input
                             type="checkbox"
                             className="form-check-input fs-5"
-                            checked={checks[item] || false}
-                            onChange={() => alternar(item)}
+                            checked={checksComplementos[item.id] || false}
+                            onChange={() => alternarComplemento(item.id)}
                         />
-                    </div>
+                    </label>
                 ))}
             </div>
 
             <button className="btn btn-success w-100" disabled={!todosMarcados} onClick={liberar}>
                 {textoLiberacao}
             </button>
-        </>
+        </div>
     );
 }
 

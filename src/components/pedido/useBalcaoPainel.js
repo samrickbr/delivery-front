@@ -241,22 +241,10 @@ function useBalcaoPainel({
         [recarregarPedido]
     );
 
-    const possuiItemBalcaoDisponivel = useCallback((pedido) => {
-        return pedido.itens?.some(
-            (item) =>
-                item.setor === "BALCAO" &&
-                item.statusOperacao !== "CANCELADO"
-        );
-    }, []);
-
     const pedidosFiltrados = useMemo(() => {
         switch (aba) {
             case ABAS.PEDIDOS:
                 return pedidos.filter((pedido) => {
-                    if (!possuiItemBalcaoDisponivel(pedido)) {
-                        return false;
-                    }
-
                     if (pedido.status === "RECEBIDO" || pedido.status === "PENDENTE") {
                         return true;
                     }
@@ -280,7 +268,7 @@ function useBalcaoPainel({
             default:
                 return [];
         }
-    }, [aba, pedidos, separacoes, possuiItemBalcaoDisponivel]);
+    }, [aba, pedidos, separacoes]);
 
     const retiradasFiltradas = useMemo(
         () =>

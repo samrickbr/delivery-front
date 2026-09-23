@@ -7,6 +7,8 @@ function PedidoCard({
     mostrarValor = true,
     pedidoItemEmDestaqueId,
     renderizarAcoesItem,
+    renderizarCheckboxItem,
+    ocultarStatusOperacaoBalcao = false,
     pedidoPronto = false
 }) {
     function badgeStatus(status) {
@@ -60,9 +62,45 @@ function PedidoCard({
         return status.replaceAll("_", " ");
     }
 
+    function formatarTipoRecebimento(tipo) {
+        if (!tipo) {
+            return null;
+        }
+
+        const normalizado = tipo.toUpperCase();
+
+        if (normalizado === "ENTREGA") {
+            return "🚚 ENTREGA";
+        }
+
+        if (normalizado === "RETIRADA") {
+            return "🛍️ RETIRADA";
+        }
+
+        return tipo;
+    }
+
+    function formatarEndereco(endereco) {
+        if (!endereco || typeof endereco !== "object") {
+            return null;
+        }
+
+        const linhaPrincipal = [endereco.logradouro || endereco.rua, endereco.numero].filter(Boolean).join(", ");
+
+        const linhaSecundaria = [endereco.bairro, endereco.cidade, endereco.uf].filter(Boolean).join(" - ");
+
+        const partes = [linhaPrincipal, linhaSecundaria, endereco.complemento].filter(Boolean);
+
+        return partes.length > 0 ? partes.join(" • ") : null;
+    }
+
+    const tipoRecebimento = formatarTipoRecebimento(pedido.tipoRecebimento);
+
+    const enderecoFormatado = formatarEndereco(pedido.endereco);
+
     return (
         <div className={`card shadow-sm border-0 mb-4 ${pedidoPronto ? "pedido-pronto-destaque" : ""}`}>
-            <div className="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <div className="card-header bg-dark text-white d-flex justify-content-between align-items-center gap-3">
                 <div>
                     <h5 className="mb-0 fw-bold">Pedido {obterNumeroPedido(pedido)}</h5>
 
@@ -73,66 +111,95 @@ function PedidoCard({
             </div>
 
             <div className="card-body">
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                    <div>
-                        <div className="text-muted small">Cliente</div>
+                {/* RESUMO DO PEDIDO */}
+                <div className="border rounded p-2 mb-3 bg-light">
+                    <div className="d-flex flex-wrap align-items-center gap-3">
+                        {pedido.clienteNome && (
+                            <div>
+                                <span className="text-muted small d-block">Cliente</span>
 
-                        <div className="fs-4 fw-bold">{pedido.clienteNome || "-"}</div>
+                                <strong>{pedido.clienteNome}</strong>
+                            </div>
+                        )}
+
+                        {tipoRecebimento && (
+                            <div>
+                                <span className="text-muted small d-block">Recebimento</span>
+
+                                <strong>{tipoRecebimento}</strong>
+                            </div>
+                        )}
+
+                        {pedido.formaPagamento && (
+                            <div>
+                                <span className="text-muted small d-block">Pagamento</span>
+
+                                <strong>{pedido.formaPagamento}</strong>
+                            </div>
+                        )}
+
+                        {mostrarValor && (
+                            <div className="ms-auto text-end">
+                                <span className="text-muted small d-block">Total</span>
+
+                                <strong className="text-success">
+                                    R${" "}
+                                    {Number(pedido.valorTotal || 0).toLocaleString("pt-BR", {
+                                        minimumFractionDigits: 2
+                                    })}
+                                </strong>
+                            </div>
+                        )}
                     </div>
 
-                    {mostrarValor && (
-                        <div className="text-end">
-                            <div className="text-muted small">Total</div>
-
-                            <div className="fs-4 fw-bold text-success">
-                                R$
-                                {pedido.valorTotal?.toLocaleString("pt-BR", {
-                                    minimumFractionDigits: 2
-                                })}
-                            </div>
-                        </div>
-                    )}
+                    {enderecoFormatado && <div className="small text-muted mt-2">📍 {enderecoFormatado}</div>}
                 </div>
-
-                <hr />
 
                 <h6 className="fw-bold mb-3">Itens</h6>
 
                 <ul className="list-group mb-3">
-                    {pedido.itens?.map((item) => (
-                        <li
-                            key={item.id}
-                            className={`list-group-item ${
-                                Number(item.id) === Number(pedidoItemEmDestaqueId) ? "pedido-item-direcionado" : ""
-                            } ${item.statusOperacao === "CANCELADO" ? "border-danger bg-danger-subtle" : ""}`}
-                        >
-                            <div className="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <div className="fw-semibold fs-5">
-                                        {item.quantidade}x {item.produto}
+                    {pedido.itens?.map((item) => {
+                        const itemBalcao = item.setor?.toUpperCase() === "BALCAO";
+
+                        const ocultarStatus = ocultarStatusOperacaoBalcao && itemBalcao;
+
+                        return (
+                            <li
+                                key={item.id}
+                                className={`list-group-item ${
+                                    Number(item.id) === Number(pedidoItemEmDestaqueId) ? "pedido-item-direcionado" : ""
+                                } ${item.statusOperacao === "CANCELADO" ? "border-danger bg-danger-subtle" : ""}`}
+                            >
+                                <div className="d-flex justify-content-between align-items-center gap-3">
+                                    <div className="flex-grow-1">
+                                        <div className="fw-semibold fs-5">
+                                            {item.quantidade}x {item.produto}
+                                        </div>
+
+                                        {item.categoria && <small className="text-muted">{item.categoria}</small>}
                                     </div>
 
-                                    {item.categoria && <small className="text-muted">{item.categoria}</small>}
+                                    <div className="d-flex align-items-center gap-2">
+                                        {item.setor && <span className="badge bg-secondary">{item.setor}</span>}
+
+                                        {!ocultarStatus && item.statusOperacao && (
+                                            <span className={`badge ${badgeStatus(item.statusOperacao)}`}>
+                                                {formatarStatus(item.statusOperacao)}
+                                            </span>
+                                        )}
+
+                                        {renderizarCheckboxItem?.(item)}
+                                    </div>
                                 </div>
 
-                                <div className="mt-1 text-end">
-                                    {item.setor && <span className="badge bg-secondary me-1">{item.setor}</span>}
-
-                                    {item.statusOperacao && (
-                                        <span className={`badge ${badgeStatus(item.statusOperacao)}`}>
-                                            {formatarStatus(item.statusOperacao)}
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-
-                            {renderizarAcoesItem?.(item)}
-                        </li>
-                    ))}
+                                {renderizarAcoesItem?.(item)}
+                            </li>
+                        );
+                    })}
                 </ul>
 
                 {pedido.observacao && (
-                    <div className="alert alert-info">
+                    <div className="alert alert-info py-2">
                         <strong>Observação do cliente</strong>
 
                         <hr className="my-2" />
@@ -142,7 +209,7 @@ function PedidoCard({
                 )}
 
                 {pedido.observacaoOperacao && (
-                    <div className="alert alert-warning">
+                    <div className="alert alert-warning py-2">
                         <strong>Observação operacional</strong>
 
                         <hr className="my-2" />
